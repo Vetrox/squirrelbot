@@ -1,68 +1,21 @@
-const Discord = require('discord.js');
-const { prefix } = require('./config.json');
-const discordTTS=require("discord-tts");
+const discord       = require('discord.js');
+const discordTTS    = require('discord-tts');
+const fs            = require('fs');
+const log           = require('./log.js');
 
+// read in environment variables
+require('dotenv').config();
+const client = new discord.Client();
 
-const client = new Discord.Client();
-
-client.once('ready', () => {
-	console.log('Ready!');
-});
-let connection;
-
-let old_list = [];
-let new_list = [];
-
-client.on('message', async message => {
-	// Join the same voice channel of the author of the message
-	if (message.content === '!listenhere' && message.member.voice.channel) {
-		connection = await message.member.voice.channel.join();
-	} else if (message.content === '!leave' && message.member.voice.channel) {
-		connection = await message.member.voice.channel.leave();
-	}
-});
-
-client.on('voiceStateUpdate', async (oldState, newState) => {
-	let channelID = oldState.channelID;
-	if (channelID == null){
-		channelID = newState.channelID;
-	}
-	const channel = await client.channels.fetch(channelID);
-	let text = getChangeUsername(channel.members);
-	if(text != null && connection && connection.channelID != channelID){
-		const stream = discordTTS.getVoiceStream(text);
-    	const dispatcher = connection.play(stream,  { volume: 0.5 });
-	}
-});
-
-function getChangeUsername(members){
-	old_list = new_list;
-	new_list = [];
-	for (var f of members) {
-		let name = f[1].nickname;
-		if(name == null){
-			name = f[1].user.username;
-		}
-		new_list.push(name);
-	};
-
-	console.log(old_list);
-	console.log(new_list);
-
-	for (var f of old_list){
-		if(!(new_list.includes(f))){
-			//left the voicechat.
-			return f + ' left the channel';
-		}
-	}
-
-	for (var f of new_list){
-		if(!(old_list.includes(f))){
-			//joined the voicechat.
-			return f + ' joined the channel';
-		}
-	}
-	return null;
+// read all modules from modules directory
+let files = fs.readdirSync('./modules');
+for (file of files) {
+    const module = require('./modules/' + file);
+    // TODO put this all into one list
+    for (event in module.hooks) {
+        log.logMessage(`Attached event hook '${event}' from module '${file}'`)
+        client.on(event, module.hooks[event]);
+    }
 }
 
 client.login(process.env.BOT_TOKEN);

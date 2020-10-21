@@ -4,7 +4,8 @@
   "description": "Ein discord Bot für den FB 12",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon run index.js",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -17,7 +18,10 @@
   },
   "homepage": "https://github.com/Vetrox/squirrelbot#readme",
   "dependencies": {
+    "@discordjs/opus": "github:discordjs/opus",
     "discord-tts": "^1.0.1",
+    "discord.js": "^12.4.0",
+    "dotenv": "^8.2.0",
     "prism-media": "^1.2.2"
   }
 }
