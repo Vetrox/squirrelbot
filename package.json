@@ -1,0 +1,23 @@
+{
+  "name": "squirrelbot",
+  "version": "1.0.0",
+  "description": "Ein discord Bot für den FB 12",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vetrox/squirrelbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Vetrox/squirrelbot/issues"
+  },
+  "homepage": "https://github.com/Vetrox/squirrelbot#readme",
+  "dependencies": {
+    "discord-tts": "^1.0.1",
+    "prism-media": "^1.2.2"
+  }
+}
