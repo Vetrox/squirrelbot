@@ -1,15 +1,15 @@
 const discord       = require('discord.js');
 const discordTTS    = require('discord-tts');
 const { prefix }    = require('../config.json');
-const attributes = {modulename : 'joinWatch', commands : ['listenhere', 'leave']};
+const attributes = {modulename : 'joinWatcher', commands : ['listenhere', 'leave']};
+
+let connection;
 
 function help(channel){
     channel.send("This is the answer from the Help_method in case you spelled something wrong!");
 }
 
-let connection;
-
-async function onVoiceStateUpdate(oldState, newState) {
+async function onVoiceStateUpdate(bot, oldState, newState) {
     // truthy when user is in a voice channel now
     const ttsStr = `${newState.member.nickname ?? newState.member.user.username} ${newState.channel ? 'joined the channel' : 'left the channel'}.`;
     const channelID = oldState.channelID ?? newState.channelID;
@@ -20,7 +20,7 @@ async function onVoiceStateUpdate(oldState, newState) {
     }
 };
 
-async function onMessage(message) {
+async function onMessage(bot, message) {
     if (message.content[0] != prefix) return;
     let split = message.content.substring(1).split(' ');
     if (split[0] != attributes.modulename) return;
@@ -41,4 +41,6 @@ async function onMessage(message) {
 module.exports.hooks = {
     'voiceStateUpdate': onVoiceStateUpdate,
     'message': onMessage
-}
+};
+module.exports.help = help;
+module.exports.attributes = attributes;
