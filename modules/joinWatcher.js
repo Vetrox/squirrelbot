@@ -30,7 +30,7 @@ async function onMessage(message) {
         connection = await message.member.voice.channel.join();
         break;
     case attributes.commands[1]:
-        connection = await message.member.voice.channel.leave(); // <- undefined
+        connection = await connection?.channel.leave(); //connection <- undefined
         break;
     default:
         help(message.channel);
