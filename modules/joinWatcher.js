@@ -1,6 +1,11 @@
 const discord       = require('discord.js');
 const discordTTS    = require('discord-tts');
 const { prefix }    = require('../config.json');
+const attributes = {modulename : 'joinWatch', commands : ['listenhere', 'leave']};
+
+function help(channel){
+    channel.send("This is the answer from the Help_method in case you spelled something wrong!");
+}
 
 let connection;
 
@@ -16,11 +21,20 @@ async function onVoiceStateUpdate(oldState, newState) {
 };
 
 async function onMessage(message) {
-    if (message.content[0] === prefix) {
-        let split = message.content.substring(1).split(' ');
-        if (split[0] === 'listenhere') {
-            connection = await message.member.voice.channel.join();
-        }
+    if (message.content[0] != prefix) return;
+    let split = message.content.substring(1).split(' ');
+    if (split[0] != attributes.modulename) return;
+
+    switch(split[1]){
+    case attributes.commands[0]:
+        connection = await message.member.voice.channel.join();
+        break;
+    case attributes.commands[1]:
+        connection = await message.member.voice.channel.leave(); // <- undefined
+        break;
+    default:
+        help(message.channel);
+        return;
     }
 }
 

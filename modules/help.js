@@ -5,7 +5,5 @@ function onMessage(message) {
 }
 
 module.exports.hooks = {
-    'message': onMessage,
-    'message': onMessage,
     'message': onMessage
 };
