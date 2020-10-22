@@ -1,6 +1,0 @@
-Thu Oct 22 2020 14:25:10 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'message' from module 'help.js'
-Thu Oct 22 2020 14:25:10 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'voiceStateUpdate' from module 'joinWatcher.js'
-Thu Oct 22 2020 14:25:10 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'message' from module 'joinWatcher.js'
-Thu Oct 22 2020 14:27:05 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'message' from module 'help.js'
-Thu Oct 22 2020 14:27:05 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'voiceStateUpdate' from module 'joinWatcher.js'
-Thu Oct 22 2020 14:27:05 GMT+0200 (Mitteleuropäische Sommerzeit): Attached event hook 'message' from module 'joinWatcher.js'
