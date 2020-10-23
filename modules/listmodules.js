@@ -7,7 +7,7 @@ function help(channel){
 	channel.send("Listet alle Module auf!");
 }
 
-function onMessage(bot, message) {
+function onMessage(message) {
     if (message.content[0] != prefix) return;
     let split = message.content.substring(1).split(' ');
     if (split[0] != attributes.modulename) return;
