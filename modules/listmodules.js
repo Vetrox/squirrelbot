@@ -7,13 +7,17 @@ function help(channel){
 	channel.send("Listet alle Module auf!");
 }
 
+function initialize(){
+    
+}
+
 function onMessage(message) {
     if (message.content[0] != prefix) return;
     let split = message.content.substring(1).split(' ');
     if (split[0] != attributes.modulename) return;
 
     let text = "Alle Module:";
-    for(mod of bot.modules){
+    for(mod of bot['modules']){
     	if(mod.attributes.modulename){
     		text += "\n🡒 " + mod.attributes.modulename;
     	}
@@ -25,4 +29,5 @@ module.exports.hooks = {
     'message': onMessage
 };
 module.exports.help = help;
+module.exports.initialize = initialize;
 module.exports.attributes = attributes;

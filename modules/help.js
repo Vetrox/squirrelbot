@@ -13,6 +13,10 @@ function help(channel){
 
 }
 
+function initialize(){
+	
+}
+
 function onMessage(message) {
     if (message.content[0] != prefix) return;
     let split = message.content.substring(1).split(' ');
@@ -36,4 +40,5 @@ module.exports.hooks = {
     'message': onMessage
 };
 module.exports.help = help;
+module.exports.initialize = initialize;
 module.exports.attributes = attributes;
