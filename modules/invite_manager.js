@@ -15,7 +15,6 @@ async function initialize(){
 	await wait(1000); //we need to wait for about a second+, just to make sure the 'fetchInvites' function does actually return a value. Why? IDK!!!'
 	log.logMessage('Fetching invites...');
 
-	//TODO: get guilds first
 	bot['client'].guilds.cache.each(guild => {
 		//let guild = bot['client'].guilds.cache[key];
 		guild.fetchInvites().then(guildInvites => {
@@ -43,7 +42,7 @@ function onMessage(message) {
 			}
 			message.channel.send('Attached this channel to log invites to. :)');
 			break;
-		case attributes.commands[2]:
+		case attributes.commands[2]: //TODO: test
 			bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
 			bot['api'].database_row_delete(attributes.modulename, bot['api'].lookup_key(attributes.modulename, 'guild_id', message.guild.id.toString())?.[0]);
 			message.channel.send('Detatched this channel from logging here.');

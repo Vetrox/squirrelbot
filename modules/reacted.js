@@ -5,14 +5,13 @@ const attributes = {modulename : 'reacted', commands : ['add', 'remove']};
 
 function help(channel){
     channel.send(`Managed Nachrichten, mit denen ein User sich Rollen geben kann.
-!reacted add <id> '<message>' ['<emoji>':'<role>',...] ['<required_role>',...]
-    id : Eine eigens angegebene id der Nachricht, mit der später die Message sicher entfernt werden kann.
-        Beim simplen Löschen ist momentan noch keine Funktion eingebaut, die auch die Serverdaten löscht.
-    message : Die Nachricht, die den Benutzern angezeigt wird.
-    emoji : Emojiname. Also z.B. :smile:
-    role : Der Name der Rolle, welche zu dem Emoji korrespondiert.
-    required_role : Eine Liste an Rollen, bei denen eine Reaction eine auswirkung auf den User hat. (restriction)
-!reacted remove <id>'`);
+!reacted work_here
+	Beobachtet alle Nachrichten in dem channel. Wenn auf eine Nachricht reagiert wurde, weist der Bot der Person die Rolle zu,
+		welche ihr mit !reacted assign zugewiesen wurde.
+!reacted assign <emoji> <role>'
+	Weist dem emoji die beschriebene Rolle zu.
+	- Wenn die Methode ohne parameter aufgerufen wird zeigt sie alle Zuweisungen an
+	`);
 }
 
 function initialize(){
@@ -26,9 +25,12 @@ async function onMessage(message) {
 
     switch(split[1]){
     case attributes.commands[0]:
-        if(split[2] && split[3]){
-            //save message metadata in file.
-        }
+		//listen in this channel.
+		/*let ch_id = message.channel.id.toString(); 
+		bot['api'].database_create_if_not_exists(attributes.modulename + '_listening', ['guild_id', 'channel_id']); //lässt nur einen channel der Rollenvergabe zu.
+    	let bot['api'].lookup_key(attributes.modulename + '_listening', 'guild_id', message.guild.id.toString());
+    	let index = 
+        */
         break;
     case attributes.commands[1]:
         //remove message
