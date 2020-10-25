@@ -13,7 +13,7 @@ class Database {
 		//this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
 
-	indexing(){
+	indexing(){ //TODO: string and number mismatching?!
 		log.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
 		for(let key of this.keys) {
@@ -30,8 +30,15 @@ class Database {
 		}
 	}
 
+	validate(data) { //true if all is correct
+		if(!(data) || typeof data != 'object') return false;
+		let data_valid = true;
+		data.forEach(e => {typeof e === 'string' ? data_valid : data_valid = false});
+		return data_valid === true ? true : false;
+	}
+
 	add_row(data_new) { // [key1_value, key2_value, ...]
-		this.data_modified = true;
+		if(!validate(data_new)) return 'invalid data';
 		let new_index = this.data.length;
 		this.data.push(data_new);
 		for(let i = 0; i < data_new.length; i++) {
@@ -40,10 +47,12 @@ class Database {
 			}
 			this.index[i][data_new[i]].push(new_index);
 		}
+		this.data_modified = true;
 		return new_index;
 	}
 
 	del_row(data_index) {
+		if(typeof data_index != 'number' || data_index < 0 || data_index >= this.data.length) return 'invalid index';
 		this.data_modified = true;
 		this.data.splice(data_index, 1); //hopefully this works
 		//possibly need to re-index
@@ -54,12 +63,12 @@ class Database {
 	lookup(which_key, value) { //returns a list of indices in which the value for the key is satisfied.
 		let i = this.keys.indexOf(which_key);
 		let data_indices = this.index[i][value];
-		if(!data_indices || data_indices.length == 0) return 'error: key not in index or value not in database';
+		if(!(data_indices) || data_indices.length === 0) return 'error: key not in index or value not in database';
 		return data_indices;
 	}
 
 	change_data(data_index, key, new_value) {
-		this.data_modified = true;
+		if(typeof new_value != 'string' || typeof new_value != 'string') return 'wrong type of new_value';
 		let i = this.keys.indexOf(key);
 		let cache_i = this.index[i][this.data[data_index][i]].indexOf(data_index);
 		this.index[i][this.data[data_index][i]].splice(cache_i, 1); //remove pointer to this row at index.
@@ -72,17 +81,15 @@ class Database {
 			this.index[i][new_value] = []; //declare
 		}
 		this.index[i][new_value].push(data_index);
+		this.data_modified = true;
 	}
 
 	write_data() {
 		this.data_modified = false;
+		if(this.data.length <= 0) return false;
 		let write_data = '';
 		for (let key of this.keys) {
 			write_data += key + ' ';
-		}
-		write_data += '\n';
-		for (let key of this.keys) {
-			write_data += typeof key + ' '; 
 		}
 		write_data += '\n';
 		for (let row_i in this.data){
@@ -95,9 +102,9 @@ class Database {
   			if (err) throw err;
   			log.logMessage(`The database ${this.name} has been saved!`);
 		});
+		return true;
 	}
 }
-
 
 
 
@@ -115,6 +122,7 @@ function initialize() {
 	for (file of files) {
 		possible_databases.push(file);
 	}
+	load_database('invite_manager'); //TODO: Remove
 	save_databases_interval();
 }
 
@@ -123,8 +131,9 @@ function save_databases_interval(){
 	for (database in databases){
 		if(databases[database].data_modified === true){
 			log.logMessage(`Saving database ${databases[database].name}`);
-			databases[database].write_data();
-			n++;
+			if(databases[database].write_data() == true){
+				n++;
+			}
 		}
 	}
 	if(n > 0) {
@@ -134,28 +143,38 @@ function save_databases_interval(){
 }
 
 
-function exists(database){
+function exists(database) {
 	return possible_databases.indexOf(database) > -1;
 }
 
-function database_row_add(database, data){
+function database_create_if_not_exists(database, keys) {
+	if(!exists(database)){
+		create_database(database, keys);
+	}
+}
+
+
+function database_row_add(database, data) {
 	if(!exists(database)) return 'error: always check yourself, if the database exists and then create one.';
+	if(!(data)) return 'error: data was undefined';
 	if (!(database in databases)) {
 		load_database(database);
 	}
 	return databases[database].add_row(data);
 }
 
-function database_row_delete(database, index){
+function database_row_delete(database, index) {
 	if(!exists(database)) return 'error: always check yourself, if the database exists and then create one.';
+	if(typeof index != 'number') return 'error: data_index was not a number';
 	if (!(database in databases)) {
 		load_database(database);
 	}
 	return databases[database].del_row(index);
 }
 
-function database_row_change(database, data_index, key, new_value){ //TODO: test
+function database_row_change(database, data_index, key, new_value) {
 	if(!exists(database)) return 'error: always check yourself, if the database exists and then create one.';
+	if(typeof data_index != 'number') return 'error: data_index was not a number';
 	if (!(database in databases)) {
 		load_database(database);
 	}
@@ -166,7 +185,6 @@ function database_row_change(database, data_index, key, new_value){ //TODO: test
 	returns a list of indices of the data in that database
 **/
 function lookup_key(database, key, value) { //what happens, when multiple modules acess the same database at the same time?!?!?
-	//each database should have an index for each keytype, so lookups don't take much time
 	if(!exists(database)) return 'error: always check yourself, if the database exists and then create one.';
 	if (!(database in databases)) {
 		load_database(database);
@@ -174,19 +192,23 @@ function lookup_key(database, key, value) { //what happens, when multiple module
 	return databases[database].lookup(key, value);
 }
 
-function lookup_index(database, index) {
+function lookup_index(database, index, key) { //get value at (index, key)
 	if(!exists(database)) return 'error: always check yourself, if the database exists and then create one.';
+	if(typeof index != 'number' || typeof key != 'string') return 'error: index or key was undefined';
 	if (!(database in databases)) {
 		load_database(database);
 	}
-	return databases[database].data[index];
+	let i = databases[database].keys.indexOf(key);
+	if(i == -1) return 'error: could not find key in database';
+
+	let data = databases[database].data[index];
+	return data[i];
 }
 
 
 function load_database(database) { //should always be checked first, if this database truly exists.
 	/*structure:
 	row1 = keys; separated by spaces
-	row2 = key_type; number or string
 	row2 (key1) = value_for_key1;
 	row3 (key2) = value_for_key2;
 	row4 (key1) = value2_for_key1;
@@ -196,17 +218,12 @@ function load_database(database) { //should always be checked first, if this dat
 	let fi = fs.readFileSync('./data/' + database, "utf8"); //string
 	let rows = fi.trim().split('\n');
 	let keys = rows[0].trim().split(' ');
-	let key_type = rows[1].trim().split(' ');
 	let data = [];
-	for(let i = 2; i < rows.length - 1; i+= keys.length) {
+	for(let i = 1; i < rows.length - 1; i+= keys.length) {
 		let cache = [];
 		for(let i_k = 0; i_k < keys.length; i_k++) {
 			let row_index = i + i_k;
-			if(key_type[i_k] === 'number'){
-				cache.push(Number(rows[row_index]));
-			}else{
-				cache.push(rows[row_index]);
-			}
+			cache.push(rows[row_index]);
 		}
 		data.push(cache);
 	}
@@ -232,6 +249,7 @@ module.exports = {
 	'lookup_index' : lookup_index,
 	'database_row_add' : database_row_add,
 	'database_row_delete' : database_row_delete,
-	'database_row_change' : database_row_change
+	'database_row_change' : database_row_change,
+	'database_create_if_not_exists' : database_create_if_not_exists
 
 }
