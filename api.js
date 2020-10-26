@@ -5,17 +5,16 @@ const { prefix }	= require('./config.json');
 
 
 class Database {
-	constructor(name, keys, data) { //Data shold be an array: index -> [value for key1, value for key2...];
+	constructor(name, keys, data) { //Data shold be an array: index -> [value for key1, value for key2...]; values are json objects
 		this.name = name.trim();
 		this.keys = keys;
 		this.data = data;
 		this.data_modified = false;
 
-		//indexing...
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
 
-	indexing() {
+	indexing() { //TODO: #checkjsonvalidity
 		log.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
 		for(let key of this.keys) {
@@ -27,9 +26,10 @@ class Database {
 				if(!(values[i] in this.index[i])){
 					this.index[i][values[i]] = []; //declare
 				}
-				this.index[i /*key index*/][values[i]].push(ind); //also in index row, you can find that value; 
+				this.index[i][values[i]].push(ind); //also in index row, you can find that value; 
 			}
 		}
+		console.log(this.index);
 	}
 
 	/**
@@ -46,10 +46,19 @@ class Database {
 		}
 	}
 
-	validate(data) { //throws error, if invalid
+	validate(data) {
 		let data_valid = true;
 		this.val_t(data, 'object');
-		data.forEach(e => {if(typeof e != 'string') data_valid = false;});
+		data.forEach(e => {
+			try{
+				for(let d of data){
+					JSON.stringify(d);
+				}
+			}catch(error){
+				data_valid = false;
+				log.logMessage(error.message);
+			}
+		});
 		if(!data_valid) throw new err.InvalidData();
 	}
 
@@ -113,7 +122,7 @@ class Database {
 
 	change_data(data_index, key, new_value) {
 		this.val_t(data_index, 'number', key, 'string', new_value, 'string');
-		if(index < 0 || index >= this.data.length) throw new err.Range('index');
+		if(data_index < 0 || data_index >= this.data.length) throw new err.Range('index');
 		let i = this.key_i(key);
 		let cache_i = this.index[i][this.data[data_index][i]].indexOf(data_index);
 		this.index[i][this.data[data_index][i]].splice(cache_i, 1); //remove pointer to this row at index.
@@ -129,8 +138,10 @@ class Database {
 		this.data_modified = true;
 	}
 
-	write_data() {
-		this.data_modified = false;
+/**
+	Writes the data on disk. If done so it returns true.
+**/
+	write_data() { //TODO: test for newlines
 		if(this.data.length <= 0) return false;
 		let write_data = '';
 		for (let key of this.keys) {
@@ -139,7 +150,7 @@ class Database {
 		write_data += '\n';
 		for (let row_i in this.data){
 			for(let key_in in this.keys){
-				write_data += this.data[row_i][key_in] + '\n';  
+				write_data += JSON.stringify(this.data[row_i][key_in]) + '\n';
 			}
 		}
 
@@ -147,6 +158,7 @@ class Database {
   			if (err) throw err;
   			log.logMessage(`The database ${this.name} has been saved!`);
 		});
+		this.data_modified = false;
 		return true;
 	}
 }
@@ -162,12 +174,10 @@ function initialize() {
 		log.logMessage('Creating database folder...');
 		fs.mkdirSync('./data');
 	}
-
 	let files = fs.readdirSync('./data'); 
 	for (file of files) {
 		possible_databases.push(file);
 	}
-	load_database('invite_manager'); //TODO: Remove
 	save_databases_interval();
 }
 
@@ -177,7 +187,7 @@ function save_databases(){
 	for (database in databases){
 		if(databases[database].data_modified === true){
 			log.logMessage(`Saving database ${databases[database].name}`);
-			if(databases[database].write_data() == true){
+			if(databases[database].write_data() === true){
 				n++;
 			}
 		}
@@ -203,9 +213,7 @@ function prepare_request(database){
 }
 
 function database_create_if_not_exists(database, keys) {
-	if(!exists(database)){
-		create_database(database, keys);
-	}
+	if(!exists(database)) create_database(database, keys);
 }
 
 function database_row_add(database, data) {
@@ -241,9 +249,7 @@ function lookup_index(database, index, key) { //get value at (index, key)
 }
 
 function cache_dbs(database) { //loads the database from the cache, otherwise from disk
-	if (!(database in databases)) {
-		load_database(database);
-	}
+	if (!(database in databases)) load_database(database);
 }
 
 function load_database(database) { //should always be checked first, if this database truly exists.
@@ -263,7 +269,7 @@ function load_database(database) { //should always be checked first, if this dat
 		let cache = [];
 		for(let i_k = 0; i_k < keys.length; i_k++) {
 			let row_index = i + i_k;
-			cache.push(rows[row_index]);
+			cache.push(JSON.parse(rows[row_index]));
 		}
 		data.push(cache);
 	}
@@ -275,6 +281,7 @@ function create_database(database, keys){
 	if(database in databases){
 		throw new err.Dublication(database);
 	}else{
+		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].data_modified = true;
 	}
