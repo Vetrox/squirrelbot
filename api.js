@@ -1,6 +1,8 @@
-const fs	= require('fs');
-const log	= require('./log.js');
-const err	= require('./errors.js');
+const fs			= require('fs');
+const log			= require('./log.js');
+const err			= require('./errors.js');
+const { prefix }	= require('./config.json');
+
 
 class Database {
 	constructor(name, keys, data) { //Data shold be an array: index -> [value for key1, value for key2...];
@@ -10,8 +12,7 @@ class Database {
 		this.data_modified = false;
 
 		//indexing...
-		this.indexing();
-		//this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
+		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
 
 	indexing() {
@@ -47,7 +48,7 @@ class Database {
 
 	validate(data) { //throws error, if invalid
 		let data_valid = true;
-		val_t(data, 'object');
+		this.val_t(data, 'object');
 		data.forEach(e => {if(typeof e != 'string') data_valid = false;});
 		if(!data_valid) throw new err.InvalidData();
 	}
@@ -62,7 +63,7 @@ class Database {
 	}
 
 	add_row(data_new) {
-		validate(data_new);
+		this.validate(data_new);
 		let new_index = this.data.length;
 		this.data.push(data_new);
 		for(let i = 0; i < data_new.length; i++) {
@@ -76,12 +77,12 @@ class Database {
 	}
 
 	del_row(data_index) {
-		val_t(data_index, 'number');
+		this.val_t(data_index, 'number');
 		if(data_index < 0 || data_index >= this.data.length) throw new err.Range('index');
 		this.data_modified = true;
 		this.data.splice(data_index, 1); //hopefully this works
 		//possibly need to re-index //alternative: overwrite with DELETED (then deleted would be a keyword)
-		indexing();
+		this.indexing();
 	}
 
 	/**
@@ -91,7 +92,7 @@ class Database {
 	
 	**/
 	lookup_key_value(which_key, value) { //returns a list of indices in which the value for the key is satisfied.
-		let i = key_i(which_key);
+		let i = this.key_i(which_key);
 		let data_indices = this.index[i][value];
 		if(!(data_indices) || data_indices.length === 0) throw new err.Find(value, 'index of the key');
 		return data_indices;
@@ -104,16 +105,16 @@ class Database {
 			- Find-error, when the key is not in the database.
 	**/
 	lookup_index(index, key) {
-		val_t(index, 'number', key, 'string');
+		this.val_t(index, 'number', key, 'string');
 		if(index < 0 || index >= this.data.length) throw new err.Range('index');
-		let i = key_i(key);
+		let i = this.key_i(key);
 		return this.data[index][i];
 	}
 
 	change_data(data_index, key, new_value) {
-		val_t(data_index, 'number', key, 'string', new_value, 'string');
+		this.val_t(data_index, 'number', key, 'string', new_value, 'string');
 		if(index < 0 || index >= this.data.length) throw new err.Range('index');
-		let i = key_i(key);
+		let i = this.key_i(key);
 		let cache_i = this.index[i][this.data[data_index][i]].indexOf(data_index);
 		this.index[i][this.data[data_index][i]].splice(cache_i, 1); //remove pointer to this row at index.
 		if(this.index[i][this.data[data_index][i]].length === 0){
@@ -137,8 +138,8 @@ class Database {
 		}
 		write_data += '\n';
 		for (let row_i in this.data){
-			for(let key_i in this.keys){
-				write_data += this.data[row_i][key_i] + '\n';  
+			for(let key_in in this.keys){
+				write_data += this.data[row_i][key_in] + '\n';  
 			}
 		}
 
@@ -170,7 +171,8 @@ function initialize() {
 	save_databases_interval();
 }
 
-function save_databases_interval(){
+function save_databases(){
+	if(bot['running'] != true) return;
 	let n = 0;
 	for (database in databases){
 		if(databases[database].data_modified === true){
@@ -183,6 +185,10 @@ function save_databases_interval(){
 	if(n > 0) {
 		log.logMessage(`Saved ${n} databases`);	
 	}
+}
+
+function save_databases_interval(){
+	save_databases();
 	setTimeout(save_databases_interval, 50 * 1000);
 }
 
@@ -222,7 +228,7 @@ function database_row_change(database, data_index, key, new_value) {
 
 	throws: 
 		- Unexisting error, when the database is not exisiting
-		- 
+		- Find error, when key not in keys or value not in index[key]
 **/
 function lookup_key_value(database, key, value) { //what happens, when multiple modules acess the same database at the same time?!?!?
 	prepare_request(database);
@@ -231,7 +237,7 @@ function lookup_key_value(database, key, value) { //what happens, when multiple 
 
 function lookup_index(database, index, key) { //get value at (index, key)
 	prepare_request(database);
-	return database[database].lookup_index(index, key);
+	return databases[database].lookup_index(index, key);
 }
 
 function cache_dbs(database) { //loads the database from the cache, otherwise from disk
@@ -274,6 +280,14 @@ function create_database(database, keys){
 	}
 }
 
+
+function check_message(message, modulename){ //improve efficiency
+	if (message.content[0] != prefix) return false;
+	let split = message.content.substring(1).split(' ');
+	if (!split[0] || split[0] != modulename) return false;
+	return true;
+}
+
 module.exports = {
 	'initialize' : initialize,
 	'lookup_key_value' : lookup_key_value,
@@ -284,6 +298,7 @@ module.exports = {
 	'database_row_add' : database_row_add,
 	'database_row_delete' : database_row_delete,
 	'database_row_change' : database_row_change,
-	'database_create_if_not_exists' : database_create_if_not_exists
-
+	'database_create_if_not_exists' : database_create_if_not_exists,
+	'save_databases' : save_databases,
+	'check_message' : check_message
 }

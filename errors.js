@@ -13,13 +13,16 @@ class Undefined extends BotError {
 
 class Type extends BotError {
 	constructor(){
-		super('Got a value with the wrong type');
-	}
-	constructor(expected){
-		super(`Expected value type: ${expected}`);
-	}
-	constructor(got, expected) {
-		super(`Got type ${got} but the expected type was ${expected}`);
+		switch(arguments.length){
+			case 1:
+				super(`Expected value type: ${arguments[0]}`);
+				break;
+			case 2:
+				super(`Got type ${arguments[0]} but the expected type was ${arguments[1]}`);
+				break;
+			default:
+				super('Got a value with the wrong type');
+		}
 	}
 }
 
@@ -57,7 +60,7 @@ class Dublication extends BotError {
 module.exports = {
 	'BotError' : BotError,
 	'Undefined' : Undefined,
-	'WrongType' : WrongType,
+	'Type' : Type,
 	'InvalidData' : InvalidData,
 	'Find' : Find,
 	'Range' : Range,

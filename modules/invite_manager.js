@@ -1,6 +1,7 @@
 const discord		= require('discord.js');
 const { prefix }	= require('../config.json');
 const log			= require('../log.js');
+const err			= require('../errors.js');
 const attributes	= {modulename : 'invite_manager', commands: ['create_invite', 'log_here', 'stop_logging_here', 'on_join_give_role']};
 
 const wait = require('util').promisify(setTimeout); //doesn't block the execution
@@ -33,19 +34,27 @@ function onMessage(message) {
 
 	switch (split[1]) {
 		case attributes.commands[1]:
-			bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
-			let i_ = bot['api'].lookup_key(attributes.modulename, 'guild_id', message.guild.id.toString());
-			if(typeof i_ == 'string') { //when key not in index
-				bot['api'].database_row_add(attributes.modulename, [message.guild.id.toString(), message.channel.id.toString()]);
-			} else {
-				bot['api'].database_row_change(attributes.modulename, i_, 'log_channel_id', message.channel.id.toString());
+			try{
+				bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
+				try{
+					let i = bot['api'].lookup_key_value(attributes.modulename, 'guild_id', message.guild.id.toString())[0];
+					bot['api'].database_row_change(attributes.modulename, i, 'log_channel_id', message.channel.id.toString());
+				}catch (error){ //either key not in keys, or [LIKELY] value not in index
+					if(error instanceof err.Find) bot['api'].database_row_add(attributes.modulename, [message.guild.id.toString(), message.channel.id.toString()]); else throw error;	
+				}
+				message.channel.send('Attached this channel to log invites to. :)');
+			}catch (error){
+				throw error;
 			}
-			message.channel.send('Attached this channel to log invites to. :)');
 			break;
 		case attributes.commands[2]: //TODO: test
-			bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
-			bot['api'].database_row_delete(attributes.modulename, bot['api'].lookup_key(attributes.modulename, 'guild_id', message.guild.id.toString())?.[0]);
-			message.channel.send('Detatched this channel from logging here.');
+			try{
+				bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
+				bot['api'].database_row_delete(attributes.modulename, bot['api'].lookup_key_value(attributes.modulename, 'guild_id', message.guild.id.toString())[0]);
+				message.channel.send('Detatched this channel from logging here.');
+			}catch(error){
+				throw error;
+			}
 			break;
 		default:
 			help(message.channel);
@@ -65,21 +74,21 @@ function onGuildMemberAdd(member) {
 		invites[member.guild.id] = guildInvites;
 
 		log.logMessage(`${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`);
-		bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
-		let i_ = bot['api'].lookup_key(attributes.modulename, 'guild_id', member.guild.id.toString()); //-> should be unique. if not, we have a conflict
-		if(typeof i_ === 'string'){
-			log.logMessage('No logging channel specified for guild ' + member.guild.id);
-			return;
-		}
-		let ir = i_[0];
-		let ied= bot['api'].lookup_index(attributes.modulename, ir, 'log_channel_id');
-		if(!ied.startsWith('error')){
-			member.client.channels.fetch(ied).then(log_channel => {
+		try{
+			bot['api'].database_create_if_not_exists(attributes.modulename, ['guild_id', 'log_channel_id']);
+			let i = bot['api'].lookup_key_value(attributes.modulename, 'guild_id', member.guild.id.toString())[0]; //-> should be unique. if not, we have a conflict
+			let ch_id = bot['api'].lookup_index(attributes.modulename, i, 'log_channel_id');
+			member.client.channels.fetch(ch_id).then(log_channel => {
 				log_channel.send(`${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`);
 			});
+		}catch(error){
+			if(error instanceof err.Find){
+				log.logMessage('No logging channel specified for guild ' + member.guild.id);
+			}else{
+				throw error;
+			}
 		}
 	});
-
 }
 
 module.exports.hooks = {

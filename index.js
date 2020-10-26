@@ -11,7 +11,7 @@ require('dotenv').config(); // read in environment variables
 const client = new discord.Client();
 
 /*GLOBAL VARIABLES*/
-global.bot = {'client': client}; // the bot variable can be accessed by any module to share information across modules. constants can easily be written in the declaration.
+global.bot = {'client': client, 'running' : true}; // the bot variable can be accessed by any module to share information across modules. constants can easily be written in the declaration.
 
 /*CLASSES*/
 
