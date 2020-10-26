@@ -29,7 +29,6 @@ class Database {
 				this.index[i][values[i]].push(ind); //also in index row, you can find that value; 
 			}
 		}
-		console.log(this.index);
 	}
 
 	/**
@@ -39,7 +38,7 @@ class Database {
 			Type-error, if one of the types of the arguments match doesn't match the requested type
 	**/
 	val_t(...args){
-		for(let i = 0; i < args.length / 2; i+=2){
+		for(let i = 0; i < args.length - 2; i+=2){
 			if(typeof args[i] != args[i+1]){
 				throw new err.Type(typeof args[i], args[i+1]);
 			}
@@ -49,6 +48,7 @@ class Database {
 	validate(data) {
 		let data_valid = true;
 		this.val_t(data, 'object');
+		if(data.length != this.keys.length) data_valid = false;
 		data.forEach(e => {
 			try{
 				for(let d of data){
@@ -141,7 +141,7 @@ class Database {
 /**
 	Writes the data on disk. If done so it returns true.
 **/
-	write_data() { //TODO: test for newlines
+	write_data() {
 		if(this.data.length <= 0) return false;
 		let write_data = '';
 		for (let key of this.keys) {
@@ -290,7 +290,7 @@ function create_database(database, keys){
 
 function check_message(message, modulename){ //improve efficiency
 	if (message.content[0] != prefix) return false;
-	let split = message.content.substring(1).split(' ');
+	let split = message.content.substring(1).split(/\s+/);
 	if (!split[0] || split[0] != modulename) return false;
 	return true;
 }

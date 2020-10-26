@@ -24,8 +24,8 @@ function initialize_modules() {
 		const mod = require('./modules/' + file);
 		/* add event hooks */
 		for (event in mod.hooks) {
-			log.logMessage(`Attached event hook '${event}' from module '${file}'`);
 			client.on(event, mod.hooks[event]);
+			log.logMessage(`Attached event hook '${event}' from module '${file}'`);
 		}
 		modules.push(mod);
 	}

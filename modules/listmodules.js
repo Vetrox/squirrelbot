@@ -13,7 +13,7 @@ function initialize(){
 
 function onMessage(message) {
     if (message.content[0] != prefix) return;
-    let split = message.content.substring(1).split(' ');
+    let split = message.content.substring(1).split(/\s+/);
     if (split[0] != attributes.modulename) return;
 
     let text = "Alle Module:";
