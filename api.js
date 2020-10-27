@@ -45,6 +45,13 @@ class Database {
 		}
 	}
 
+	validate_keys(param_keys){
+		if(param_keys.length != this.keys.length) throw new err.InvalidData();
+		for(let i = 0; i < this.keys.length; i++){
+			if(this.keys[i] != param_keys[i]) throw new err.InvalidData();
+		}
+	}
+
 	validate(data) {
 		let data_valid = true;
 		this.val_t(data, 'object');
@@ -69,6 +76,13 @@ class Database {
 		let i = this.keys.indexOf(keyname);
 		if(i == -1) throw new err.Find('key', 'keys of the database');
 		return i;
+	}
+
+	/**
+		executes the lambda with each row as a parameter
+	**/
+	for_each(lambda) {
+		for(let d of this.data) lambda(d);
 	}
 
 	add_row(data_new) {
@@ -213,7 +227,15 @@ function prepare_request(database){
 }
 
 function database_create_if_not_exists(database, keys) {
-	if(!exists(database)) create_database(database, keys);
+	if(!exists(database)) create_database(database, keys); else { //TODO: this is new: check
+		load_database(database);
+		databases[database].validate_keys(keys);
+	}
+}
+
+function database_for_each(database, lambda){
+	prepare_request(database);
+	return databases[database].for_each(lambda);
 }
 
 function database_row_add(database, data) {
