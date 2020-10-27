@@ -4,6 +4,8 @@ const err           = require('../errors.js');
 const { prefix }    = require('../config.json');
 const attributes    = {modulename : 'reacted', commands : ['add', 'show', 'remove', 'test']};
 
+//TODO: make it possible to create reacted in other channels...
+
 function help(channel){ //TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
     channel.send(`Managed Nachrichten, mit denen ein User sich Rollen geben kann.
 !reacted add <messageID> <emoji> <role> [<emoji_1 <role_1> ...] [-required <role> [<role2> ...]]'
@@ -24,93 +26,105 @@ function help(channel){ //TODO: add possibility to just give yourself the role, 
 
 let collectors = {}; //messageID : collector
 
-function initialize(){
+async function initialize(){
     //go through every saved message to react to and add reactioncollector to it.
+    //bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']);
+    //await bot['api'].database_for_each(attributes.modulename, collectReactions);
 
-    bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles', 'required_equal']);
-    bot['api'].database_for_each(attributes.modulename, async data => { 
-        const msgID = data[0], emoji_map = data[1], required_roles = data[2], required_equal = data[3];
-        const filter = (reaction, user) => {
-            /* if there isn't any collector anymore for this message. (in theory this will never be true because the collector is stopped, if it doesnt exist) */
-            if(!(msgID in collectors)) return false; 
-            try{
-                //when we find more than one row containing this messageID, also throw an error
-                if(bot['api'].lookup_key_value(attributes.modulename, 'messageID', msgID).length > 1) throw Error;
-                //check, if user has the required role
-                const guildMember = await reaction.message.guild.members.fetch(user.id); 
-                let role_check = false;
-                for(let role_id of required_roles){
-                    let required_role = await reaction.message.guild.roles.fetch(role_id); //TODO: check if id is a string or number, and what is needed //throws an error, if role couldn't be found
-                    if(required_equal == true) { //required equal could be string.... //TODO: refactor into one if statement
-                        if(guildMember.roles.highest.comparePositionTo(required_role) === 0) {//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
-                            role_check = true;
-                            break;
-                        }
-                    } else if(guildMember.roles.highest.comparePositionTo(required_role) >= 0) {
-                        role_check = true;
-                        break;
-                    }
-                }
-                if(role_check === false) {
-                    return false;
-                }
-
-                if(reaction.emoji instanceof Discord.GuildEmoji)
-                    return '<' + reaction.emoji.identifier + '>' in emoji_map;
-                else
-                    return reaction.emoji.name in emoji_map;
-            } catch (error) {
-                //delete collector
-                if(error instanceof err.BotError){ //then message is not in database anymore
-                    if(msgID in collectors) {
-                        collectors[msgID].stop();
-                        delete collectors[msgID];
-                        return false;
-                    }   
-                } else {
-                    log.logMessage(error.name);
-                    log.logMessage(error.message);
-                    log.logMessage(error.toString());
-                    throw error;
-                }
-            }
-            return false; };
-
-
-        const collector = message.createReactionCollector(filter);
-        collector.on('collect', (reaction, user) => {
-            //give the user the role
-            const guildMember = await reaction.message.guild.members.fetch(user.id); 
-            //get the assigned role of the reaction
-            let assigned_role_id;
-            if(reaction.emoji instanceof Discord.GuildEmoji) {
-                assigned_role_id = emoji_map['<' + reaction.emoji.identifier + '>'];
-            } else {
-                assigned_role_id = emoji_map[reaction.emoji.name];
-            }
-            const assigned_role = await reaction.message.guild.roles.fetch(role_id);
-            
-
-            //depending on setting add, remove, or toggle the role.
-
-            /* TOGGLE */
-
-            console.log(`Rection: ${reaction.emoji.name} from ${user.tag}`)
-        });
-        collector.on('end', collected => console.log(`Collected ${collected.size} items`));
-
-    });
+    const filter = (reaction, user) => true;
+    let message = await bot['client'].guilds.cache.get('601209596866199560').channels.cache.get("748724500375273483").messages.fetch("770676879882453013"); //works
     
-    
+    const collector = message.createReactionCollector(filter, { time: 20000 });
+    collector.on('collect', (reaction, user) => console.log(`Collected ${reaction.emoji.name} with the id ${reaction.emoji.id} and the identifier ${reaction.emoji.identifier} from ${user.tag}. Emoji is instanceof Discord.GuildEmoji? ${reaction.emoji instanceof Discord.GuildEmoji}`));
+    collector.on('end', collected => console.log(`Collected ${collected.size} items`));
 
+    message.react('🤔')
+    .then(console.log)
+    .catch(console.error);
 
 }
 
-/**
-    referenced in the initialize method
-**/
-function reactionAdd(reaction, user){
+async function collectReactions(data){
+    const orig_msgID = data[0], emoji_map = data[1], required_roles = data[2], required_equal = data[3], new_msg_id = data[4], guild_id = data[5], channel_id = data[6];
+    if(orig_msgID in collectors) return; //no doublicates allowed. //TODO: decide if it should throw an error.
+    // const filter = async (reaction, user) => {
+    //     console.log('filter gets executed');
+    //     /* if there isn't any collector anymore for this message. (in theory this will never be true because the collector is stopped, if it doesnt exist) */
+    //     if(!(orig_msgID in collectors)) return false; 
+    //     try{
+    //         //when we find more than one row containing this messageID, also throw an error
+    //         if(bot['api'].lookup_key_value(attributes.modulename, 'messageID', orig_msgID).length > 1) throw Error;
+    //         //check, if user has the required role
+    //         const guildMember = await reaction.message.guild.members.fetch(user.id); 
+    //         let role_check = false;
+    //         for(let role_id of required_roles){
+    //             let required_role = await reaction.message.guild.roles.fetch(role_id); //TODO: check if id is a string or number, and what is needed //throws an error, if role couldn't be found
+    //             if(required_equal == true) { //required equal could be string.... //TODO: refactor into one if statement
+    //                 if(guildMember.roles.highest.comparePositionTo(required_role) === 0) {//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
+    //                     role_check = true;
+    //                     break;
+    //                 }
+    //             } else if(guildMember.roles.highest.comparePositionTo(required_role) >= 0) {
+    //                 role_check = true;
+    //                 break;
+    //             }
+    //         }
+    //         if(required_roles.length > 0 && role_check === false) { //if there are required roles and the user has failed the check
+    //             return false;
+    //         }
 
+    //         if(reaction.emoji instanceof Discord.GuildEmoji) {
+    //             return '<' + reaction.emoji.identifier + '>' in emoji_map;
+    //         } else {
+    //             return reaction.emoji.name in emoji_map;
+    //         }
+    //     } catch (error) {
+    //         //delete collector
+    //         if(error instanceof err.BotError){ //then message is not in database anymore
+    //             if(orig_msgID in collectors) {
+    //                 collectors[orig_msgID].stop();
+    //                 delete collectors[orig_msgID];
+    //                 return false;
+    //             }   
+    //         } else {
+    //             log.logMessage(error.name);
+    //             log.logMessage(error.message);
+    //             log.logMessage(error.toString());
+    //             throw error;
+    //         }
+    //     }
+    //     return false; 
+    // };
+    const filter = (r, u) => true;
+    let message = await bot['client'].guilds.cache.get(guild_id).channels.cache.get(channel_id).messages.fetch(new_msg_id); //works
+    let collector = message.createReactionCollector(filter);
+    collector.on('collect', (reaction, user) => {
+        // //give the user the role
+        // const guildMember = await reaction.message.guild.members.fetch(user.id); 
+        // //get the assigned role of the reaction
+        // let assigned_role_id;
+        // if(reaction.emoji instanceof Discord.GuildEmoji) {
+        //     assigned_role_id = emoji_map['<' + reaction.emoji.identifier + '>'];
+        // } else {
+        //     assigned_role_id = emoji_map[reaction.emoji.name];
+        // }
+        // const assigned_role = await reaction.message.guild.roles.fetch(role_id);
+        
+        // //depending on setting add, remove, or toggle the role.
+
+        // /* TOGGLE */
+        // if(guildMember.roles.cache.has(assigned_role)) { //TODO: check the valididty of this check
+        //     log.logMessage('Giving the role ' + assigned_role.toString());
+        //     guildMember.roles.add(assigned_role, 'reason: the bot gave you the role');
+        // }else{
+        //     guildMember.roles.remove(assigned_role, 'reason: the bot took the role from you');
+        // }
+
+        console.log(`Rection: ${reaction.emoji.name} from ${user.tag}`)
+    });
+
+    collector.on('end', collected => console.log(`Collected ${collected.size} items`)); //not possible to end until now
+    collectors[orig_msgID] = collector;
 }
 
 async function onMessage(message) {
@@ -124,7 +138,12 @@ async function onMessage(message) {
         let messageID = split[2];
     	let assigns_list = [];
     	let required_roles = [];
+        let required_equal = false;
     	for(let req = false, i = 3; i < split.length; i++){
+            if(split[i] === '-required_equal'){
+                required_equal = true;
+                continue;
+            }
     		if(req == false && split[i] === '-required') {
                 req = true;
                 continue;
@@ -143,20 +162,6 @@ async function onMessage(message) {
             emoji_map[assigns_list[i]] = assigns_list[i+1];
     	}
         try{
-            bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles']);
-            try{
-                bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
-                //die vorige zeile throwt einen error, bevor dies ausgeführt wird
-                message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon: ${i.length}`); 
-            }catch (error) {
-                if(error instanceof err.Find){
-                    bot['api'].database_row_add(attributes.modulename, [messageID, emoji_map, required_roles]);
-                    message.channel.send(`Nachricht in Datenbank gespeichert.`);
-                }else{
-                    throw error;
-                }
-            }
-
             // embed Message and send to channel.
             let msg = await message.channel.messages.fetch(messageID);
             let e_r_t = '';
@@ -175,13 +180,28 @@ async function onMessage(message) {
                 .setTimestamp()
                 .setFooter(`Original MessageID: ${messageID}`, 'https://i.imgur.com/wSTFkRM.png')
                 .setThumbnail('https://i.imgur.com/4AiXzf8.jpeg');
-                
-            message.channel.send(embed);
-
-            //implement logic for reactions
+            
+            const ret_msg =  await message.channel.send(embed);
+            const new_msg_id = ret_msg.id;
+            bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']);
+            try{
+                bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
+                //die vorige zeile throwt einen error, bevor dies ausgeführt wird
+                message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon: ${i.length}`); 
+            }catch (error) {
+                if(error instanceof err.Find) {
+                    const data = [messageID, emoji_map, required_roles, required_equal, new_msg_id, message.guild.id, message.channel.id];
+                    bot['api'].database_row_add(attributes.modulename, data);
+                    message.channel.send(`Nachricht in Datenbank gespeichert. Erwarte Reaktionen`);
+                    collectReactions(data);
+                }else{
+                    throw error;
+                }
+            }
         }catch (error){
             message.channel.send('Etwas ist schief gelaufen! Bitte im log nachschauen.');
             log.logMessage(error.message);
+            throw error;
             return;
         }
         break;

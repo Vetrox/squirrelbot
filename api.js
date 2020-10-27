@@ -81,8 +81,8 @@ class Database {
 	/**
 		executes the lambda with each row as a parameter
 	**/
-	for_each(lambda) {
-		for(let d of this.data) lambda(d);
+	async for_each(lambda) {
+		for(let d of this.data) await lambda(d);
 	}
 
 	add_row(data_new) {
@@ -227,15 +227,18 @@ function prepare_request(database){
 }
 
 function database_create_if_not_exists(database, keys) {
-	if(!exists(database)) create_database(database, keys); else { //TODO: this is new: check
-		load_database(database);
+	console.log(possible_databases);
+	if(!exists(database)) { 
+		create_database(database, keys); 
+	} else { //TODO: this is new: check
+		cache_dbs(database);
 		databases[database].validate_keys(keys);
 	}
 }
 
-function database_for_each(database, lambda){
+async function database_for_each(database, lambda){
 	prepare_request(database);
-	return databases[database].for_each(lambda);
+	return await databases[database].for_each(lambda);
 }
 
 function database_row_add(database, data) {
@@ -283,7 +286,7 @@ function load_database(database) { //should always be checked first, if this dat
 	...
 	*/ 
 	log.logMessage(`Loading database ${database}`);
-	let fi = fs.readFileSync('./data/' + database, "utf8"); //string
+	let fi = fs.readFileSync('./data/' + database, "utf8");
 	let rows = fi.trim().split('\n');
 	let keys = rows[0].trim().split(' ');
 	let data = [];
@@ -303,6 +306,7 @@ function create_database(database, keys){
 	if(database in databases){
 		throw new err.Dublication(database);
 	}else{
+		log.logMessage('Creating database ' + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].data_modified = true;
@@ -327,6 +331,7 @@ module.exports = {
 	'database_row_add' : database_row_add,
 	'database_row_delete' : database_row_delete,
 	'database_row_change' : database_row_change,
+	'database_for_each' : database_for_each,
 	'database_create_if_not_exists' : database_create_if_not_exists,
 	'save_databases' : save_databases,
 	'check_message' : check_message
