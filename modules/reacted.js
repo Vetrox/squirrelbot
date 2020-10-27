@@ -3,6 +3,7 @@ const log           = require('../log.js');
 const err           = require('../errors.js');
 const { prefix }    = require('../config.json');
 const attributes    = {modulename : 'reacted', commands : ['add', 'show', 'remove', 'test']};
+const databases     = [{name: attributes.modulename, keys: ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']}];
 
 //TODO: make it possible to create reacted in other channels...
 
@@ -27,17 +28,15 @@ function help(channel){ //TODO: add possibility to just give yourself the role, 
 let collectors = {}; //messageID : lambda(args) //TODO:add args
 
 async function initialize(){
-
     //go through every saved message to react to and add reactioncollector to it.
-    bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']);
+    bot['api'].database_create_if_not_exists(databases[0].name, databases[0].keys);
     await bot['api'].database_for_each(attributes.modulename, setupCollector);
 
 }
 
-async function setupCollector(data){
+async function setupCollector(data) {
     const orig_msgID = data[0], emoji_map = data[1], required_roles = data[2], required_equal = data[3], new_msg_id = data[4], guild_id = data[5], channel_id = data[6];
     if(orig_msgID in collectors) return; //no doublicates allowed. //TODO: decide if it should throw an error.
-
     collectors[orig_msgID] = async (type, guild, user_id, emoji, message_id) => {
         try{
             //when we find more than one row containing this messageID, also throw an error
@@ -126,6 +125,20 @@ async function onMessage(message) {
     case attributes.commands[0]:
     	if(!split[2] || split.length < 5) help(message.channel);
         let messageID = split[2];
+        try{
+            bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
+            //if no error is thrown, eg. the message is in the database.
+            message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon: ${i.length}`);
+            return;
+        }catch (error) {
+            if(!(error instanceof err.Find)){
+                throw error;
+            }
+        }
+
+
+
+
     	let assigns_list = [];
     	let required_roles = [];
         let required_equal = false;
@@ -138,28 +151,28 @@ async function onMessage(message) {
                 req = true;
                 continue;
             }
-    		if(req == false) {
-    			assigns_list.push(split[i]);
-    		}else if(req == true){
-    			required_roles.push(message.guild.roles.cache.find(role => role.name.toLowerCase() === split[i].toLowerCase()).id); //find roleid or throw error
-    		}else{
-    			throw Error;
-    		}
+    		if(req == false) assigns_list.push(split[i]); else required_roles.push(message.guild.roles.cache.find(role => role.name.toLowerCase() === split[i].toLowerCase()).id); //find roleid or throw error
     	}
+        if(assigns_list.length <= 0 || assigns_list.length % 2 != 0) throw new err.CommandParameter('Wrong number of assignments made');
     	let emoji_map = {};
-    	if(assigns_list.length % 2 != 0) throw Error;
     	for(let i = 0; i <= assigns_list.length - 2; i+=2){
             emoji_map[assigns_list[i]] = message.guild.roles.cache.find(role => role.name.toLowerCase() === assigns_list[i+1].toLowerCase()).id;
     	}
+        // embed Message and send to channel.
+        
+        let e_r_t = '';
+        for(emoji in emoji_map) {
+            console.log(`Emojistr: ${emoji}`);
+            e_r_t += `${emoji} -> ${message.guild.roles.cache.get(emoji_map[emoji])}\n`; //for custom guild emojis it is <:testemoji:770631980496322590>, which is pretty similar to the idientifier of emojis
+        }
+        let msg;
         try{
-            // embed Message and send to channel.
-            let msg = await message.channel.messages.fetch(messageID);
-            let e_r_t = '';
-            for(emoji in emoji_map) {
-                console.log(`Emojistr: ${emoji}`);
-                e_r_t += `${emoji} -> ${message.guild.roles.cache.get(emoji_map[emoji])}\n`; //for custom guild emojis it is <:testemoji:770631980496322590>, which is pretty similar to the idientifier of emojis
-            }
-            const embed = new Discord.MessageEmbed()
+            msg = await message.channel.messages.fetch(messageID);
+        }catch (error) {
+            message.channel.send(`Konnte die Nachricht mit der id ${messageID} nicht finden.`);
+            return; //ensures msg has a value;
+        }
+        const embed = new Discord.MessageEmbed()
                 .setColor('#0099ff')
                 .setTitle('Rollenvergabe')
                 .setURL('https://discord.js.org/')
@@ -170,29 +183,17 @@ async function onMessage(message) {
                 .setTimestamp()
                 .setFooter(`Original MessageID: ${messageID}`, 'https://i.imgur.com/wSTFkRM.png')
                 .setThumbnail('https://i.imgur.com/4AiXzf8.jpeg');
-            
-            const ret_msg =  await message.channel.send(embed);
-            const new_msg_id = ret_msg.id;
-            bot['api'].database_create_if_not_exists(attributes.modulename, ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']);
-            try{
-                bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
-                //die vorige zeile throwt einen error, bevor dies ausgeführt wird
-                message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon: ${i.length}`); 
-            }catch (error) {
-                if(error instanceof err.Find) {
-                    const data = [messageID, emoji_map, required_roles, required_equal, new_msg_id, message.guild.id, message.channel.id];
-                    bot['api'].database_row_add(attributes.modulename, data);
-                    message.channel.send(`Nachricht in Datenbank gespeichert. Erwarte Reaktionen`);
-                    setupCollector(data);
-                }else{
-                    throw error;
-                }
-            }
-        }catch (error){
-            message.channel.send('Etwas ist schief gelaufen! Bitte im log nachschauen.');
-            log.logMessage(error.message);
-            throw error;
-            return;
+        const ret_msg = await message.channel.send(embed);
+        const new_msg_id = ret_msg.id;
+        bot['api'].database_create_if_not_exists(databases[0].name, databases[0].keys); 
+        const data = [messageID, emoji_map, required_roles, required_equal, new_msg_id, message.guild.id, message.channel.id];
+        try{
+            bot['api'].database_row_add(attributes.modulename, data);
+            setupCollector(data);
+            message.channel.send(`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`);
+        }catch(error){
+            message.channel.send('Etwas ist schief gelaufen. Siehe im Log.');
+            log.logMessage(error);
         }
         break;
     case attributes.commands[1]:

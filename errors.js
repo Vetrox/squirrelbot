@@ -56,6 +56,12 @@ class Dublication extends BotError {
 	}
 }
 
+class CommandParameter extends BotError{
+	constructor(message){
+		super(message);
+	}
+}
+
 
 module.exports = {
 	'BotError' : BotError,
@@ -65,5 +71,6 @@ module.exports = {
 	'Find' : Find,
 	'Range' : Range,
 	'Unexisting' : Unexisting,
-	'Dublication' : Dublication
+	'Dublication' : Dublication,
+	'CommandParameter' : CommandParameter
 }

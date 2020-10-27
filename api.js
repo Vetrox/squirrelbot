@@ -200,8 +200,8 @@ function save_databases(){
 	let n = 0;
 	for (database in databases){
 		if(databases[database].data_modified === true){
-			log.logMessage(`Saving database ${databases[database].name}`);
 			if(databases[database].write_data() === true){
+				log.logMessage(`Saved database ${databases[database].name}`);
 				n++;
 			}
 		}
@@ -230,7 +230,7 @@ function database_create_if_not_exists(database, keys) {
 	console.log(possible_databases);
 	if(!exists(database)) { 
 		create_database(database, keys); 
-	} else { //TODO: this is new: check
+	} else { //TODO: this is new: check if it serves it purpose
 		cache_dbs(database);
 		databases[database].validate_keys(keys);
 	}
