@@ -13,8 +13,11 @@ class Database {
 
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
-
-	indexing() { //TODO: #checkjsonvalidity
+	/**
+		throws:
+			Nothing.
+	**/
+	indexing() {
 		log.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
 		for(let key of this.keys) {
