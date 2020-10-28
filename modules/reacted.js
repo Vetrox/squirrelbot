@@ -13,7 +13,7 @@ const databases = [
 			"messageID",
 			"emoji_map",
 			"required_roles",
-			"required_equal",
+			"required_type", // 'lower'/'equal'/'higher'
 			"new_msg_id",
 			"guild_id",
 			"channel_id",
@@ -32,8 +32,11 @@ function help(channel) {
 		und anschließend auf deine Nachricht klicken.
 	Nach messageID kommen Paare von je einem Emoji und einer Rolle, welche miteinander verknüpft werden.
 	-required: Optionaler parameter. Falls nur Bestimmte Rollen die Möglichkeit haben sollen, auf die Message zu reacten.
-    -required_equal: Wenn dieser Parameter gesetzt ist, dürfen auch nur exakt die rollen, welche mit -required angegeben wurden auf die Message reacten
-        Ansonsten können alle Personen, die auch eine höhere Rolle haben auf sie Reacten.
+    <-required_equal|-required_lower|-required_higher>: Wenn dieser Parameter gesetzt ist,
+    	bekommen <nur die Personen mit den Rollen| alle (discordmäßig) darunter liegenden Personen mit den Rollen| alle darüber liegenden Personen mit den Rollen>,
+    	welche mit -required angegeben wurden die angegebe Rolle. Dabei werden die angegeben Rollen immer mit eingeschlossen
+    	und im falle lower und higher die höchste Rolle eines Users genommen. Equal checkt einz zu einz die Rollen ab.
+    	Required_equal ist der Standardwert, falls keiner angegeben wurde.
     Anmerkung: 
         - das @ vor Rollen kann weggelassen werden.
         - Den Befehl mehrmalig auf die selbe Nachricht auszuführen ist nicht möglich. Einfach eine neue Nachricht kreieren.
@@ -60,7 +63,7 @@ async function setupCollector(data) {
 	const orig_msgID = data[0],
 		emoji_map = data[1],
 		required_roles = data[2],
-		required_equal = data[3],
+		required_type = data[3],
 		new_msg_id = data[4],
 		guild_id = data[5],
 		channel_id = data[6];
@@ -87,19 +90,22 @@ async function setupCollector(data) {
 			}); //we have to force the
 
 			let role_check = false;
-			for (let role_id of required_roles) {
-				let required_role = await guild.roles.fetch(role_id); //throws an error, if role couldn't be found
-				if (
-					(required_equal == true &&
-						guildMember.roles.cache.has(required_role.id)) ||
-					(required_equal == false &&
-						guildMember.roles.highest.comparePositionTo(required_role) >= 0)
-				) {
-					//required equal could be string.... //TODO: refactor into one if statement
-					//taking required_role.id instead of role_id, because errors are thrown in case role_id is wrong
-					//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
-					role_check = true;
-					break;
+			if (required_roles.length > 0) {
+				for (let role_id of required_roles) {
+					let required_role = await guild.roles.fetch(role_id); //throws an error, if role couldn't be found
+					if (
+						(required_type == "equal" &&
+							guildMember.roles.cache.has(required_role.id)) ||
+						(required_type == "higher" &&
+							guildMember.roles.highest.comparePositionTo(required_role) >=
+								0) ||
+						(required_type == "lower" &&
+							guildMember.roles.highest.comparePositionTo(required_role) <= 0)
+					) {
+						//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
+						role_check = true;
+						break;
+					}
 				}
 			}
 			if (required_roles.length > 0 && role_check === false) {
@@ -119,7 +125,6 @@ async function setupCollector(data) {
 			//depending on setting add, remove, or toggle the role.
 			/* TOGGLE */
 			if (!guildMember.roles.cache.has(assigned_role.id)) {
-				//TODO: check the valididty of this check
 				if (type == "MESSAGE_REACTION_ADD") {
 					guildMember.roles.add(
 						assigned_role,
@@ -194,11 +199,18 @@ async function onMessage(message) {
 
 			let assigns_list = [];
 			let required_roles = [];
-			let required_equal = false;
+			let required_type = "equal"; //equal by default.
 			for (let req = false, i = 3; i < split.length; i++) {
-				if (split[i] === "-required_equal") {
-					required_equal = true;
-					continue;
+				switch (split[i]) {
+					case "-required_equal":
+						required_type = "equal";
+						continue;
+					case "-required_lower":
+						required_type = "lower";
+						continue;
+					case "-required_higher":
+						required_type = "higher";
+						continue;
 				}
 				if (req == false && split[i] === "-required") {
 					req = true;
@@ -252,6 +264,7 @@ async function onMessage(message) {
 				)
 				.setDescription(msg.content /*TODO: think about cleanContent*/)
 				.addField("Emoji->Rolle", e_r_t.trim())
+				.addField("Benötigte Rollen [TODO]")
 				.setImage("https://i.imgur.com/wSTFkRM.png")
 				.setTimestamp()
 				.setFooter(
@@ -269,7 +282,7 @@ async function onMessage(message) {
 				messageID,
 				emoji_map,
 				required_roles,
-				required_equal,
+				required_type,
 				new_msg_id,
 				message.guild.id,
 				message.channel.id,
@@ -292,7 +305,7 @@ async function onMessage(message) {
 			//remove message
 			break;
 		case attributes.commands[3]:
-			//test, if all dc emojis have id == null. . Done instanceof does it
+			//test
 
 			console.log(message.guild.roles.cache);
 			break;
