@@ -227,7 +227,6 @@ function prepare_request(database){
 }
 
 function database_create_if_not_exists(database, keys) {
-	console.log(possible_databases);
 	if(!exists(database)) { 
 		create_database(database, keys); 
 	} else { //TODO: this is new: check if it serves it purpose

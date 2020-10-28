@@ -6,6 +6,7 @@ const attributes    = {modulename : 'reacted', commands : ['add', 'show', 'remov
 const databases     = [{name: attributes.modulename, keys: ['messageID', 'emoji_map', 'required_roles', 'required_equal', 'new_msg_id', 'guild_id', 'channel_id']}];
 
 //TODO: make it possible to create reacted in other channels...
+//TODO: add required_lower and required_higher for explicity
 
 function help(channel){ //TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
     channel.send(`Managed Nachrichten, mit denen ein User sich Rollen geben kann.
@@ -16,7 +17,9 @@ function help(channel){ //TODO: add possibility to just give yourself the role, 
 	-required: Optionaler parameter. Falls nur Bestimmte Rollen die Möglichkeit haben sollen, auf die Message zu reacten.
     -required_equal: Wenn dieser Parameter gesetzt ist, dürfen auch nur exakt die rollen, welche mit -required angegeben wurden auf die Message reacten
         Ansonsten können alle Personen, die auch eine höhere Rolle haben auf sie Reacten.
-    Anmerkung: Den befehl mehrmalig auf die selbe Nachricht auszuführen ist nicht möglich. Einfach eine neue Nachricht kreieren.
+    Anmerkung: 
+        - das @ vor Rollen kann weggelassen werden.
+        - Den Befehl mehrmalig auf die selbe Nachricht auszuführen ist nicht möglich. Einfach eine neue Nachricht kreieren.
 !reacted show <messageID>
 	Zeigt die Informationen (Metadata) zu der Nachricht an.
 	messageID: Die MessageID, welche in der Einbettung der bot-Nachricht angezeigt wird.
@@ -49,18 +52,16 @@ async function setupCollector(data) {
 
             let role_check = false;
             for(let role_id of required_roles){
-                let required_role = await guild.roles.fetch(role_id); //TODO: check if id is a string or number, and what is needed //throws an error, if role couldn't be found
-                if(required_equal == true) { //required equal could be string.... //TODO: refactor into one if statement
-                    if(guildMember.roles.highest.comparePositionTo(required_role) === 0) {//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
-                        role_check = true;
-                        break;
-                    }
-                } else if(guildMember.roles.highest.comparePositionTo(required_role) >= 0) {
+                let required_role = await guild.roles.fetch(role_id);  //throws an error, if role couldn't be found
+                if((required_equal == true && guildMember.roles.cache.has(required_role.id)) || (required_equal == false && guildMember.roles.highest.comparePositionTo(required_role) >= 0)) { //required equal could be string.... //TODO: refactor into one if statement
+                    //taking required_role.id instead of role_id, because errors are thrown in case role_id is wrong
+                    //-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
                     role_check = true;
                     break;
                 }
             }
             if(required_roles.length > 0 && role_check === false) { //if there are required roles and the user has failed the check
+                log.logMessage(`${guildMember} has not passed the test.`)
                 return false;
             }
             let assigned_role_id;
@@ -75,14 +76,10 @@ async function setupCollector(data) {
             /* TOGGLE */
             if(!guildMember.roles.cache.has(assigned_role.id)) { //TODO: check the valididty of this check
                 if(type == 'MESSAGE_REACTION_ADD'){
-                    log.logMessage('Giving the role ' + assigned_role.toString());
                     guildMember.roles.add(assigned_role, 'reason: the bot gave you the role');
                 }
-            }else{
-                if(type == 'MESSAGE_REACTION_REMOVE'){
-                    log.logMessage('Taking the role ' + assigned_role.toString());
-                    guildMember.roles.remove(assigned_role, 'reason: the bot took the role from you');
-                }
+            }else if(type == 'MESSAGE_REACTION_REMOVE'){
+                guildMember.roles.remove(assigned_role, 'reason: the bot took the role from you');
             }
 
 
@@ -126,18 +123,15 @@ async function onMessage(message) {
     	if(!split[2] || split.length < 5) help(message.channel);
         let messageID = split[2];
         try{
-            bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
+            let i = bot['api'].lookup_key_value(attributes.modulename, 'messageID', messageID);
             //if no error is thrown, eg. the message is in the database.
-            message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon: ${i.length}`);
+            message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon.`);
             return;
         }catch (error) {
             if(!(error instanceof err.Find)){
                 throw error;
             }
         }
-
-
-
 
     	let assigns_list = [];
     	let required_roles = [];
@@ -151,7 +145,7 @@ async function onMessage(message) {
                 req = true;
                 continue;
             }
-    		if(req == false) assigns_list.push(split[i]); else required_roles.push(message.guild.roles.cache.find(role => role.name.toLowerCase() === split[i].toLowerCase()).id); //find roleid or throw error
+    		if(req == false) assigns_list.push(split[i]); else required_roles.push(message.guild.roles.cache.find(role => role.name.toLowerCase() == split[i].toLowerCase() || role.name.toLowerCase() == '@' + split[i].toLowerCase()).id); //find roleid or throw error
     	}
         if(assigns_list.length <= 0 || assigns_list.length % 2 != 0) throw new err.CommandParameter('Wrong number of assignments made');
     	let emoji_map = {};
