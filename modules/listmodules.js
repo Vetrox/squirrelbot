@@ -1,32 +1,29 @@
-const discord		= require('discord.js');
-const { prefix }	= require('../config.json');
-const attributes	= {modulename : 'listmodules'};
+const discord = require("discord.js");
+const { prefix } = require("../config.json");
+const attributes = { modulename: "listmodules" };
 
-
-function help(channel){
+function help(channel) {
 	channel.send("Listet alle Module auf!");
 }
 
-function initialize(){
-    
-}
+function initialize() {}
 
 function onMessage(message) {
-    if (message.content[0] != prefix) return;
-    let split = message.content.substring(1).split(/\s+/);
-    if (split[0] != attributes.modulename) return;
+	if (message.content[0] != prefix) return;
+	let split = message.content.substring(1).split(/\s+/);
+	if (split[0] != attributes.modulename) return;
 
-    let text = "Alle Module:";
-    for(mod of bot['modules']){
-    	if(mod.attributes.modulename){
-    		text += "\n🡒 " + mod.attributes.modulename;
-    	}
-    }
-    message.channel.send(text);
+	let text = "Alle Module:";
+	for (mod of bot["modules"]) {
+		if (mod.attributes.modulename) {
+			text += "\n🡒 " + mod.attributes.modulename;
+		}
+	}
+	message.channel.send(text);
 }
 
 module.exports.hooks = {
-    'message': onMessage
+	message: onMessage,
 };
 module.exports.help = help;
 module.exports.initialize = initialize;

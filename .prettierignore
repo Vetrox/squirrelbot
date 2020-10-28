@@ -1,0 +1,10 @@
+.env
+node_modules/*
+data/*
+.eslintrc.json
+log.txt
+LICENSE
+package.json
+package-lock.json
+README.md
+.gitignore
