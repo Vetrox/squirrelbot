@@ -86,10 +86,14 @@ async function setupCollector(data) {
 				force: true,
 			}); //we have to force the new request over the api. the cache may have the old user state
 
+			if(guildMember.user.bot == true) return //a bot cannot get the role this way
 			let role_check = false;
 			if (required_roles.length > 0) {
 				for (let role_id of required_roles) {
 					let required_role = await guild.roles.fetch(role_id); //throws an error, if role couldn't be found
+					console.log(guildMember.roles.highest);
+					console.log(required_role);
+					console.log(guildMember.roles.highest.comparePositionTo(required_role));
 					if (
 						(required_type == "equal" &&
 							guildMember.roles.cache.has(required_role.id)) ||
@@ -187,6 +191,7 @@ async function onMessage(message) {
 					throw error;
 				}
 			}
+
 			let msg;
 			try {
 				msg = await message.channel.messages.fetch(messageID);
@@ -196,6 +201,7 @@ async function onMessage(message) {
 				);
 				return; //ensures msg has a value;
 			}
+
 			let assigns_list = [];
 			let required_roles = [];
 			let required_type = "equal"; //equal by default.
@@ -285,13 +291,18 @@ async function onMessage(message) {
 					bot["client"].user.displayAvatarURL({ size: 32 })
 				);
 			let ret_msg = await message.channel.send(embed);
-			let new_msg_id = ret_msg.id;
+
+			/*react to the message with the emoji*/
+			for(emoji in emoji_map) {
+				ret_msg.react(emoji);
+			}
+
 			let data = [
 				messageID,
 				emoji_map,
 				required_roles,
 				required_type,
-				new_msg_id,
+				ret_msg.id,
 				message.guild.id,
 				message.channel.id,
 			];
