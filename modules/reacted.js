@@ -30,6 +30,7 @@ function help(channel) {
 !reacted add <messageID> <emoji> <role> [<emoji_1 <role_1> ...] [-required <role> [<role2> ...]]'
 	messageID: Um die MessageID von einer Nachricht zu bekommen, musst du den Developer-Modus in Discord aktivieren
 		und anschließend auf deine Nachricht klicken.
+		Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.
 	Nach messageID kommen Paare von je einem Emoji und einer Rolle, welche miteinander verknüpft werden.
 	-required: Optionaler parameter. Falls nur Bestimmte Rollen die Möglichkeit haben sollen, auf die Message zu reacten.
     <-required_equal|-required_lower|-required_higher>: Wenn dieser Parameter gesetzt ist,
@@ -91,9 +92,6 @@ async function setupCollector(data) {
 			if (required_roles.length > 0) {
 				for (let role_id of required_roles) {
 					let required_role = await guild.roles.fetch(role_id); //throws an error, if role couldn't be found
-					console.log(guildMember.roles.highest);
-					console.log(required_role);
-					console.log(guildMember.roles.highest.comparePositionTo(required_role));
 					if (
 						(required_type == "equal" &&
 							guildMember.roles.cache.has(required_role.id)) ||
