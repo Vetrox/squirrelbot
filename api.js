@@ -3,6 +3,7 @@ const log = require("./log.js");
 const err = require("./errors.js");
 const { prefix } = require("./config.json");
 
+/**** CLASSES ****/
 class Database {
 	constructor(name, keys, data) {
 		//Data shold be an array: index -> [value for key1, value for key2...]; values are json objects
@@ -188,11 +189,117 @@ class Database {
 	}
 }
 
+class Parameter {
+	constructor(
+		cmdname,
+		type,
+		dependent_params,
+		description,
+		arg_check_lambda,
+		default_args
+	) {
+		this.cmdname = cmdname; //starts with minus
+		this.type = type;
+		this.dependent_params = dependent_params; /* {name : set_if_not_set}*/
+		this.description = description;
+		this.arg_check_lambda = arg_check_lambda;
+		this.default_args = default_args;
+	}
+}
+
+class Command {
+	/**
+		Name:'Foo',
+		parameter_description_map: {Parameter (cmdname) : Parameter
+		
+
+		'-b' : {
+			type: '<essencial|optional>',
+			dependent_params: [{name: '-loglevel_high': (set_if_not_set) true|false], '-loglevel_low': false], //checks, if ANY of the parameters in the list is set
+			description: 'passing this argument, causes the notifications of the world to overflow',
+			let lambda = nr_of_args => nr_of_args == 1 /// -param arg1 arg2 arg3 -> nr_of_args = 3^;
+			default: [] //the default arguments for this parameter, if gets set automatically or the user leaves them out
+		}
+		
+	**/
+	constructor(name, parameter_description_map) {
+		this.name = name;
+		//TODO: add check for the given parameter_description_map
+		this.par_desc_map = parameter_description_map;
+	}
+
+	/**
+		Checks the given parameter/arguments for matching with this command. Checking for modulename and prefix should happen before!!!
+		This gets executed at first.
+		Also autocompletes commands.
+
+		Example: // add -messageID 09102903910232 -role [[:smile: Role1] [:smile: Role3] [:smile: Role4] [:smile: Role5] -required Role2 -required_equal
+	
+		returns true, if input passed the test; false, if input is wrong!
+	**/
+	check() {
+		if (arguments[0] != this.name) return false;
+
+		let params = {};
+		let cache_param;
+		let cache_args = [];
+		for (let i = 1; i < arguments.length; i++) {
+			let arg = arguments[i];
+			/* when it's a param and it's not in the list return false */
+			if (arg.startsWith("-") && !(arg in this.par_desc_map)) {
+				throw new err.Find(arg, "command parameter list");
+			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
+				/* check the cache_args vor validity using the lambda (length) */
+				if (cache_param) {
+					params[this.par_desc_map[cache_param]] = cache_args;
+				}
+				cache_param = arg;
+				continue;
+			} else {
+				cache_args.push(arg);
+			}
+		}
+
+		/* check dependencies for each param */
+		let changed_params = true;
+		while (changed_params == true) {
+			changed_params = false;
+			for (param in params) {
+				/* check argument length via lambda */
+				if (!param.arg_check_lambda(params[param])) {
+					throw new err.InvalidData();
+				}
+				for (dep in this.par_desc_map[param].dependent_params) {
+					if (!(this.par_desc_map[dep.name] in params)) {
+						let set_if_not_set = param.dependent_params[dep]; // -a : true = name : set_if_not_set
+						if (set_if_not_set == true) {
+							//assign the default arguments of this parameter to the param list
+							log.logMessage(
+								`Default constructing parameter ${dep} with the arguments ${dep.default}`
+							);
+							params[this.par_desc_map[dep]] = this.par_desc_map[dep].default;
+							/* restart the while loop to ensure the default-constructed parameter gets it's dependencies checked */
+							changed_params = true;
+							continue;
+						} else {
+							throw new err.Find(
+								`the dependend parameter ${dep}`,
+								"the user given parameters"
+							);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+/**** FUNCTIONS ****/
+
 let databases = {}; //highly inefficient lookup for each database could result in long clustered lookups.
 let possible_databases = [];
 
 function initialize() {
-	//prepare common databases maybe. index at loadup, not when in use...
 	if (!fs.existsSync("./data")) {
 		log.logMessage("Creating database folder...");
 		fs.mkdirSync("./data");
@@ -202,6 +309,10 @@ function initialize() {
 		possible_databases.push(file);
 	}
 	save_databases_interval();
+
+	//TODO: start here tomorrow
+	let par = new Parameter('-a', 'test', {'-b', true})
+	let com = new Command();
 }
 
 function save_databases() {

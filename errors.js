@@ -1,7 +1,7 @@
 class BotError extends Error {
 	constructor(message) {
 		super(message);
-		this.name = `DiscordBotError: ${this.constructor.name}`;
+		this.name = this.constructor.name;
 	}
 }
 

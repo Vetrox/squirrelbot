@@ -34,7 +34,7 @@ function initialize_modules() {
 function initialize() {
 	log.logMessage("Initializing the bot...");
 	bot["api"] = api;
-	bot["api"].initialize();
+	bot.api.initialize();
 	initialize_modules();
 	client.once("ready", async () => {
 		await on_ready();

@@ -36,7 +36,7 @@ function help(channel) {
     <-required_equal|-required_lower|-required_higher>: Wenn dieser Parameter gesetzt ist,
     	bekommen <nur die Personen mit den Rollen| alle (discordmäßig) darunter liegenden Personen mit den Rollen| alle darüber liegenden Personen mit den Rollen>,
     	welche mit -required angegeben wurden die angegebe Rolle. Dabei werden die angegeben Rollen immer mit eingeschlossen
-    	und im falle lower und higher die höchste Rolle eines Users genommen. Equal checkt einz zu einz die Rollen ab.
+    	und im falle lower und higher die höchste Rolle eines Users genommen. Equal checkt eins zu eins die Rollen ab.
     	Required_equal ist der Standardwert, falls keiner angegeben wurde.
     Anmerkung: 
         - das @ vor Rollen kann weggelassen werden.
@@ -50,11 +50,8 @@ let collectors = {}; //messageID : lambda(args) //TODO:add args
 
 async function initialize() {
 	//go through every saved message to react to and add reactioncollector to it.
-	bot["api"].database_create_if_not_exists(
-		databases[0].name,
-		databases[0].keys
-	);
-	await bot["api"].database_for_each(attributes.modulename, setupCollector);
+	bot.api.database_create_if_not_exists(databases[0].name, databases[0].keys);
+	await bot.api.database_for_each(attributes.modulename, setupCollector);
 }
 
 async function setupCollector(data) {
@@ -70,11 +67,8 @@ async function setupCollector(data) {
 		try {
 			//when we find more than one row containing this messageID, also throw an error
 			if (
-				bot["api"].lookup_key_value(
-					attributes.modulename,
-					"messageID",
-					orig_msgID
-				).length > 1
+				bot.api.lookup_key_value(attributes.modulename, "messageID", orig_msgID)
+					.length > 1
 			)
 				throw Error; //this error should be thrown somewhere else (here it is too late)
 
@@ -87,7 +81,7 @@ async function setupCollector(data) {
 				force: true,
 			}); //we have to force the new request over the api. the cache may have the old user state
 
-			if(guildMember.user.bot == true) return //a bot cannot get the role this way
+			if (guildMember.user.bot == true) return; //a bot cannot get the role this way
 			let role_check = false;
 			if (required_roles.length > 0) {
 				for (let role_id of required_roles) {
@@ -176,7 +170,7 @@ async function onMessage(message) {
 			if (!split[2] || split.length < 5) help(message.channel);
 			let messageID = split[2];
 			try {
-				let i = bot["api"].lookup_key_value(
+				let i = bot.api.lookup_key_value(
 					attributes.modulename,
 					"messageID",
 					messageID
@@ -291,7 +285,7 @@ async function onMessage(message) {
 			let ret_msg = await message.channel.send(embed);
 
 			/*react to the message with the emoji*/
-			for(emoji in emoji_map) {
+			for (emoji in emoji_map) {
 				ret_msg.react(emoji);
 			}
 
@@ -305,7 +299,7 @@ async function onMessage(message) {
 				message.channel.id,
 			];
 			try {
-				bot["api"].database_row_add(attributes.modulename, data);
+				bot.api.database_row_add(attributes.modulename, data);
 				setupCollector(data);
 				message.channel.send(
 					`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`
@@ -327,14 +321,14 @@ async function onMessage(message) {
 					messageID
 				);
 
-				if(i.length > 1) throw new Error;
+				if (i.length > 1) throw new Error();
 
 				let new_msg_id = bot.api.lookup_index(
 					attributes.modulename,
 					i[0],
 					databases[0].keys[4]
 				);
-				message.channel.messages.fetch(new_msg_id).then(msg => msg.delete());
+				message.channel.messages.fetch(new_msg_id).then((msg) => msg.delete());
 				bot.api.database_row_delete(attributes.modulename, i[0]);
 				message.channel.send(
 					"Nachricht erfolgreich aus der Datenbank gelöscht."
@@ -350,13 +344,13 @@ async function onMessage(message) {
 			}
 			break;
 		}
-		case attributes.commands[2]:{
+		case attributes.commands[2]: {
 			//test
 
 			console.log(message.guild.roles.cache);
 			break;
 		}
-		default:{
+		default: {
 			help(message.channel);
 			return;
 		}
