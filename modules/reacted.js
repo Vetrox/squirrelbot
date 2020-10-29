@@ -4,7 +4,7 @@ const err = require("../errors.js");
 const { prefix } = require("../config.json");
 const attributes = {
 	modulename: "reacted",
-	commands: ["add", "show", "remove", "test"],
+	commands: ["add", "remove", "test"],
 };
 const databases = [
 	{
@@ -22,7 +22,7 @@ const databases = [
 ];
 
 //TODO: make it possible to create reacted in other channels...
-//TODO: add required_lower and required_higher for explicity
+//TODO: add 'not_equal' (blacklisting)
 
 function help(channel) {
 	//TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
@@ -40,9 +40,6 @@ function help(channel) {
     Anmerkung: 
         - das @ vor Rollen kann weggelassen werden.
         - Den Befehl mehrmalig auf die selbe Nachricht auszuführen ist nicht möglich. Einfach eine neue Nachricht kreieren.
-!reacted show <messageID>
-	Zeigt die Informationen (Metadata) zu der Nachricht an.
-	messageID: Die MessageID, welche in der Einbettung der bot-Nachricht angezeigt wird.
 !reacted remove <messageID>
 	Löscht die Rollenzuweisungsnachricht auch Serverseitig, was zur Vorbeugung von Problemen mit der Datenbank dient.
 `);
@@ -60,7 +57,7 @@ async function initialize() {
 }
 
 async function setupCollector(data) {
-	const orig_msgID = data[0],
+	let orig_msgID = data[0],
 		emoji_map = data[1],
 		required_roles = data[2],
 		required_type = data[3],
@@ -83,11 +80,11 @@ async function setupCollector(data) {
 			if (message_id != new_msg_id) return; //then it isn't for us
 
 			//check, if user has the required role
-			const guildMember = await guild.members.fetch({
+			let guildMember = await guild.members.fetch({
 				user: user_id,
 				cache: true,
 				force: true,
-			}); //we have to force the
+			}); //we have to force the new request over the api. the cache may have the old user state
 
 			let role_check = false;
 			if (required_roles.length > 0) {
@@ -120,22 +117,16 @@ async function setupCollector(data) {
 			} else {
 				assigned_role_id = emoji_map[emoji.name];
 			}
-			const assigned_role = guild.roles.cache.get(assigned_role_id);
+			let assigned_role = guild.roles.cache.get(assigned_role_id);
 
 			//depending on setting add, remove, or toggle the role.
 			/* TOGGLE */
 			if (!guildMember.roles.cache.has(assigned_role.id)) {
 				if (type == "MESSAGE_REACTION_ADD") {
-					guildMember.roles.add(
-						assigned_role,
-						"reason: the bot gave you the role"
-					);
+					guildMember.roles.add(assigned_role);
 				}
 			} else if (type == "MESSAGE_REACTION_REMOVE") {
-				guildMember.roles.remove(
-					assigned_role,
-					"reason: the bot took the role from you"
-				);
+				guildMember.roles.remove(assigned_role);
 			}
 		} catch (error) {
 			//delete collector
@@ -159,12 +150,12 @@ async function setupCollector(data) {
 async function onRaw(raw) {
 	if (raw.t != "MESSAGE_REACTION_ADD" && raw.t != "MESSAGE_REACTION_REMOVE")
 		return;
-	const user_id = raw.d.user_id,
+	let user_id = raw.d.user_id,
 		message_id = raw.d.message_id,
 		channel_id = raw.d.channel_id,
 		guild_id = raw.d.guild_id,
 		emoji = raw.d.emoji;
-	const guild = bot["client"].guilds.cache.get(guild_id);
+	let guild = bot["client"].guilds.cache.get(guild_id);
 	//const channel = guild.channels.cache.get(channel_id); //not needed
 	//const message = await channel.messages.fetch(message_id); //not needed
 
@@ -179,7 +170,7 @@ async function onMessage(message) {
 	if (split[0] != attributes.modulename) return;
 
 	switch (split[1]) {
-		case attributes.commands[0]:
+		case attributes.commands[0]: {
 			if (!split[2] || split.length < 5) help(message.channel);
 			let messageID = split[2];
 			try {
@@ -196,7 +187,15 @@ async function onMessage(message) {
 					throw error;
 				}
 			}
-
+			let msg;
+			try {
+				msg = await message.channel.messages.fetch(messageID);
+			} catch (error) {
+				message.channel.send(
+					`Konnte die Nachricht mit der id ${messageID} nicht finden.`
+				);
+				return; //ensures msg has a value;
+			}
 			let assigns_list = [];
 			let required_roles = [];
 			let required_type = "equal"; //equal by default.
@@ -239,46 +238,55 @@ async function onMessage(message) {
 
 			let e_r_t = "";
 			for (emoji in emoji_map) {
-				console.log(`Emojistr: ${emoji}`);
-				e_r_t += `${emoji} -> ${message.guild.roles.cache.get(
+				e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
 					emoji_map[emoji]
-				)}\n`; //for custom guild emojis it is <:testemoji:770631980496322590>, which is pretty similar to the idientifier of emojis
+				)}\n`;
 			}
-			let msg;
-			try {
-				msg = await message.channel.messages.fetch(messageID);
-			} catch (error) {
-				message.channel.send(
-					`Konnte die Nachricht mit der id ${messageID} nicht finden.`
-				);
-				return; //ensures msg has a value;
+
+			let req_roles_text_head = "";
+			let req_roles_text = "";
+			switch (required_type) {
+				case "equal":
+					req_roles_text_head += "Benötigte Rollen";
+					req_roles_text +=
+						"Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
+					break;
+				case "higher":
+					req_roles_text_head += "Mindest-Voraussetzung Rollen";
+					req_roles_text +=
+						"Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
+					break;
+				case "lower":
+					req_roles_text_head += "Höchst-Voraussetzung Rollen";
+					req_roles_text +=
+						"Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
+					break;
+				/*case 'not_equal':
+					req_roles_text_head += 'Ausgeschlossene Rollen';
+					req_roles_text += 'Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n';
+					break;*/
 			}
-			const embed = new Discord.MessageEmbed()
-				.setColor("#0099ff")
+			for (role of required_roles) {
+				req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
+			}
+			let embed = new Discord.MessageEmbed()
+				.setColor("#ff9900")
 				.setTitle("Rollenvergabe")
-				.setURL("https://discord.js.org/")
 				.setAuthor(
-					message.author.username,
-					"https://i.imgur.com/wSTFkRM.png",
-					"https://discord.js.org"
+					msg.author.username,
+					msg.author.displayAvatarURL({ size: 256 })
 				)
-				.setDescription(msg.content /*TODO: think about cleanContent*/)
-				.addField("Emoji->Rolle", e_r_t.trim())
-				.addField("Benötigte Rollen [TODO]")
-				.setImage("https://i.imgur.com/wSTFkRM.png")
+				.setDescription(msg.content) //other option: cleanContent
+				.addField("Emoji 🡒 Rolle", e_r_t.trim())
+				.addField(req_roles_text_head.trim(), req_roles_text.trim())
 				.setTimestamp()
 				.setFooter(
 					`Original MessageID: ${messageID}`,
-					"https://i.imgur.com/wSTFkRM.png"
-				)
-				.setThumbnail("https://i.imgur.com/4AiXzf8.jpeg");
-			const ret_msg = await message.channel.send(embed);
-			const new_msg_id = ret_msg.id;
-			bot["api"].database_create_if_not_exists(
-				databases[0].name,
-				databases[0].keys
-			);
-			const data = [
+					bot["client"].user.displayAvatarURL({ size: 32 })
+				);
+			let ret_msg = await message.channel.send(embed);
+			let new_msg_id = ret_msg.id;
+			let data = [
 				messageID,
 				emoji_map,
 				required_roles,
@@ -298,20 +306,51 @@ async function onMessage(message) {
 				log.logMessage(error);
 			}
 			break;
-		case attributes.commands[1]:
-			//show metadata
-			break;
-		case attributes.commands[2]:
+		}
+		case attributes.commands[1]: {
 			//remove message
+			if (!split[2]) help(message.channel);
+			let messageID = split[2];
+			try {
+				let i = bot.api.lookup_key_value(
+					attributes.modulename,
+					databases[0].keys[0],
+					messageID
+				);
+
+				if(i.length > 1) throw new Error;
+
+				let new_msg_id = bot.api.lookup_index(
+					attributes.modulename,
+					i[0],
+					databases[0].keys[4]
+				);
+				message.channel.messages.fetch(new_msg_id).then(msg => msg.delete());
+				bot.api.database_row_delete(attributes.modulename, i[0]);
+				message.channel.send(
+					"Nachricht erfolgreich aus der Datenbank gelöscht."
+				);
+			} catch (error) {
+				if (error instanceof err.Find) {
+					message.channel.send(
+						"Konnte die Nachricht in der Datenbank nicht finden"
+					);
+				} else {
+					throw error;
+				}
+			}
 			break;
-		case attributes.commands[3]:
+		}
+		case attributes.commands[2]:{
 			//test
 
 			console.log(message.guild.roles.cache);
 			break;
-		default:
+		}
+		default:{
 			help(message.channel);
 			return;
+		}
 	}
 }
 

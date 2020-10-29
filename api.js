@@ -102,6 +102,10 @@ class Database {
 		return new_index;
 	}
 
+	/**
+		throws:
+			Range error
+	**/
 	del_row(data_index) {
 		this.val_t(data_index, "number");
 		if (data_index < 0 || data_index >= this.data.length)
@@ -250,6 +254,10 @@ function database_row_add(database, data) {
 	return databases[database].add_row(data);
 }
 
+/**
+	throws
+		Range error
+**/
 function database_row_delete(database, index) {
 	prepare_request(database);
 	return databases[database].del_row(index);
