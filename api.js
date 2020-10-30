@@ -192,23 +192,25 @@ class Database {
 
 class Parameter {
 	constructor(
-		cmdname,
+		parname,
 		type,
 		dependent_params,
 		description,
 		arg_check_lambda,
-		default_args
+		default_args,
+		default_construct
 	) {
-		this.cmdname = cmdname; //starts with minus
+		this.parname = parname; //starts with minus
 		this.type = type;
 		this.dependent_params = dependent_params; /* {name : set_if_not_set}*/
 		this.description = description;
 		this.arg_check_lambda = arg_check_lambda;
 		this.default_args = default_args;
+		this.default_construct = default_construct; /*this is just constucted, when 'required' is set. This gets not checked, if it's the dependent_param of another param and it has requested to default construct this*/
 	}
 
 	getName() {
-		return this.cmdname;
+		return this.parname;
 	}
 }
 
@@ -222,14 +224,47 @@ class Command {
 			for (let dep_name in param.dependent_params) {
 				let found = false;
 				for (let comp of parameter_list) {
-					if (comp.cmdname == dep_name) found = true;
+					if (comp.parname == dep_name) found = true;
 				}
 				if (found == false) throw new err.Command("init");
 			}
 			if (!param.arg_check_lambda(param.default_args.length))
 				throw new err.Command("init");
-			this.par_desc_map[param.cmdname] = param;
+			this.par_desc_map[param.parname] = param;
 		}
+	}
+
+	/* check dependencies for each param */
+	checkParams(params) {
+		let changed_params = true;
+		while (changed_params == true) {
+			changed_params = false;
+			for (let param_name in params) {
+				let param = this.par_desc_map[param_name];
+				let args = params[param_name];
+				/* check argument length via lambda */
+				if (!param.arg_check_lambda(args.length))
+					throw new err.ParameterArguments(param_name);
+				for (let dep_name in param.dependent_params) {
+					if (!(dep_name in params)) {
+						let set_if_not_set = param.dependent_params[dep_name];
+						if (set_if_not_set == true) {
+							//assign the default arguments of this parameter to the param list
+							let default_args = this.par_desc_map[dep_name].default_args;
+							log.logMessage(
+								`Default constructing parameter ${dep_name} with the arguments ${default_args}`
+							);
+							params[dep_name] = default_args;
+							changed_params = true;
+						} else {
+							throw new err.ParameterDependency(param_name, dep_name);
+						}
+					}
+				}
+				if (changed_params == true) break; //restart the while loop
+			}
+		}
+		return params;
 	}
 
 	/**
@@ -252,7 +287,9 @@ class Command {
 			- Error, if the params dict is empty at the end of the function
 	**/
 	check() {
+		console.log('Comparing ' + arguments[0] + " != " + this.name + " | result = " + (arguments[0] != this.name));
 		if (arguments[0] != this.name) return false;
+		console.log('000930091');
 		let params = {};
 		let cache_param;
 		let cache_args = [];
@@ -260,7 +297,10 @@ class Command {
 			let arg = arguments[i];
 			/* when it's a param and it's not in the list return false */
 			if (arg.startsWith("-") && !(arg in this.par_desc_map)) {
-				throw new err.Find(arg, `command parameter list for command ${this.name}`);
+				throw new err.Find(
+					arg,
+					`command parameter list for command ${this.name}`
+				);
 			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
 				/* check the cache_args vor validity using the lambda (length) */
 				if (cache_param) {
@@ -277,44 +317,17 @@ class Command {
 		if (cache_param) {
 			params[cache_param] = cache_args;
 		}
-		/* check dependencies for each param */
-		let changed_params = true;
-		while (changed_params == true) {
-			changed_params = false;
-			for (let param_name in params) {
-				let param = this.par_desc_map[param_name];
-				let args = params[param_name];
-				/* check argument length via lambda */
-				if (!param.arg_check_lambda(args.length)) {
-					throw new err.ParameterArguments(param_name);
-				}
-				for (let dep_name in param.dependent_params) {
-					if (!(dep_name in params)) {
-						let set_if_not_set = param.dependent_params[dep_name];
-						if (set_if_not_set == true) {
-							//assign the default arguments of this parameter to the param list
-							let default_args = this.par_desc_map[dep_name].default_args;
-							log.logMessage(
-								`Default constructing parameter ${dep_name} with the arguments ${default_args}`
-							);
-							params[dep_name] = default_args;
-							/* restart the while loop to ensure the default-constructed parameter gets it's dependencies checked */
-							changed_params = true;
-							continue;
-						} else {
-							throw new err.ParameterDependency(param_name, dep_name);
-						}
-					}
-				}
-			}
-		}
+		params = this.checkParams(params);
 		/* check for required parameters for this command */
 		for (let param_name in this.par_desc_map) {
-			if (
-				this.par_desc_map[param_name].type == "required" &&
-				!(param_name in params)
-			) {
-				throw new err.ParameterRequired(this.name, param_name);
+			let param = this.par_desc_map[param_name];
+			if (param.type == "required" && !(param_name in params)) {
+				if (param.default_construct == true) {
+					params[param_name] = param.default_args;
+					params = this.checkParams(params);
+				} else {
+					throw new err.ParameterRequired(this.name, param_name);
+				}
 			}
 		}
 		if (Object.keys(params).length == 0) throw new Error();
@@ -465,6 +478,11 @@ function create_database(database, keys) {
 }
 
 /**
+input:
+	- raw message from event
+	- attributes of the module. Should contain modulename and commands
+
+usage:
 	This should be used, when using the 'message' event from discordjs.
 	It parses the raw message to a dict of this structure:
 	{
@@ -480,39 +498,45 @@ function create_database(database, keys) {
 	if the user input fails a check inside the specified command, it returns a Command-error,
 		which conains a useful error message to log in the channel. (error.message)
 **/
-function parse_message(message, modulename, commands) {
-	if (message.content[0] != prefix) return false;
+function parse_message(message, mod_attributes) {
+	if (message.content[0] != prefix || message.author.bot == true) return false;
 	let split = message.content.substring(1).split(/\s+/);
-	if (!split[0] || split[0] != modulename) return false;
+	if (!split[0] || split[0] != mod_attributes.modulename) return false;
 	let param_args = split.slice(1); //cut the modulename from the array
-	for (let cmd of commands) {
+	for (let cmd of mod_attributes.commands) {
 		try {
-			let r = cmd.check(param_args);
+			let r = cmd.check(...param_args);
 			if (r != false) return { name: cmd.name, params: r };
+			console.log(cmd.name + " " + param_args + " " + r);
+			//when it's the wrong cmd, continue the list
 		} catch (error) {
-			if(error instanceof err.Find) {
+			if (error instanceof err.Find) {
 				/* if a parameter is given (starting with a minus),
 				but it's not inside the command parameter list. */
 				throw new err.Command(error.message);
-			}else if(error instanceof err.ParameterArguments){
+			} else if (error instanceof err.ParameterArguments) {
 				/* if the user has given the wrong amount of arguments to the parameter.
 				This is determined by the arg_check_lambda */
 				throw new err.Command(error.message);
-			}else if(error instanceof err.ParameterDependency){
+			} else if (error instanceof err.ParameterDependency) {
 				/* if the user didn't set a dependent parameter, which isn't default-initialized. */
 				throw new err.Command(error.message);
-			}else if(error instanceof err.ParameterRequired) {
+			} else if (error instanceof err.ParameterRequired) {
 				/* if the user didn't set a required parameter for the command. */
 				throw new err.Command(error.message);
-			}else{
+			} else {
 				throw error;
 			}
 		}
 	}
-	throw new err.CommandNameNotFound(param_args[0], modulename);
+	throw new err.CommandNameNotFound(param_args[0], mod_attributes.modulename);
 }
 
 module.exports = {
+	/*objects*/
+	Parameter: Parameter,
+	Command: Command,
+	/*functions*/
 	initialize: initialize,
 	lookup_key_value: lookup_key_value,
 	load_database: load_database,
@@ -525,5 +549,5 @@ module.exports = {
 	database_for_each: database_for_each,
 	database_create_if_not_exists: database_create_if_not_exists,
 	save_databases: save_databases,
-	check_message: check_message,
+	parse_message: parse_message,
 };

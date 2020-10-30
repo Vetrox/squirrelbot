@@ -82,7 +82,9 @@ class ParameterDependency extends BotError {
 
 class ParameterRequired extends BotError {
 	constructor(cmd, param) {
-		super(`The user has not provided the essencial Parameter ${param} for the Command ${cmd}`);
+		super(
+			`The user has not provided the essencial Parameter ${param} for the Command ${cmd}`
+		);
 	}
 }
 
@@ -91,7 +93,6 @@ class CommandNameNotFound extends BotError {
 		super(`Could not find the command ${cmdname} for the module ${modulename}`);
 	}
 }
-
 
 module.exports = {
 	BotError: BotError,
@@ -106,5 +107,5 @@ module.exports = {
 	CommandNameNotFound: CommandNameNotFound,
 	ParameterArguments: ParameterArguments,
 	ParameterDependency: ParameterDependency,
-	ParameterRequired: ParameterRequired
+	ParameterRequired: ParameterRequired,
 };

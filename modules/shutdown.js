@@ -12,14 +12,14 @@ function initialize() {}
 
 async function onMessage(message) {
 	//TODO: add permissions
-	if (!bot["api"].check_message(message, attributes.modulename)) return;
+	/*if (!bot["api"].check_message(message, attributes.modulename)) return;
 	bot["client"].destroy();
 	log.logMessage("Shutting down...");
 	bot["api"].save_databases();
 	bot["running"] = false;
 	await wait(1000); //make sure the files were saved
 	log.logMessage("Done!");
-	process.exit(0);
+	process.exit(0);*/
 }
 
 module.exports.hooks = {

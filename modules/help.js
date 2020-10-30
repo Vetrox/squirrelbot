@@ -1,6 +1,23 @@
 const discord = require("discord.js");
 const { prefix } = require("../config.json");
-const attributes = { modulename: "help" };
+const err = require("../errors.js");
+const log = require("../log.js");
+const attributes = {
+	modulename: "help",
+	commands: [
+		new bot.api.Command("modulehelp", [
+			new bot.api.Parameter(
+				"-name",
+				"required",
+				[],
+				"Der Name des Moduls.",
+				(nr) => nr == 1,
+				["help"],
+				true
+			),
+		]),
+	],
+};
 
 function help(channel) {
 	channel.send(` --- Das ist die Hilfeseite vom Squirrelbot ---
@@ -14,24 +31,31 @@ function help(channel) {
 function initialize() {}
 
 function onMessage(message) {
-	if (message.content[0] != prefix) return;
-	let split = message.content.substring(1).split(/\s+/);
-	if (split[0] != attributes.modulename) return;
-
-	for (mod of bot.modules) {
-		if (mod.help) {
-			if (mod?.attributes?.modulename === split[1]) {
-				mod.help(message.channel);
-				return;
+	try {
+		let res = bot.api.parse_message(message, attributes);
+		if(res == false) return;
+		//log.logC(res);
+		switch (res.name) {
+			case 'modulehelp': {
+				for (mod of bot.modules) {
+					if (mod.help && mod?.attributes?.modulename === res.params['-name'][0]) {
+						mod.help(message.channel);
+						return;
+					}
+				}
+				message.channel.send(`Konnte keine Hilfeseite für das Modul ${res.params['-name'][0]} finden.`);
+				break;
 			}
+		}
+	} catch (error) {
+		if (error instanceof err.Command) {
+			message.channel.send(`Something went wrong: ${error.message}`);
+		} else if (error instanceof err.CommandNameNotFound) {
+			message.channel.send(`Wrong command-name: ${error.message}`);
 		} else {
-			message.channel.send(
-				"This module doesn't have a help page attached to it!"
-			);
-			return;
+			throw error;
 		}
 	}
-	help(message.channel);
 }
 
 module.exports.hooks = {
