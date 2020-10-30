@@ -2,6 +2,7 @@ const fs = require("fs");
 const log = require("./log.js");
 const err = require("./errors.js");
 const util = require("util");
+const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
 /**** CLASSES ****/
@@ -201,6 +202,7 @@ class Parameter {
 		default_construct
 	) {
 		this.parname = parname; //starts with minus
+		if (!parname.startsWith("-")) throw new err.InvalidData();
 		this.type = type;
 		this.dependent_params = dependent_params; /* {name : set_if_not_set}*/
 		this.description = description;
@@ -215,8 +217,9 @@ class Parameter {
 }
 
 class Command {
-	constructor(name, parameter_list) {
+	constructor(name, description, parameter_list) {
 		this.name = name;
+		this.description = description;
 		this.par_desc_map = {};
 		for (let param of parameter_list) {
 			if (param.type != "required" && param.type != "optional")
@@ -287,9 +290,8 @@ class Command {
 			- Error, if the params dict is empty at the end of the function
 	**/
 	check() {
-		console.log('Comparing ' + arguments[0] + " != " + this.name + " | result = " + (arguments[0] != this.name));
 		if (arguments[0] != this.name) return false;
-		console.log('000930091');
+		console.log("000930091");
 		let params = {};
 		let cache_param;
 		let cache_args = [];
@@ -507,7 +509,6 @@ function parse_message(message, mod_attributes) {
 		try {
 			let r = cmd.check(...param_args);
 			if (r != false) return { name: cmd.name, params: r };
-			console.log(cmd.name + " " + param_args + " " + r);
 			//when it's the wrong cmd, continue the list
 		} catch (error) {
 			if (error instanceof err.Find) {
@@ -532,6 +533,29 @@ function parse_message(message, mod_attributes) {
 	throw new err.CommandNameNotFound(param_args[0], mod_attributes.modulename);
 }
 
+function help_module_commands(mod_attributes, channel) {
+	const embed = new Discord.MessageEmbed()
+		.setColor("#ffaaff")
+		.setAuthor("Hilfeseite")
+		.setTitle(`Modul: ${mod_attributes.modulename}`)
+		.setTimestamp()
+		.setFooter(
+			bot.client.user.username,
+			bot["client"].user.displayAvatarURL({ size: 32 })
+		);
+	for (let cmd of mod_attributes.commands) {
+		let desc = `${cmd.description}\n`;
+		for (let par_name in cmd.par_desc_map) {
+			desc +=
+				`\`\`\`diff\n` +
+				`${par_name}\n` +
+				` ${cmd.par_desc_map[par_name].description}\`\`\``;
+		}
+		embed.addField(cmd.name, desc, false);
+	}
+	channel.send(embed);
+}
+
 module.exports = {
 	/*objects*/
 	Parameter: Parameter,
@@ -550,4 +574,5 @@ module.exports = {
 	database_create_if_not_exists: database_create_if_not_exists,
 	save_databases: save_databases,
 	parse_message: parse_message,
+	help_module_commands: help_module_commands,
 };

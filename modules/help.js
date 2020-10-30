@@ -5,7 +5,7 @@ const log = require("../log.js");
 const attributes = {
 	modulename: "help",
 	commands: [
-		new bot.api.Command("modulehelp", [
+		new bot.api.Command("modulehelp", "Tolle Beschreibung", [
 			new bot.api.Parameter(
 				"-name",
 				"required",
@@ -15,17 +15,29 @@ const attributes = {
 				["help"],
 				true
 			),
+			new bot.api.Parameter(
+				"-testparameter1",
+				"optional",
+				[],
+				"- Eine weitere - Beschreibung.",
+				(nr) => nr == 1,
+				["help"],
+				true
+			),
 		]),
 	],
 };
 
 function help(channel) {
+	bot.api.help_module_commands(attributes, channel);
+
+	/*
 	channel.send(` --- Das ist die Hilfeseite vom Squirrelbot ---
 
 🡒 Um für ein bestimmtes Modul eine Hilfeseite angezeigt zu bekommen, gib einfach !help <modulname> ein.
 🡒 Um alle module aufgelistet zu bekommen, gib !listmodules ein.
 
-----------------`);
+----------------`);*/
 }
 
 function initialize() {}
@@ -33,17 +45,22 @@ function initialize() {}
 function onMessage(message) {
 	try {
 		let res = bot.api.parse_message(message, attributes);
-		if(res == false) return;
+		if (res == false) return;
 		//log.logC(res);
 		switch (res.name) {
-			case 'modulehelp': {
+			case "modulehelp": {
 				for (mod of bot.modules) {
-					if (mod.help && mod?.attributes?.modulename === res.params['-name'][0]) {
+					if (
+						mod.help &&
+						mod?.attributes?.modulename === res.params["-name"][0]
+					) {
 						mod.help(message.channel);
 						return;
 					}
 				}
-				message.channel.send(`Konnte keine Hilfeseite für das Modul ${res.params['-name'][0]} finden.`);
+				message.channel.send(
+					`Konnte keine Hilfeseite für das Modul ${res.params["-name"][0]} finden.`
+				);
 				break;
 			}
 		}
