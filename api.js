@@ -1,6 +1,7 @@
 const fs = require("fs");
 const log = require("./log.js");
 const err = require("./errors.js");
+const util = require("util");
 const { prefix } = require("./config.json");
 
 /**** CLASSES ****/
@@ -205,27 +206,30 @@ class Parameter {
 		this.arg_check_lambda = arg_check_lambda;
 		this.default_args = default_args;
 	}
+
+	getName() {
+		return this.cmdname;
+	}
 }
 
 class Command {
-	/**
-		Name:'Foo',
-		parameter_description_map: {Parameter (cmdname) : Parameter
-		
-
-		'-b' : {
-			type: '<essencial|optional>',
-			dependent_params: [{name: '-loglevel_high': (set_if_not_set) true|false], '-loglevel_low': false], //checks, if ANY of the parameters in the list is set
-			description: 'passing this argument, causes the notifications of the world to overflow',
-			let lambda = nr_of_args => nr_of_args == 1 /// -param arg1 arg2 arg3 -> nr_of_args = 3^;
-			default: [] //the default arguments for this parameter, if gets set automatically or the user leaves them out
-		}
-		
-	**/
-	constructor(name, parameter_description_map) {
+	constructor(name, parameter_list) {
 		this.name = name;
-		//TODO: add check for the given parameter_description_map
-		this.par_desc_map = parameter_description_map;
+		this.par_desc_map = {};
+		for (let param of parameter_list) {
+			if (param.type != "required" && param.type != "optional")
+				throw new err.BotError();
+			for (let dep_name in param.dependent_params) {
+				let found = false;
+				for (let comp of parameter_list) {
+					if (comp.cmdname == dep_name) found = true;
+				}
+				if (found == false) throw new err.BotError();
+			}
+			if (!param.arg_check_lambda(param.default_args.length))
+				throw new err.BotError();
+			this.par_desc_map[param.cmdname] = param;
+		}
 	}
 
 	/**
@@ -233,13 +237,10 @@ class Command {
 		This gets executed at first.
 		Also autocompletes commands.
 
-		Example: // add -messageID 09102903910232 -role [[:smile: Role1] [:smile: Role3] [:smile: Role4] [:smile: Role5] -required Role2 -required_equal
-	
 		returns true, if input passed the test; false, if input is wrong!
 	**/
 	check() {
 		if (arguments[0] != this.name) return false;
-
 		let params = {};
 		let cache_param;
 		let cache_args = [];
@@ -251,7 +252,8 @@ class Command {
 			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
 				/* check the cache_args vor validity using the lambda (length) */
 				if (cache_param) {
-					params[this.par_desc_map[cache_param]] = cache_args;
+					params[cache_param] = cache_args;
+					cache_args = [];
 				}
 				cache_param = arg;
 				continue;
@@ -259,31 +261,39 @@ class Command {
 				cache_args.push(arg);
 			}
 		}
-
+		/* add the last param and it's arguments to the param dict */
+		if (cache_param) {
+			params[cache_param] = cache_args;
+		}
 		/* check dependencies for each param */
 		let changed_params = true;
 		while (changed_params == true) {
 			changed_params = false;
-			for (param in params) {
+			for (let param_name in params) {
+				let param = this.par_desc_map[param_name];
+				let args = params[param_name];
+				console.log(util.inspect(param, false, null, true));
+
 				/* check argument length via lambda */
-				if (!param.arg_check_lambda(params[param])) {
+				if (!param.arg_check_lambda(args.length)) {
 					throw new err.InvalidData();
 				}
-				for (dep in this.par_desc_map[param].dependent_params) {
-					if (!(this.par_desc_map[dep.name] in params)) {
-						let set_if_not_set = param.dependent_params[dep]; // -a : true = name : set_if_not_set
+				for (let dep_name in param.dependent_params) {
+					if (!(dep_name in params)) {
+						let set_if_not_set = param.dependent_params[dep_name]; // -a : true = name : set_if_not_set
 						if (set_if_not_set == true) {
 							//assign the default arguments of this parameter to the param list
+							let default_args = this.par_desc_map[dep_name].default_args;
 							log.logMessage(
-								`Default constructing parameter ${dep} with the arguments ${dep.default}`
+								`Default constructing parameter ${dep_name} with the arguments ${default_args}`
 							);
-							params[this.par_desc_map[dep]] = this.par_desc_map[dep].default;
+							params[dep_name] = default_args;
 							/* restart the while loop to ensure the default-constructed parameter gets it's dependencies checked */
 							changed_params = true;
 							continue;
 						} else {
 							throw new err.Find(
-								`the dependend parameter ${dep}`,
+								`the dependend parameter ${dep_name}`,
 								"the user given parameters"
 							);
 						}
@@ -291,6 +301,18 @@ class Command {
 				}
 			}
 		}
+		/* check for required parameters for this command */
+		for (let param_name in this.par_desc_map) {
+			if (
+				this.par_desc_map[param_name].type == "required" &&
+				!(param_name in params)
+			) {
+				throw new err.CommandParameter(
+					`Could not find the required parameter ${param_name} for this command`
+				);
+			}
+		}
+		return params;
 	}
 }
 
@@ -310,9 +332,31 @@ function initialize() {
 	}
 	save_databases_interval();
 
-	//TODO: start here tomorrow
-	let par = new Parameter('-a', 'test', {'-b', true})
-	let com = new Command();
+	let par = new Parameter(
+		"-a",
+		"required",
+		{},
+		"description1",
+		(nr) => {
+			console.log("Checking a for arg length " + nr);
+			return nr == 1;
+		},
+		["default_arg1"]
+	);
+	let par1 = new Parameter(
+		"-b",
+		"optional",
+		{ "-a": true },
+		"description2",
+		(nr) => {
+			console.log("Checking b for arg length " + nr);
+			return nr == 2;
+		},
+		["default_arg1_", "default_arg2_"]
+	);
+	let com = new Command("testcommand", [par, par1]);
+	let ret = com.check("testcommand", "-a", "arg_for_a");
+	console.log(util.inspect(ret, false, null, true));
 }
 
 function save_databases() {
