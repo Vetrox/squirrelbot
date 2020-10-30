@@ -272,8 +272,6 @@ class Command {
 			for (let param_name in params) {
 				let param = this.par_desc_map[param_name];
 				let args = params[param_name];
-				console.log(util.inspect(param, false, null, true));
-
 				/* check argument length via lambda */
 				if (!param.arg_check_lambda(args.length)) {
 					throw new err.InvalidData();
@@ -331,32 +329,6 @@ function initialize() {
 		possible_databases.push(file);
 	}
 	save_databases_interval();
-
-	let par = new Parameter(
-		"-a",
-		"required",
-		{},
-		"description1",
-		(nr) => {
-			console.log("Checking a for arg length " + nr);
-			return nr == 1;
-		},
-		["default_arg1"]
-	);
-	let par1 = new Parameter(
-		"-b",
-		"optional",
-		{ "-a": true },
-		"description2",
-		(nr) => {
-			console.log("Checking b for arg length " + nr);
-			return nr == 2;
-		},
-		["default_arg1_", "default_arg2_"]
-	);
-	let com = new Command("testcommand", [par, par1]);
-	let ret = com.check("testcommand", "-a", "arg_for_a");
-	console.log(util.inspect(ret, false, null, true));
 }
 
 function save_databases() {
