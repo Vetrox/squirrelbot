@@ -287,11 +287,9 @@ class Command {
 				if the user didn't set a dependent parameter, which isn't default-initialized.
 			- ParameterRequired-error,
 				if the user didn't set a required parameter for the command.
-			- Error, if the params dict is empty at the end of the function
 	**/
 	check() {
 		if (arguments[0] != this.name) return false;
-		console.log("000930091");
 		let params = {};
 		let cache_param;
 		let cache_args = [];
@@ -332,7 +330,6 @@ class Command {
 				}
 			}
 		}
-		if (Object.keys(params).length == 0) throw new Error();
 		return params;
 	}
 }
@@ -541,7 +538,7 @@ function help_module_commands(mod_attributes, channel) {
 		.setTimestamp()
 		.setFooter(
 			bot.client.user.username,
-			bot["client"].user.displayAvatarURL({ size: 32 })
+			bot.client.user.displayAvatarURL({ size: 32 })
 		);
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
@@ -553,6 +550,22 @@ function help_module_commands(mod_attributes, channel) {
 		}
 		embed.addField(cmd.name, desc, false);
 	}
+	channel.send(embed);
+}
+
+/**
+	shortcut for creating discordjs embeds
+**/
+function emb(title, description, channel) {
+	const embed = new Discord.MessageEmbed()
+		.setColor("#ff9900")
+		.setTitle(title)
+		.setDescription(description)
+		.setTimestamp()
+		.setFooter(
+			bot.client.user.username,
+			bot.client.user.displayAvatarURL({ size: 32 })
+		);
 	channel.send(embed);
 }
 
@@ -575,4 +588,5 @@ module.exports = {
 	save_databases: save_databases,
 	parse_message: parse_message,
 	help_module_commands: help_module_commands,
+	emb: emb,
 };
