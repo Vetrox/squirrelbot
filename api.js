@@ -218,16 +218,16 @@ class Command {
 		this.par_desc_map = {};
 		for (let param of parameter_list) {
 			if (param.type != "required" && param.type != "optional")
-				throw new err.BotError();
+				throw new err.Command("init");
 			for (let dep_name in param.dependent_params) {
 				let found = false;
 				for (let comp of parameter_list) {
 					if (comp.cmdname == dep_name) found = true;
 				}
-				if (found == false) throw new err.BotError();
+				if (found == false) throw new err.Command("init");
 			}
 			if (!param.arg_check_lambda(param.default_args.length))
-				throw new err.BotError();
+				throw new err.Command("init");
 			this.par_desc_map[param.cmdname] = param;
 		}
 	}
@@ -237,7 +237,19 @@ class Command {
 		This gets executed at first.
 		Also autocompletes commands.
 
-		returns true, if input passed the test; false, if input is wrong!
+		returns 'params', if input passed the test; false, if input is wrong!
+
+		throws:
+			- Find-error, if a parameter is given (starting with a minus),
+				but it's not inside the command parameter list.
+			- ParameterArguments-error, 
+				if the user has given the wrong amount of arguments to the parameter.
+				This is determined by the arg_check_lambda
+			- ParameterDependency-error,
+				if the user didn't set a dependent parameter, which isn't default-initialized.
+			- ParameterRequired-error,
+				if the user didn't set a required parameter for the command.
+			- Error, if the params dict is empty at the end of the function
 	**/
 	check() {
 		if (arguments[0] != this.name) return false;
@@ -248,7 +260,7 @@ class Command {
 			let arg = arguments[i];
 			/* when it's a param and it's not in the list return false */
 			if (arg.startsWith("-") && !(arg in this.par_desc_map)) {
-				throw new err.Find(arg, "command parameter list");
+				throw new err.Find(arg, `command parameter list for command ${this.name}`);
 			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
 				/* check the cache_args vor validity using the lambda (length) */
 				if (cache_param) {
@@ -274,11 +286,11 @@ class Command {
 				let args = params[param_name];
 				/* check argument length via lambda */
 				if (!param.arg_check_lambda(args.length)) {
-					throw new err.InvalidData();
+					throw new err.ParameterArguments(param_name);
 				}
 				for (let dep_name in param.dependent_params) {
 					if (!(dep_name in params)) {
-						let set_if_not_set = param.dependent_params[dep_name]; // -a : true = name : set_if_not_set
+						let set_if_not_set = param.dependent_params[dep_name];
 						if (set_if_not_set == true) {
 							//assign the default arguments of this parameter to the param list
 							let default_args = this.par_desc_map[dep_name].default_args;
@@ -290,10 +302,7 @@ class Command {
 							changed_params = true;
 							continue;
 						} else {
-							throw new err.Find(
-								`the dependend parameter ${dep_name}`,
-								"the user given parameters"
-							);
+							throw new err.ParameterDependency(param_name, dep_name);
 						}
 					}
 				}
@@ -305,11 +314,10 @@ class Command {
 				this.par_desc_map[param_name].type == "required" &&
 				!(param_name in params)
 			) {
-				throw new err.CommandParameter(
-					`Could not find the required parameter ${param_name} for this command`
-				);
+				throw new err.ParameterRequired(this.name, param_name);
 			}
 		}
+		if (Object.keys(params).length == 0) throw new Error();
 		return params;
 	}
 }
@@ -456,12 +464,52 @@ function create_database(database, keys) {
 	}
 }
 
-function check_message(message, modulename) {
-	//improve efficiency
+/**
+	This should be used, when using the 'message' event from discordjs.
+	It parses the raw message to a dict of this structure:
+	{
+		name: commandName,
+		params: {
+			commandParam1 : parameter1Arguments,
+			...
+		}
+	}
+	if the message doesn't belong to the module, it returns false.
+	if the commandname isn't found in the commandlist of the module it throws err.CommandNameNotFound.
+		This leads to the fact, that you cannot have a commandlist without a single command.
+	if the user input fails a check inside the specified command, it returns a Command-error,
+		which conains a useful error message to log in the channel. (error.message)
+**/
+function parse_message(message, modulename, commands) {
 	if (message.content[0] != prefix) return false;
 	let split = message.content.substring(1).split(/\s+/);
 	if (!split[0] || split[0] != modulename) return false;
-	return true;
+	let param_args = split.slice(1); //cut the modulename from the array
+	for (let cmd of commands) {
+		try {
+			let r = cmd.check(param_args);
+			if (r != false) return { name: cmd.name, params: r };
+		} catch (error) {
+			if(error instanceof err.Find) {
+				/* if a parameter is given (starting with a minus),
+				but it's not inside the command parameter list. */
+				throw new err.Command(error.message);
+			}else if(error instanceof err.ParameterArguments){
+				/* if the user has given the wrong amount of arguments to the parameter.
+				This is determined by the arg_check_lambda */
+				throw new err.Command(error.message);
+			}else if(error instanceof err.ParameterDependency){
+				/* if the user didn't set a dependent parameter, which isn't default-initialized. */
+				throw new err.Command(error.message);
+			}else if(error instanceof err.ParameterRequired) {
+				/* if the user didn't set a required parameter for the command. */
+				throw new err.Command(error.message);
+			}else{
+				throw error;
+			}
+		}
+	}
+	throw new err.CommandNameNotFound(param_args[0], modulename);
 }
 
 module.exports = {

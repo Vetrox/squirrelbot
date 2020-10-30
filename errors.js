@@ -58,11 +58,40 @@ class Dublication extends BotError {
 	}
 }
 
-class CommandParameter extends BotError {
+class Command extends BotError {
 	constructor(message) {
 		super(message);
 	}
 }
+
+class ParameterArguments extends BotError {
+	constructor(param) {
+		super(
+			`The user has given the wrong amount of arguments to the parameter ${param}`
+		);
+	}
+}
+
+class ParameterDependency extends BotError {
+	constructor(param, depends) {
+		super(
+			`Parameter ${param} depends on the parameter ${depends}, wich is configured to not default-initializing it.`
+		);
+	}
+}
+
+class ParameterRequired extends BotError {
+	constructor(cmd, param) {
+		super(`The user has not provided the essencial Parameter ${param} for the Command ${cmd}`);
+	}
+}
+
+class CommandNameNotFound extends BotError {
+	constructor(cmdname, modulename) {
+		super(`Could not find the command ${cmdname} for the module ${modulename}`);
+	}
+}
+
 
 module.exports = {
 	BotError: BotError,
@@ -73,5 +102,9 @@ module.exports = {
 	Range: Range,
 	Unexisting: Unexisting,
 	Dublication: Dublication,
-	CommandParameter: CommandParameter,
+	Command: Command,
+	CommandNameNotFound: CommandNameNotFound,
+	ParameterArguments: ParameterArguments,
+	ParameterDependency: ParameterDependency,
+	ParameterRequired: ParameterRequired
 };
