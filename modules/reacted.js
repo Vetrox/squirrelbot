@@ -258,7 +258,7 @@ async function onMessage(message) {
 					return; //ensures msg has a value;
 				}
 
-				let assigns_list_ = res.params["-map"];
+				let assigns_list = res.params["-map"];
 				let required_roles = [];
 				for (let i in res.params["-wl"]) {
 					let rl = res.params["-wl"][i];
@@ -271,71 +271,75 @@ async function onMessage(message) {
 							).id
 						);
 					} catch (error) {
-						message.channel.send("The role specified was not found.");
+						message.channel.send("Konnte die Rolle nicht finden.");
 						return;
 					}
 				}
-				let required_type = res.params["-wl_mode"][0];
+				let required_type = res.params["-wl_mode"]?.[0];
 
-				if (assigns_list.length <= 0 || assigns_list.length % 2 != 0)
-					throw new err.CommandParameter("Wrong number of assignments made");
 				let emoji_map = {};
 				for (let i = 0; i <= assigns_list.length - 2; i += 2) {
-					emoji_map[assigns_list[i]] = message.guild.roles.cache.find(
-						(role) =>
-							role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
-					).id;
+					try {
+						emoji_map[assigns_list[i]] = message.guild.roles.cache.find(
+							(role) =>
+								role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
+						).id;
+					} catch (error) {
+						message.channel.send("Konnte die Rolle nicht finden.");
+						return;
+					}
 				}
-				// embed Message and send to channel.
-
 				let e_r_t = "";
 				for (emoji in emoji_map) {
 					e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
 						emoji_map[emoji]
 					)}\n`;
 				}
-
-				let req_roles_text_head = "";
-				let req_roles_text = "";
-				switch (required_type) {
-					case "equal":
-						req_roles_text_head += "Benötigte Rollen";
-						req_roles_text +=
-							"Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
-						break;
-					case "higher":
-						req_roles_text_head += "Mindest-Voraussetzung Rollen";
-						req_roles_text +=
-							"Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
-						break;
-					case "lower":
-						req_roles_text_head += "Höchst-Voraussetzung Rollen";
-						req_roles_text +=
-							"Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
-						break;
-					/*case 'not_equal':
-					req_roles_text_head += 'Ausgeschlossene Rollen';
-					req_roles_text += 'Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n';
-					break;*/
-				}
-				for (role of required_roles) {
-					req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
-				}
 				let embed = new Discord.MessageEmbed()
-					.setColor("#ff9900")
+					.setColor("#99ff00")
 					.setTitle("Rollenvergabe")
 					.setAuthor(
 						msg.author.username,
 						msg.author.displayAvatarURL({ size: 256 })
 					)
-					.setDescription(msg.content) //other option: cleanContent
+					.setDescription(msg.content)
 					.addField("Emoji 🡒 Rolle", e_r_t.trim())
-					.addField(req_roles_text_head.trim(), req_roles_text.trim())
 					.setTimestamp()
 					.setFooter(
 						`Original MessageID: ${messageID}`,
 						bot["client"].user.displayAvatarURL({ size: 32 })
 					);
+				if (required_roles.length > 0) {
+					let req_roles_text_head = "";
+					let req_roles_text = "";
+					switch (required_type) {
+						case "equal":
+							req_roles_text_head += "Benötigte Rollen";
+							req_roles_text +=
+								"Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
+							break;
+						case "higher":
+							req_roles_text_head += "Mindest-Voraussetzung Rollen";
+							req_roles_text +=
+								"Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
+							break;
+						case "lower":
+							req_roles_text_head += "Höchst-Voraussetzung Rollen";
+							req_roles_text +=
+								"Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
+							break;
+						case "not_equal":
+							req_roles_text_head += "Ausgeschlossene Rollen";
+							req_roles_text +=
+								"Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n";
+							break;
+					}
+					for (role of required_roles) {
+						req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
+					}
+					embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
+				}
+
 				let ret_msg = await message.channel.send(embed);
 
 				/*react to the message with the emoji*/
@@ -365,6 +369,38 @@ async function onMessage(message) {
 				break;
 			}
 			case "remove": {
+				//remove message
+				let messageID = res.params["-messageID"][0];
+				try {
+					let i = bot.api.lookup_key_value(
+						attributes.modulename,
+						databases[0].keys[0],
+						messageID
+					);
+
+					if (i.length > 1) throw new Error();
+
+					let new_msg_id = bot.api.lookup_index(
+						attributes.modulename,
+						i[0],
+						databases[0].keys[4]
+					);
+					message.channel.messages
+						.fetch(new_msg_id)
+						.then((msg) => msg.delete());
+					bot.api.database_row_delete(attributes.modulename, i[0]);
+					message.channel.send(
+						"Nachricht erfolgreich aus der Datenbank gelöscht."
+					);
+				} catch (error) {
+					if (error instanceof err.Find) {
+						message.channel.send(
+							"Konnte die Nachricht in der Datenbank nicht finden"
+						);
+					} else {
+						throw error;
+					}
+				}
 				break;
 			}
 		}
@@ -376,42 +412,11 @@ async function onMessage(message) {
 		}
 	}
 
-	switch (split[1]) {
+	/*switch (split[1]) {
 		case attributes.commands[0]: {
 		}
 		case attributes.commands[1]: {
-			//remove message
-			if (!split[2]) help(message.channel);
-			let messageID = split[2];
-			try {
-				let i = bot.api.lookup_key_value(
-					attributes.modulename,
-					databases[0].keys[0],
-					messageID
-				);
-
-				if (i.length > 1) throw new Error();
-
-				let new_msg_id = bot.api.lookup_index(
-					attributes.modulename,
-					i[0],
-					databases[0].keys[4]
-				);
-				message.channel.messages.fetch(new_msg_id).then((msg) => msg.delete());
-				bot.api.database_row_delete(attributes.modulename, i[0]);
-				message.channel.send(
-					"Nachricht erfolgreich aus der Datenbank gelöscht."
-				);
-			} catch (error) {
-				if (error instanceof err.Find) {
-					message.channel.send(
-						"Konnte die Nachricht in der Datenbank nicht finden"
-					);
-				} else {
-					throw error;
-				}
-			}
-			break;
+			
 		}
 		case attributes.commands[2]: {
 			//test
@@ -423,7 +428,7 @@ async function onMessage(message) {
 			help(message.channel);
 			return;
 		}
-	}
+	}*/
 }
 
 module.exports.hooks = {
