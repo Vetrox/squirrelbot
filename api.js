@@ -217,18 +217,17 @@ class Command {
 		this.name = name;
 		this.description = description;
 		this.par_desc_map = {};
+		for(let param of parameter_list){
+			this.par_desc_map[param.parname] = param;
+		}
 		for (let param of parameter_list) {
 			if (param.type != "required" && param.type != "optional")
-				throw new err.Command("init");
-			for (let dep_name in param.dependent_params) {
-				let found = false;
-				for (let comp of parameter_list) {
-					if (comp.parname == dep_name) found = true;
-				}
-				if (found == false) throw new err.Command("init");
+				throw new err.Command("init_req_opt");
+			for (let dep_name of param.dependent_params) {
+				if (Object.keys(this.par_desc_map).indexOf(dep_name) <= -1) throw new err.Command("init_dep_not_found");
 			}
-			if (!param.arg_check_lambda(param.default_args.length))
-				throw new err.Command("init");
+			if (param.default_construct == true && !param.arg_check_lambda(param.default_args.length))
+				throw new err.Command("init_lambda_err");
 			this.par_desc_map[param.parname] = param;
 		}
 	}
@@ -242,8 +241,13 @@ class Command {
 				let param = this.par_desc_map[param_name];
 				let args = params[param_name];
 				/* check argument length via lambda */
-				if (!param.arg_check_lambda(args.length))
-					throw new err.ParameterArguments(param_name);
+				if (!param.arg_check_lambda(args.length)){
+					if(param.default_construct == true){
+						params[param_name] = param.default_args;
+					}else{
+						throw new err.ParameterArguments(param_name);
+					}
+				}
 				for (let dep_name in param.dependent_params) {
 					if (!(dep_name in params)) {
 						if (this.par_desc_map[dep_name].default_construct == true) {
@@ -272,7 +276,7 @@ class Command {
 			- Find-error, if a parameter is given (starting with a minus),
 				but it's not inside the command parameter list.
 			- ParameterArguments-error, 
-				if the user has given the wrong amount of arguments to the parameter.
+				if the user has given the wrong amount of arguments to the parameter. And it couldn't be default constructed
 				This is determined by the arg_check_lambda
 			- ParameterDependency-error,
 				if the user didn't set a dependent parameter, which isn't default-initialized.

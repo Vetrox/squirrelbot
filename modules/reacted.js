@@ -2,9 +2,92 @@ const Discord = require("discord.js");
 const log = require("../log.js");
 const err = require("../errors.js");
 const { prefix } = require("../config.json");
+/*const attributes = {
+	modulename: "help",
+	description:
+		"Das Help-Modul. Hier kannst Du vieles über Commands und andere Module erfahren.",
+	commands: [
+		new bot.api.Command(
+			"modulehelp",
+			"Zeigt die Hilfeseite von dem angegebenen Modul",
+			[
+				new bot.api.Parameter(
+					"-name",
+					"required",
+					[],
+					"Der Name des Moduls.",
+					(nr) => nr == 1,
+					["help"],
+					true
+				),
+			]
+		),
+		new bot.api.Command("listmodules", "Zeigt alle verfügbaren Module an", []),
+	],
+};*/
 const attributes = {
 	modulename: "reacted",
-	commands: ["add", "remove", "test"],
+	description:
+		"Das Modul zum managen von Reactions auf Nachrichten und der dazugehörigen Vergabe von Rollen.",
+	commands: [
+		new bot.api.Command(
+			"add",
+			"Kreiert eine Nachricht mit den angegebenen Funktionen.",
+			[
+				new bot.api.Parameter(
+					"-messageID",
+					"required",
+					[],
+					"Um die MessageID von einer Nachricht zu bekommen, musst du den Developer-Modus in Discord aktivieren und anschließend auf deine Nachricht klicken. Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.",
+					(nr) => nr == 1,
+					[],
+					false
+				),
+				new bot.api.Parameter(
+					"-map",
+					"required",
+					[],
+					"Argumente: Immer ein Emoji gefolgt von einer Rolle. Das @ vor Rollen kann/sollte weggelassen werden.",
+					(nr) => nr % 2 == 0,
+					["✅", "Verified"],
+					true
+				),
+				new bot.api.Parameter(
+					"-wl",
+					"optional",
+					[],
+					"Die Whitelist an Rollen, die ein User benötigt, damit der Bot ihm eine Rolle gibt.",
+					(nr) => nr > 0,
+					["everyone"],
+					true
+				),
+				new bot.api.Parameter(
+					"-wl_mode",
+					"optional",
+					["-wl"],
+					"Der Modus der Whitelist. Zugelassen sind: lower, equal, higher. [lower] Dabei muss die höchste Rolle vom User unter oder gleich einer der wl-Roles sein. [equal] Dabi muss der User eine der wl-Roles besitzen. [higher] Dabei muss die höchste Rolle vom User gleich oder höher einer wl-Rolle sein.",
+					(nr) => nr == 1,
+					["equal"],
+					true
+				),
+			]
+		),
+		new bot.api.Command(
+			"remove",
+			"Löscht eine Nachricht anhand der Originalen MessageID",
+			[
+				new bot.api.Parameter(
+					"-messageID",
+					"required",
+					[],
+					"Die originale MessageID steht unten in der Bot-Nachricht",
+					(nr) => nr == 1,
+					[],
+					false
+				),
+			]
+		),
+	],
 };
 const databases = [
 	{
@@ -26,24 +109,7 @@ const databases = [
 
 function help(channel) {
 	//TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
-	channel.send(`Managed Nachrichten, mit denen ein User sich Rollen geben kann.
-!reacted add <messageID> <emoji> <role> [<emoji_1 <role_1> ...] [-required <role> [<role2> ...]]'
-	messageID: Um die MessageID von einer Nachricht zu bekommen, musst du den Developer-Modus in Discord aktivieren
-		und anschließend auf deine Nachricht klicken.
-		Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.
-	Nach messageID kommen Paare von je einem Emoji und einer Rolle, welche miteinander verknüpft werden.
-	-required: Optionaler parameter. Falls nur Bestimmte Rollen die Möglichkeit haben sollen, auf die Message zu reacten.
-    <-required_equal|-required_lower|-required_higher>: Wenn dieser Parameter gesetzt ist,
-    	bekommen <nur die Personen mit den Rollen| alle (discordmäßig) darunter liegenden Personen mit den Rollen| alle darüber liegenden Personen mit den Rollen>,
-    	welche mit -required angegeben wurden die angegebe Rolle. Dabei werden die angegeben Rollen immer mit eingeschlossen
-    	und im falle lower und higher die höchste Rolle eines Users genommen. Equal checkt eins zu eins die Rollen ab.
-    	Required_equal ist der Standardwert, falls keiner angegeben wurde.
-    Anmerkung: 
-        - das @ vor Rollen kann weggelassen werden.
-        - Den Befehl mehrmalig auf die selbe Nachricht auszuführen ist nicht möglich. Einfach eine neue Nachricht kreieren.
-!reacted remove <messageID>
-	Löscht die Rollenzuweisungsnachricht auch Serverseitig, was zur Vorbeugung von Problemen mit der Datenbank dient.
-`);
+	bot.api.help_module_commands(attributes, channel);
 }
 
 let collectors = {}; //messageID : lambda(args) //TODO:add args
