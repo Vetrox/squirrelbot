@@ -204,15 +204,11 @@ class Parameter {
 		this.parname = parname; //starts with minus
 		if (!parname.startsWith("-")) throw new err.InvalidData();
 		this.type = type;
-		this.dependent_params = dependent_params; /* {name : set_if_not_set}*/
+		this.dependent_params = dependent_params; /* [name] Anmerkung: default_construct bestimmt nun darüber*/
 		this.description = description;
 		this.arg_check_lambda = arg_check_lambda;
 		this.default_args = default_args;
 		this.default_construct = default_construct; /*this is just constucted, when 'required' is set. This gets not checked, if it's the dependent_param of another param and it has requested to default construct this*/
-	}
-
-	getName() {
-		return this.parname;
 	}
 }
 
@@ -250,14 +246,9 @@ class Command {
 					throw new err.ParameterArguments(param_name);
 				for (let dep_name in param.dependent_params) {
 					if (!(dep_name in params)) {
-						let set_if_not_set = param.dependent_params[dep_name];
-						if (set_if_not_set == true) {
+						if (this.par_desc_map[dep_name].default_construct == true) {
 							//assign the default arguments of this parameter to the param list
-							let default_args = this.par_desc_map[dep_name].default_args;
-							log.logMessage(
-								`Default constructing parameter ${dep_name} with the arguments ${default_args}`
-							);
-							params[dep_name] = default_args;
+							params[dep_name] = this.par_desc_map[dep_name].default_args;
 							changed_params = true;
 						} else {
 							throw new err.ParameterDependency(param_name, dep_name);

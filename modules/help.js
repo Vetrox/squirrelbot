@@ -4,6 +4,8 @@ const err = require("../errors.js");
 const log = require("../log.js");
 const attributes = {
 	modulename: "help",
+	description:
+		"Das Help-Modul. Hier kannst Du vieles über Commands und andere Module erfahren.",
 	commands: [
 		new bot.api.Command(
 			"modulehelp",
@@ -26,14 +28,6 @@ const attributes = {
 
 function help(channel) {
 	bot.api.help_module_commands(attributes, channel);
-
-	/*
-	channel.send(` --- Das ist die Hilfeseite vom Squirrelbot ---
-
-🡒 Um für ein bestimmtes Modul eine Hilfeseite angezeigt zu bekommen, gib einfach !help <modulname> ein.
-🡒 Um alle module aufgelistet zu bekommen, gib !listmodules ein.
-
-----------------`);*/
 }
 
 function initialize() {}
@@ -59,13 +53,13 @@ function onMessage(message) {
 				break;
 			}
 			case "listmodules": {
-				let desc = '';
+				let desc = "";
 				for (mod of bot.modules) {
 					if (mod?.attributes?.modulename) {
 						desc += "\n🡒 " + mod.attributes.modulename;
 					}
 				}
-				bot.api.emb('Alle Module', desc, message.channel);
+				bot.api.emb("Alle Module", desc, message.channel);
 				break;
 			}
 		}
