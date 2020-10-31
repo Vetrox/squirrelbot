@@ -217,16 +217,20 @@ class Command {
 		this.name = name;
 		this.description = description;
 		this.par_desc_map = {};
-		for(let param of parameter_list){
+		for (let param of parameter_list) {
 			this.par_desc_map[param.parname] = param;
 		}
 		for (let param of parameter_list) {
 			if (param.type != "required" && param.type != "optional")
 				throw new err.Command("init_req_opt");
 			for (let dep_name of param.dependent_params) {
-				if (Object.keys(this.par_desc_map).indexOf(dep_name) <= -1) throw new err.Command("init_dep_not_found");
+				if (Object.keys(this.par_desc_map).indexOf(dep_name) <= -1)
+					throw new err.Command("init_dep_not_found");
 			}
-			if (param.default_construct == true && !param.arg_check_lambda(param.default_args.length))
+			if (
+				param.default_construct == true &&
+				!param.arg_check_lambda(param.default_args.length)
+			)
 				throw new err.Command("init_lambda_err");
 			this.par_desc_map[param.parname] = param;
 		}
@@ -241,10 +245,10 @@ class Command {
 				let param = this.par_desc_map[param_name];
 				let args = params[param_name];
 				/* check argument length via lambda */
-				if (!param.arg_check_lambda(args.length)){
-					if(param.default_construct == true){
+				if (!param.arg_check_lambda(args.length)) {
+					if (param.default_construct == true) {
 						params[param_name] = param.default_args;
-					}else{
+					} else {
 						throw new err.ParameterArguments(param_name);
 					}
 				}
@@ -546,9 +550,13 @@ function help_module_commands(mod_attributes, channel) {
 			desc +=
 				`\`\`\`diff\n` +
 				`${par_name} [${c.type}` +
-				(c.default_construct == true ? `; default: ${c.default_args.toString().replace(',',' ')}]\n` : "]\n") +
-				` ${c.description}\n`+
-				(c.dependent_params.length > 0 ? `+ hängt von diesen Parametern ab: [${c.dependent_params}]`: '') +
+				(c.default_construct == true
+					? `; default: ${c.default_args.toString().replace(",", " ")}]\n`
+					: "]\n") +
+				` ${c.description}\n` +
+				(c.dependent_params.length > 0
+					? `+ hängt von diesen Parametern ab: [${c.dependent_params}]`
+					: "") +
 				`\`\`\``;
 		}
 		embed.addField(`cmd: ${cmd.name}`, desc, true);

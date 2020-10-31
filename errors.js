@@ -64,7 +64,7 @@ class Command extends BotError {
 	}
 }
 
-class ParameterArguments extends BotError {
+class ParameterArguments extends Command {
 	constructor(param) {
 		super(
 			`The user has given the wrong amount of arguments to the parameter ${param}`
@@ -72,7 +72,7 @@ class ParameterArguments extends BotError {
 	}
 }
 
-class ParameterDependency extends BotError {
+class ParameterDependency extends Command {
 	constructor(param, depends) {
 		super(
 			`Parameter ${param} depends on the parameter ${depends}, wich is configured to not default-initializing it.`
@@ -80,7 +80,7 @@ class ParameterDependency extends BotError {
 	}
 }
 
-class ParameterRequired extends BotError {
+class ParameterRequired extends Command {
 	constructor(cmd, param) {
 		super(
 			`The user has not provided the essencial Parameter ${param} for the Command ${cmd}`
@@ -88,7 +88,7 @@ class ParameterRequired extends BotError {
 	}
 }
 
-class CommandNameNotFound extends BotError {
+class CommandNameNotFound extends Command {
 	constructor(cmdname, modulename) {
 		super(`Could not find the command ${cmdname} for the module ${modulename}`);
 	}

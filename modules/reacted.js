@@ -48,7 +48,7 @@ const attributes = {
 					"required",
 					[],
 					"Argumente: Immer ein Emoji gefolgt von einer Rolle. Das @ vor Rollen kann/sollte weggelassen werden.",
-					(nr) => nr % 2 == 0,
+					(nr) => nr >= 2 && nr % 2 == 0,
 					["✅", "Verified"],
 					true
 				),
@@ -65,7 +65,7 @@ const attributes = {
 					"-wl_mode",
 					"optional",
 					["-wl"],
-					"Der Modus der Whitelist. Zugelassen sind: lower, equal, higher. [lower] Dabei muss die höchste Rolle vom User unter oder gleich einer der wl-Roles sein. [equal] Dabi muss der User eine der wl-Roles besitzen. [higher] Dabei muss die höchste Rolle vom User gleich oder höher einer wl-Rolle sein.",
+					"Der Modus der Whitelist. Zugelassen sind: lower, equal, not_equal (blacklisting), higher. [lower] Dabei muss die höchste Rolle vom User unter oder gleich einer der wl-Roles sein. [equal] Dabi muss der User eine der wl-Roles besitzen. [higher] Dabei muss die höchste Rolle vom User gleich oder höher einer wl-Rolle sein.",
 					(nr) => nr == 1,
 					["equal"],
 					true
@@ -96,7 +96,7 @@ const databases = [
 			"messageID",
 			"emoji_map",
 			"required_roles",
-			"required_type", // 'lower'/'equal'/'higher'
+			"required_type", // 'lower'/'equal'/'not_equal'/'higher'
 			"new_msg_id",
 			"guild_id",
 			"channel_id",
@@ -105,10 +105,9 @@ const databases = [
 ];
 
 //TODO: make it possible to create reacted in other channels...
-//TODO: add 'not_equal' (blacklisting)
+//TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
 
 function help(channel) {
-	//TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
 	bot.api.help_module_commands(attributes, channel);
 }
 
@@ -155,6 +154,8 @@ async function setupCollector(data) {
 					if (
 						(required_type == "equal" &&
 							guildMember.roles.cache.has(required_role.id)) ||
+						(required_type == "not_equal" &&
+							!guildMember.roles.cache.has(required_role.id)) ||
 						(required_type == "higher" &&
 							guildMember.roles.highest.comparePositionTo(required_role) >=
 								0) ||
@@ -227,154 +228,156 @@ async function onRaw(raw) {
 }
 
 async function onMessage(message) {
-	if (message.content[0] != prefix) return;
-	let split = message.content.substring(1).split(/\s+/); //TODO test regex hell here
-	if (split[0] != attributes.modulename) return;
+	try {
+		let res = bot.api.parse_message(message, attributes);
+		if (res == false) return;
 
-	switch (split[1]) {
-		case attributes.commands[0]: {
-			if (!split[2] || split.length < 5) help(message.channel);
-			let messageID = split[2];
-			try {
-				let i = bot.api.lookup_key_value(
-					attributes.modulename,
-					"messageID",
-					messageID
-				);
-				//if no error is thrown, eg. the message is in the database.
-				message.channel.send(`Die Datenbank beinhaltet diese Nachricht schon.`);
-				return;
-			} catch (error) {
-				if (!(error instanceof err.Find)) {
-					throw error;
+		switch (res.name) {
+			case "add": {
+				let messageID = res.params["-messageID"][0];
+				try {
+					bot.api.lookup_key_value(
+						attributes.modulename,
+						"messageID",
+						messageID
+					);
+					//if no error is thrown -> the message is in the database.
+					message.channel.send(
+						`Die Datenbank beinhaltet diese Nachricht schon.`
+					);
+					return;
+				} catch (error) {}
+
+				let msg;
+				try {
+					msg = await message.channel.messages.fetch(messageID);
+				} catch (error) {
+					message.channel.send(
+						`Konnte die Nachricht mit der id ${messageID} nicht finden.`
+					);
+					return; //ensures msg has a value;
 				}
-			}
 
-			let msg;
-			try {
-				msg = await message.channel.messages.fetch(messageID);
-			} catch (error) {
-				message.channel.send(
-					`Konnte die Nachricht mit der id ${messageID} nicht finden.`
-				);
-				return; //ensures msg has a value;
-			}
-
-			let assigns_list = [];
-			let required_roles = [];
-			let required_type = "equal"; //equal by default.
-			for (let req = false, i = 3; i < split.length; i++) {
-				switch (split[i]) {
-					case "-required_equal":
-						required_type = "equal";
-						continue;
-					case "-required_lower":
-						required_type = "lower";
-						continue;
-					case "-required_higher":
-						required_type = "higher";
-						continue;
+				let assigns_list_ = res.params["-map"];
+				let required_roles = [];
+				for (let i in res.params["-wl"]) {
+					let rl = res.params["-wl"][i];
+					try {
+						required_roles.push(
+							message.guild.roles.cache.find(
+								(role) =>
+									role.name.toLowerCase() == rl.toLowerCase() ||
+									role.name.toLowerCase() == "@" + rl.toLowerCase()
+							).id
+						);
+					} catch (error) {
+						message.channel.send("The role specified was not found.");
+						return;
+					}
 				}
-				if (req == false && split[i] === "-required") {
-					req = true;
-					continue;
+				let required_type = res.params["-wl_mode"][0];
+
+				if (assigns_list.length <= 0 || assigns_list.length % 2 != 0)
+					throw new err.CommandParameter("Wrong number of assignments made");
+				let emoji_map = {};
+				for (let i = 0; i <= assigns_list.length - 2; i += 2) {
+					emoji_map[assigns_list[i]] = message.guild.roles.cache.find(
+						(role) =>
+							role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
+					).id;
 				}
-				if (req == false) assigns_list.push(split[i]);
-				else
-					required_roles.push(
-						message.guild.roles.cache.find(
-							(role) =>
-								role.name.toLowerCase() == split[i].toLowerCase() ||
-								role.name.toLowerCase() == "@" + split[i].toLowerCase()
-						).id
-					); //find roleid or throw error
-			}
-			if (assigns_list.length <= 0 || assigns_list.length % 2 != 0)
-				throw new err.CommandParameter("Wrong number of assignments made");
-			let emoji_map = {};
-			for (let i = 0; i <= assigns_list.length - 2; i += 2) {
-				emoji_map[assigns_list[i]] = message.guild.roles.cache.find(
-					(role) =>
-						role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
-				).id;
-			}
-			// embed Message and send to channel.
+				// embed Message and send to channel.
 
-			let e_r_t = "";
-			for (emoji in emoji_map) {
-				e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
-					emoji_map[emoji]
-				)}\n`;
-			}
+				let e_r_t = "";
+				for (emoji in emoji_map) {
+					e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
+						emoji_map[emoji]
+					)}\n`;
+				}
 
-			let req_roles_text_head = "";
-			let req_roles_text = "";
-			switch (required_type) {
-				case "equal":
-					req_roles_text_head += "Benötigte Rollen";
-					req_roles_text +=
-						"Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
-					break;
-				case "higher":
-					req_roles_text_head += "Mindest-Voraussetzung Rollen";
-					req_roles_text +=
-						"Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
-					break;
-				case "lower":
-					req_roles_text_head += "Höchst-Voraussetzung Rollen";
-					req_roles_text +=
-						"Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
-					break;
-				/*case 'not_equal':
+				let req_roles_text_head = "";
+				let req_roles_text = "";
+				switch (required_type) {
+					case "equal":
+						req_roles_text_head += "Benötigte Rollen";
+						req_roles_text +=
+							"Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
+						break;
+					case "higher":
+						req_roles_text_head += "Mindest-Voraussetzung Rollen";
+						req_roles_text +=
+							"Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
+						break;
+					case "lower":
+						req_roles_text_head += "Höchst-Voraussetzung Rollen";
+						req_roles_text +=
+							"Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
+						break;
+					/*case 'not_equal':
 					req_roles_text_head += 'Ausgeschlossene Rollen';
 					req_roles_text += 'Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n';
 					break;*/
-			}
-			for (role of required_roles) {
-				req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
-			}
-			let embed = new Discord.MessageEmbed()
-				.setColor("#ff9900")
-				.setTitle("Rollenvergabe")
-				.setAuthor(
-					msg.author.username,
-					msg.author.displayAvatarURL({ size: 256 })
-				)
-				.setDescription(msg.content) //other option: cleanContent
-				.addField("Emoji 🡒 Rolle", e_r_t.trim())
-				.addField(req_roles_text_head.trim(), req_roles_text.trim())
-				.setTimestamp()
-				.setFooter(
-					`Original MessageID: ${messageID}`,
-					bot["client"].user.displayAvatarURL({ size: 32 })
-				);
-			let ret_msg = await message.channel.send(embed);
+				}
+				for (role of required_roles) {
+					req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
+				}
+				let embed = new Discord.MessageEmbed()
+					.setColor("#ff9900")
+					.setTitle("Rollenvergabe")
+					.setAuthor(
+						msg.author.username,
+						msg.author.displayAvatarURL({ size: 256 })
+					)
+					.setDescription(msg.content) //other option: cleanContent
+					.addField("Emoji 🡒 Rolle", e_r_t.trim())
+					.addField(req_roles_text_head.trim(), req_roles_text.trim())
+					.setTimestamp()
+					.setFooter(
+						`Original MessageID: ${messageID}`,
+						bot["client"].user.displayAvatarURL({ size: 32 })
+					);
+				let ret_msg = await message.channel.send(embed);
 
-			/*react to the message with the emoji*/
-			for (emoji in emoji_map) {
-				ret_msg.react(emoji);
-			}
+				/*react to the message with the emoji*/
+				for (emoji in emoji_map) {
+					ret_msg.react(emoji);
+				}
 
-			let data = [
-				messageID,
-				emoji_map,
-				required_roles,
-				required_type,
-				ret_msg.id,
-				message.guild.id,
-				message.channel.id,
-			];
-			try {
-				bot.api.database_row_add(attributes.modulename, data);
-				setupCollector(data);
-				message.channel.send(
-					`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`
-				);
-			} catch (error) {
-				message.channel.send("Etwas ist schief gelaufen. Siehe im Log.");
-				log.logMessage(error);
+				let data = [
+					messageID,
+					emoji_map,
+					required_roles,
+					required_type,
+					ret_msg.id,
+					message.guild.id,
+					message.channel.id,
+				];
+				try {
+					bot.api.database_row_add(attributes.modulename, data);
+					setupCollector(data);
+					message.channel.send(
+						`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`
+					);
+				} catch (error) {
+					message.channel.send("Etwas ist schief gelaufen. Siehe im Log.");
+					log.logMessage(error);
+				}
+				break;
 			}
-			break;
+			case "remove": {
+				break;
+			}
+		}
+	} catch (error) {
+		if (error instanceof err.Command) {
+			message.channel.send(error.message);
+		} else {
+			throw error;
+		}
+	}
+
+	switch (split[1]) {
+		case attributes.commands[0]: {
 		}
 		case attributes.commands[1]: {
 			//remove message
