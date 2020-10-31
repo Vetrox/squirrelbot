@@ -521,11 +521,15 @@ function parse_message(message, mod_attributes) {
 	throw new err.CommandNameNotFound(param_args[0], mod_attributes.modulename);
 }
 
+/**
+	requires: attributes.modulename, attributes.description, attributes.commands
+**/
 function help_module_commands(mod_attributes, channel) {
 	const embed = new Discord.MessageEmbed()
 		.setColor("#ffaaff")
 		.setAuthor("Hilfeseite")
 		.setTitle(`Modul: ${mod_attributes.modulename}`)
+		.setDescription(mod_attributes.description)
 		.setTimestamp()
 		.setFooter(
 			bot.client.user.username,
@@ -534,12 +538,16 @@ function help_module_commands(mod_attributes, channel) {
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
 		for (let par_name in cmd.par_desc_map) {
+			let c = cmd.par_desc_map[par_name];
 			desc +=
 				`\`\`\`diff\n` +
-				`${par_name}\n` +
-				` ${cmd.par_desc_map[par_name].description}\`\`\``;
+				`${par_name} [${c.type}` +
+				(c.default_construct == true ? `; default: ${c.default_args.toString().replace(',',' ')}]\n` : "]\n") +
+				` ${c.description}\n`+
+				(c.dependent_params.length > 0 ? `+ hängt von diesen Parametern ab: [${c.dependent_params}]`: '') +
+				`\`\`\``;
 		}
-		embed.addField(cmd.name, desc, false);
+		embed.addField(`cmd: ${cmd.name}`, desc, true);
 	}
 	channel.send(embed);
 }
