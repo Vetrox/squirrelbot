@@ -252,8 +252,9 @@ class Command {
 						throw new err.ParameterArguments(param_name);
 					}
 				}
-				for (let dep_name in param.dependent_params) {
+				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
+						console.log(dep_name + " " + (dep_name in this.par_desc_map) + " " + this.par_desc_map[dep_name]);
 						if (this.par_desc_map[dep_name].default_construct == true) {
 							//assign the default arguments of this parameter to the param list
 							params[dep_name] = this.par_desc_map[dep_name].default_args;

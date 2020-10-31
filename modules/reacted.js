@@ -2,29 +2,6 @@ const Discord = require("discord.js");
 const log = require("../log.js");
 const err = require("../errors.js");
 const { prefix } = require("../config.json");
-/*const attributes = {
-	modulename: "help",
-	description:
-		"Das Help-Modul. Hier kannst Du vieles über Commands und andere Module erfahren.",
-	commands: [
-		new bot.api.Command(
-			"modulehelp",
-			"Zeigt die Hilfeseite von dem angegebenen Modul",
-			[
-				new bot.api.Parameter(
-					"-name",
-					"required",
-					[],
-					"Der Name des Moduls.",
-					(nr) => nr == 1,
-					["help"],
-					true
-				),
-			]
-		),
-		new bot.api.Command("listmodules", "Zeigt alle verfügbaren Module an", []),
-	],
-};*/
 const attributes = {
 	modulename: "reacted",
 	description:
@@ -105,7 +82,6 @@ const databases = [
 ];
 
 //TODO: make it possible to create reacted in other channels...
-//TODO: add possibility to just give yourself the role, not take it anmore. and the poss. to only take it, but not give it.
 
 function help(channel) {
 	bot.api.help_module_commands(attributes, channel);
@@ -175,7 +151,6 @@ async function setupCollector(data) {
 			}
 			let assigned_role_id;
 			if (emoji.id != null) {
-				//hopefully this check works.
 				assigned_role_id = emoji_map["<:" + emoji.name + ":" + emoji.id + ">"];
 			} else {
 				assigned_role_id = emoji_map[emoji.name];
@@ -219,11 +194,9 @@ async function onRaw(raw) {
 		guild_id = raw.d.guild_id,
 		emoji = raw.d.emoji;
 	let guild = bot["client"].guilds.cache.get(guild_id);
-	//const channel = guild.channels.cache.get(channel_id); //not needed
-	//const message = await channel.messages.fetch(message_id); //not needed
-
+	
 	for (orig_msgID in collectors) {
-		await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id); //emoji is again just the raw {name: unicode, if dc; id=null if dc.}
+		await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
 	}
 }
 
@@ -411,24 +384,6 @@ async function onMessage(message) {
 			throw error;
 		}
 	}
-
-	/*switch (split[1]) {
-		case attributes.commands[0]: {
-		}
-		case attributes.commands[1]: {
-			
-		}
-		case attributes.commands[2]: {
-			//test
-
-			console.log(message.guild.roles.cache);
-			break;
-		}
-		default: {
-			help(message.channel);
-			return;
-		}
-	}*/
 }
 
 module.exports.hooks = {
