@@ -65,6 +65,10 @@ function onMessage(message) {
 		}
 	} catch (error) {
 		if (error instanceof err.Command) {
+			if(error instanceof err.CommandNameNotFound){
+				help(message.channel);
+				return;
+			}
 			message.channel.send(`Something went wrong: ${error.message}`);
 		} else if (error instanceof err.CommandNameNotFound) {
 			message.channel.send(`Wrong command-name: ${error.message}`);
