@@ -9,7 +9,7 @@ const attributes = {
 	commands: [
 		new bot.api.Command(
 			"create",
-			"Kreiert einen Text oder Voicechannel. Dies ist eine Top-Level Funktionalität.",
+			"Kreiert einen einzelnen Text- oder Voicechannel. Du kannst die Rollen, die ihn sehen können später hier auch angeben",
 			[
 				new bot.api.Parameter(
 					"-name",
@@ -41,8 +41,23 @@ const attributes = {
 			]
 		),
 		new bot.api.Command(
+			"create_area",
+			"Kreiert deinen eigenen Bereich, auf den nur eingeladene Personen Zugriff haben. Zum hinzufügen/entfernen von Personen siehe change_area. Jeder Bereich hat eine maximale Nutzeranzahl, die in den Permissions festgelegt werden kann (TODO)",
+			[
+				new bot.api.Parameter(
+					"-name",
+					"required",
+					[],
+					"Der Name des Bereichs.",
+					(nr) => nr == 1,
+					[],
+					false
+				),
+			]
+		),
+		new bot.api.Command(
 			"delete",
-			"Löscht einen Text oder Voicechannel. Dies kann per definition immer nur der Owner.",
+			"Löscht einen Text oder Voicechannel. Dies kann per Definition immer nur der Owner.",
 			[
 				new bot.api.Parameter(
 					"-channelID",
@@ -88,16 +103,12 @@ const databases = [
 		keys: [
 			"channelID",
 			"ownerID",
-			"permission_type", //role managed / userid managed
-			"allowed", // [list of userids or list of roles]
+			"allowed", // [list of roles]
 		],
 	},
 	{
-		name: attributes.modulename + "_permissions",
-		keys: [
-			"commandname", //list of Roles allowed to use the create command to create themselves a channel
-			"allowed_roles", //TODO: add more commands and therefor the permissions for them too
-		],
+		name: attributes.modulename + "_settings",
+		keys: ["commandname", "allowed_roles"], //change this to 'key' and 'value' to support having mutliple datatypes in here. TODO: add category to collect user created channels under.
 	},
 ];
 
@@ -150,7 +161,6 @@ async function onMessage(message) {
 		switch (res.name) {
 			case "create": {
 				await check_role(message.author, message.guild, "create");
-				console.log("continueing");
 				let channelMgr = message.guild.channels;
 				let parentID = res.params["-parentID"]?.[0];
 				let opt = {};
@@ -161,8 +171,7 @@ async function onMessage(message) {
 					bot.api.database_row_add(databases[0].name, [
 						channel.id,
 						message.author.id,
-						"role", //TODO: placeholder
-						["Verified"], //placeholder
+						["everyone"],
 					]);
 					message.channel.send("Channel erfolgreich kreiert.");
 				} catch (error) {
@@ -172,6 +181,62 @@ async function onMessage(message) {
 				}
 				break;
 			}
+			case "create_area": {
+				await check_role(message.author, message.guild, "create_area");
+				let channelMgr = message.guild.channels;
+				let category = await channelMgr.create(res.params["-name"][0], {
+					type: "category",
+					topic: "testtopic",
+				});
+				let text = await channelMgr.create("chat", {
+					type: "text",
+					topic: "testtopic2",
+					parent: category,
+				});
+				let voice = await channelMgr.create("voice", {
+					type: "voice",
+					topic: "testtopic2",
+					parent: category,
+				});
+				let own_role_name = `${message.author.username}`;
+				let own_role = await message.guild.roles.create({
+					data: {
+						name: own_role_name,
+						color: 0x111111,
+						hoist: false,
+						mentionable: true,
+					},
+				});
+
+//TODO: change permissions of category and sub channels and think about user based permissions
+
+				bot.api.database_row_add(databases[0].name, [
+					category.id,
+					message.author.id,
+					[own_role.id],
+				]);
+				bot.api.database_row_add(databases[0].name, [
+					text.id,
+					message.author.id,
+					[own_role.id],
+				]);
+				bot.api.database_row_add(databases[0].name, [
+					voice.id,
+					message.author.id,
+					[own_role.id],
+				]);
+				let guildMember = await message.guild.members.fetch({
+					user: message.author.id,
+					cache: true,
+					force: true,
+				});
+				guildMember.roles.add(own_role);
+				
+
+				bot.api.save_databases(); //TODO: remove
+				break;
+			}
+			/*TODO: case 'delete_area'*/
 			case "delete": {
 				await check_role(message.author, message.guild, "delete");
 				let channelMgr = message.guild.channels;
@@ -262,7 +327,10 @@ async function onMessage(message) {
 						message.channel
 					);
 				}
+				break;
 			}
+			default:
+				help(message.channel);
 		}
 	} catch (error) {
 		message.channel.send(`Etwas ist schief gelaufen: ${error.message}`);
