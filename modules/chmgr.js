@@ -55,6 +55,30 @@ const attributes = {
 				),
 			]
 		),
+		new bot.api.Command(
+			"setup",
+			"Setzt permissions. Aus Sicherheitsgründen dürfen dies nur die Administratoren des Servers ausführen",
+			[
+				new bot.api.Parameter(
+					"-cmdname",
+					"required",
+					[],
+					"Der name des Commands (delete/create/...)",
+					(nr) => nr == 1,
+					[],
+					false
+				),
+				new bot.api.Parameter(
+					"-roles",
+					"optional",
+					[],
+					"Die Rollen, die diesen Command ausführen dürfen. Wenn dieser Parameter weggelassen wird, werden die bisherigen erlaubten Rollen angezeigt.",
+					(nr) => nr == 1,
+					["everyone"],
+					true
+				),
+			]
+		),
 	],
 };
 
@@ -72,7 +96,7 @@ const databases = [
 		name: attributes.modulename + "_permissions",
 		keys: [
 			"create", //list of Roles allowed to use the create command to create themselves a channel
-			//TODO: add more commands and therefor the permissions for them too
+			"delete", //TODO: add more commands and therefor the permissions for them too
 		],
 	},
 ];
@@ -103,16 +127,15 @@ async function onMessage(message) {
 					bot.api.database_row_add(databases[0].name, [
 						channel.id,
 						message.author.id,
-						"role", //placeholder
+						"role", //TODO: placeholder
 						["Verified"], //placeholder
 					]);
-					message.channel.send('Channel erfolgreich kreiert.');
+					message.channel.send("Channel erfolgreich kreiert.");
 				} catch (error) {
 					message.channel.send(
 						`Konnte den Channel leider nicht erschaffen: ${error.message}`
 					);
 				}
-
 				break;
 			}
 			case "delete": {
@@ -134,6 +157,32 @@ async function onMessage(message) {
 					);
 				}
 				break;
+			}
+			case "setup": {
+				let guildMember = await message.guild.members.fetch({
+					user: message.author.id,
+					cache: true,
+					force: true,
+				});
+				let is_admin = guildMember.roles.highest.permissions.has(
+					"ADMINISTRATOR"
+				);
+				let cmd = res.params["-cmdname"][0];
+				let roles = res.params["-roles"];
+				if (roles) {
+					//set roles
+				} else {
+					try { //TODO: test here
+						let i = bot.api.lookup_key_value(
+							databases[1].name,
+							databases[1].keys[1],
+							cmd
+						);
+						message.channel.send(`Erlaubte Rollen: ${i.toString()}`);
+					}catch(error){
+						message.channel.send('Konnte den command in der datenbank noch nicht finden. Das heißt momentan kann ihn jeder ausführen');
+					}
+				}
 			}
 		}
 	} catch (error) {
