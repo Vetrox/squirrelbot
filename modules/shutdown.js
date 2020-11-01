@@ -5,14 +5,14 @@ const log = require("../log.js");
 const wait = require("util").promisify(setTimeout); //doesn't block the execution
 
 function help(channel) {
-	channel.send(`Shutdowns the client and saves the databases.`);
+  channel.send(`Shutdowns the client and saves the databases.`);
 }
 
 function initialize() {}
 
 async function onMessage(message) {
-	//TODO: add permissions
-	/*if (!bot["api"].check_message(message, attributes.modulename)) return;
+  //TODO: add permissions
+  /*if (!bot["api"].check_message(message, attributes.modulename)) return;
 	bot["client"].destroy();
 	log.logMessage("Shutting down...");
 	bot["api"].save_databases();
@@ -23,7 +23,7 @@ async function onMessage(message) {
 }
 
 module.exports.hooks = {
-	message: onMessage,
+  message: onMessage,
 };
 module.exports.help = help;
 module.exports.initialize = initialize;

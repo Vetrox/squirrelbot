@@ -73,7 +73,7 @@ const attributes = {
 					"optional",
 					[],
 					"Die Rollen, die diesen Command ausführen dürfen. Wenn dieser Parameter weggelassen wird, werden die bisherigen erlaubten Rollen angezeigt.",
-					(nr) => nr == 1,
+					(nr) => nr > 0,
 					["everyone"],
 					true
 				),
@@ -95,8 +95,8 @@ const databases = [
 	{
 		name: attributes.modulename + "_permissions",
 		keys: [
-			"create", //list of Roles allowed to use the create command to create themselves a channel
-			"delete", //TODO: add more commands and therefor the permissions for them too
+			"commandname", //list of Roles allowed to use the create command to create themselves a channel
+			"allowed_roles", //TODO: add more commands and therefor the permissions for them too
 		],
 	},
 ];
@@ -111,12 +111,46 @@ function initialize() {
 	}
 }
 
+async function check_role(user, guild, cmd) {
+	if (user.bot == true)
+		throw new bot.err.BotError("Der User darf kein Bot sein.");
+	try {
+		let i = bot.api.lookup_key_value(
+			databases[1].name,
+			databases[1].keys[0],
+			cmd
+		);
+		let required_roles = bot.api.lookup_index(
+			databases[1].name,
+			i[0],
+			databases[1].keys[1]
+		);
+		let guildMember = await guild.members.fetch({
+			user: user.id,
+			cache: true,
+			force: true,
+		});
+		for (role_id of required_roles) {
+			let required_role = await guild.roles.fetch(role_id);
+			if (guildMember.roles.cache.has(required_role.id)) return;
+		}
+		throw new bot.err.BotError("Der User hat keine der benötigten Rollen.");
+	} catch (error) {
+		if (error instanceof bot.err.Find) {
+			return;
+		}
+		throw error;
+	}
+}
+
 async function onMessage(message) {
 	try {
 		let res = bot.api.parse_message(message, attributes);
 		if (res == false) return;
 		switch (res.name) {
 			case "create": {
+				await check_role(message.author, message.guild, "create");
+				console.log("continueing");
 				let channelMgr = message.guild.channels;
 				let parentID = res.params["-parentID"]?.[0];
 				let opt = {};
@@ -139,6 +173,7 @@ async function onMessage(message) {
 				break;
 			}
 			case "delete": {
+				await check_role(message.author, message.guild, "delete");
 				let channelMgr = message.guild.channels;
 				let chID = res.params["-channelID"]?.[0];
 				try {
@@ -169,19 +204,63 @@ async function onMessage(message) {
 				);
 				let cmd = res.params["-cmdname"][0];
 				let roles = res.params["-roles"];
+				let i;
+				try {
+					i = bot.api.lookup_key_value(
+						databases[1].name,
+						databases[1].keys[0],
+						cmd
+					);
+				} catch (error) {}
 				if (roles) {
 					//set roles
-				} else {
-					try { //TODO: test here
-						let i = bot.api.lookup_key_value(
-							databases[1].name,
-							databases[1].keys[1],
-							cmd
+					let parsed_roles = [];
+					for (role of roles) {
+						parsed_roles.push(
+							message.guild.roles.cache.find(
+								(r) =>
+									r.name.toLowerCase() == role.toLowerCase() ||
+									r.name.toLowerCase() == "@" + role.toLowerCase()
+							).id
 						);
-						message.channel.send(`Erlaubte Rollen: ${i.toString()}`);
-					}catch(error){
-						message.channel.send('Konnte den command in der datenbank noch nicht finden. Das heißt momentan kann ihn jeder ausführen');
 					}
+					if (i) {
+						bot.api.database_row_change(
+							databases[1].name,
+							i[0],
+							databases[1].keys[1],
+							parsed_roles
+						);
+					} else {
+						bot.api.database_row_add(databases[1].name, [cmd, parsed_roles]);
+					}
+					bot.api.emb(
+						"Rollen erfolgreich geupdated",
+						`Die benötigten Rollen sind jetzt:\n ${roles}`,
+						message.channel
+					);
+				} else if (i) {
+					let data = bot.api.lookup_index(
+						databases[1].name,
+						i[0],
+						databases[1].keys[1]
+					);
+					let parsed_roles = [];
+					for (r_id of data) {
+						let required_role = await message.guild.roles.fetch(r_id);
+						parsed_roles.push(required_role.name);
+					}
+					bot.api.emb(
+						"Erlaubte Rollen",
+						parsed_roles.toString(),
+						message.channel
+					);
+				} else {
+					bot.api.emb(
+						"Das tut mir leid",
+						`Konnte den Command '${cmd}' nicht finden.`,
+						message.channel
+					);
 				}
 			}
 		}
