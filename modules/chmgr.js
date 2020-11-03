@@ -1,6 +1,4 @@
 const discord = require("discord.js");
-const { prefix } = require("../config.json");
-const err = require("../errors.js");
 const log = require("../log.js");
 const attributes = {
 	modulename: "chmgr",
@@ -67,7 +65,17 @@ const attributes = {
 		new bot.api.Command(
 			"delete_area",
 			"Löscht alle deine Areas. Eigentlich solltest du nicht mehrere Haben können.",
-			[]
+			[
+				new bot.api.Parameter(
+					"-here",
+					"optional",
+					[],
+					"Falls Du ein Admin bist, und diesen Kanal löschen willst.",
+					(nr) => nr == 1,
+					["true"],
+					true
+				),
+			]
 		),
 		new bot.api.Command(
 			"delete",
@@ -115,7 +123,7 @@ const attributes = {
 				new bot.api.Parameter(
 					"-key",
 					"optional",
-					[],
+					["-value"],
 					"Die Einstellung, die Du bearbeiten möchtest.",
 					(nr) => nr == 1,
 					[],
@@ -149,6 +157,13 @@ const databases = [
 	{
 		name: attributes.modulename + "_settings",
 		keys: ["key", "value"],
+		/**all keys:
+			<cmdname>: role_ids // per command setting of minimum role to execute it.
+
+			collecting_category : categoryID // the category under which all user created areas will be collected
+			area_role_attributes: roleid // eine Vorlagenrolle, die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
+			logging_channel: channelID // der channel, in den alle creations geloggt werden sollen.
+		**/
 	},
 ];
 
@@ -243,6 +258,20 @@ async function onMessage(message) {
 					parent: category,
 				});
 				let access_type = res.params["-access_type"][0];
+				const permissions = {
+					//maybe manage with a role, that can be applied over the config command
+					VIEW_CHANNEL: true,
+					ADD_REACTIONS: true,
+					STREAM: true,
+					SEND_MESSAGES: true,
+					SEND_TTS_MESSAGES: true,
+					EMBED_LINKS: true,
+					ATTACH_FILES: true,
+					READ_MESSAGE_HISTORY: true,
+					USE_EXTERNAL_EMOJIS: true,
+					CONNECT: true,
+					SPEAK: true,
+				};
 				if (access_type == "role") {
 					message.guild.roles
 						.create({
@@ -261,11 +290,10 @@ async function onMessage(message) {
 									force: true,
 								})
 								.then((guildMember) => guildMember.roles.add(own_role));
-							category.createOverwrite(own_role, { VIEW_CHANNEL: true });
+							category.createOverwrite(own_role, permissions);
 						});
 				} else if (access_type == "userID") {
-					
-					//userid based access
+					category.createOverwrite(message.author, permissions);
 				} else {
 					bot.api.emb(
 						"Falscher Zugriffs-Typ",
@@ -300,13 +328,50 @@ async function onMessage(message) {
 				await check_role(message.author, message.guild, "delete_area");
 				let channelMgr = message.guild.channels;
 				let deleted = 0;
+				let owner_id = message.author.id;
+				if (res.params["-here"] == "true") {
+					let owner_of_this_channel_id;
+					try {
+						owner_of_this_channel_id = bot.api.lookup_index(
+							databases[0].name,
+							bot.api.lookup_key_value(
+								databases[0].name,
+								databases[0].keys[0], //channelID
+								message.channel.id
+							)[0],
+							databases[0].keys[1] //ownerID
+						);
+					} catch (error) {
+						bot.api.emb(
+							"Datenbank-Fehler",
+							"Konnte den Owner von diesem Channel nicht finden.",
+							message.channel
+						);
+						return;
+					}
+					let is_admin = message.member.roles.highest.permissions.has(
+						"ADMINISTRATOR"
+					);
+					if (is_admin == true) {
+						owner_id = owner_of_this_channel_id;
+					} else if (owner_of_this_channel_id == message.author.id) {
+						//proceed because the channel belongs to the owner. the argument was probably passed by accident tho
+					} else {
+						bot.api.emb(
+							"Berechtigungsfehler",
+							"Du hast nicht die Berechtigungen, um Channel zu löschen, die dir nicht gehören. Frag bitte einen Administrator.",
+							message.channel
+						);
+						return;
+					}
+				}
 				while (true) {
 					let index;
 					try {
 						index = bot.api.lookup_key_value(
 							databases[0].name,
 							databases[0].keys[1], //ownerID
-							message.author.id
+							owner_id
 						)[0];
 					} catch (error) {
 						break;
@@ -323,8 +388,6 @@ async function onMessage(message) {
 						databases[0].keys[0]
 					);
 					let channel = await channelMgr.cache.get(channelID);
-					//console.log("Would delete ");
-					//console.log(channel);
 					//unassign and delete role.
 					let manage_type = bot.api.lookup_index(
 						databases[0].name,
@@ -343,7 +406,7 @@ async function onMessage(message) {
 							.catch((e) => undefined);
 						message.member.roles.remove(role_id).catch((e) => undefined);
 					} else if (manage_type == "userID") {
-						//TODO implement
+						//i think nothing needs to be implemented here
 					} else {
 						bot.api.emb(
 							"Datenbank fehler.",
@@ -398,15 +461,93 @@ async function onMessage(message) {
 					}
 					bot.api.database_row_delete(databases[0].name, i[0]);
 					channel.delete();
-					message.channel.send("Channel erfolgreich gelöscht.");
+					bot.api.emb(
+						"Erfolg!",
+						"Channel erfolgreich gelöscht.",
+						message.channel
+					);
 				} catch (error) {
-					message.channel.send(
-						`Beim löschen des Channels mit der ID ${chID} ist ein Fehler aufgetreten. Prüfe bitte auch die Permissions. Error: ${error.message}`
+					bot.api.emb(
+						"Lösch Fehler",
+						`Beim löschen des Channels mit der ID ${chID} ist ein Fehler aufgetreten. Prüfe bitte auch die Permissions. Error: ${error.message}`,
+						message.channel
 					);
 				}
 				break;
 			}
-			//TODO add config
+			case "config": {
+				let guildMember = await message.guild.members.fetch({
+					user: message.author.id,
+					cache: true,
+					force: true,
+				});
+				let is_admin = guildMember.roles.highest.permissions.has(
+					"ADMINISTRATOR"
+				);
+				if (!is_admin) {
+					bot.api.emb(
+						"Berechtigungsfehler",
+						"Du musst ein Administrator sein, um diesen Command ausführen zu können",
+						message.channel
+					);
+					return;
+				}
+
+				const cfg = {
+					collecting_category: 'undefined', // the category under which all user created areas will be collected
+					area_role_attributes: 'undefined', // eine Vorlagenrolle, die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
+					logging_channel: 'undefined', // der channel, in den alle creations geloggt werden sollen.
+				};
+				/*add every config key to database and update cfg with real data*/
+				for (cfg_key in cfg) {
+					try {
+						let i = bot.api.lookup_key_value(
+							databases[1].name,
+							databases[1].keys[0],
+							cfg_key
+						);
+						cfg[cfg_key] = bot.api.lookup_index(
+							databases[1].name,
+							i[0],
+							databases[1].keys[1]
+						);
+					} catch (error) {
+						bot.api.database_row_add(databases[1].name, [
+							cfg_key,
+							cfg[cfg_key],
+						]);
+					}
+				}
+
+				if (!res.params["-key"]) {
+					bot.api.emb("Konfiguration", JSON.stringify(cfg), message.channel); //TODO: rework
+				} else {
+					let key = res.params["-key"],
+						value = res.params["-value"];
+					if (!(key in cfg)) {
+						bot.api.emb("Fehler", "Unbekannter Schlüssel", message.channel);
+						return;
+					}
+					//HINWEIS: hier werden die Daten nicht auf Richtigkeit geprüft, das muss bei jedem individuellen anwendungsfall passieren
+					let i = bot.api.lookup_key_value(
+						databases[1].name,
+						databases[1].keys[0],
+						key
+					);
+					bot.api.database_row_change(
+						databases[1].name,
+						i[0],
+						databases[1].keys[1],
+						value
+					);
+					bot.api.emb(
+						"Eintrag erfolgreich.",
+						`Der Schlüssel ${key} besitzt jetzt den Wert ${value}`
+					);
+				}
+				bot.api.save_databases(); //TODO: remove
+				break;
+			}
 			case "setup_cmd_permissions": {
 				let guildMember = await message.guild.members.fetch({
 					user: message.author.id,
@@ -416,6 +557,14 @@ async function onMessage(message) {
 				let is_admin = guildMember.roles.highest.permissions.has(
 					"ADMINISTRATOR"
 				);
+				if (!is_admin) {
+					bot.api.emb(
+						"Berechtigungsfehler",
+						"Du musst ein Administrator sein, um diesen Command ausführen zu können",
+						message.channel
+					);
+					return;
+				}
 				let cmd = res.params["-cmdname"][0];
 				let roles = res.params["-roles"];
 				let i;
@@ -482,7 +631,7 @@ async function onMessage(message) {
 				help(message.channel);
 		}
 	} catch (error) {
-		message.channel.send(`Etwas ist schief gelaufen: ${error.message}`);
+		message.channel.send(`Etwas ist schief gelaufen: ${error}\n${error.message}`);
 	}
 }
 

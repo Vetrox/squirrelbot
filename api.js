@@ -568,11 +568,8 @@ function help_module_commands(mod_attributes, channel) {
 	channel.send(embed);
 }
 
-/**
-	shortcut for creating discordjs embeds
-**/
-function emb(title, description, channel) {
-	const embed = new Discord.MessageEmbed()
+function create_embed(title, description) {
+	return new Discord.MessageEmbed()
 		.setColor("#ff9900")
 		.setTitle(title)
 		.setDescription(description)
@@ -581,7 +578,25 @@ function emb(title, description, channel) {
 			bot.client.user.username,
 			bot.client.user.displayAvatarURL({ size: 32 })
 		);
+}
+
+/**
+	shortcut for creating discordjs embeds
+**/
+function emb(title, description, channel) {
+	if (!channel || channel.deleted == true) return; //maybe log to server log channel
+	channel.send(create_embed(title, description));
+}
+
+/**
+	can be used to create embeds with simulaniously logging it to a logging channel
+**/
+function embl(title, description, channel, logging_channel = undefined) {
+	if (!channel || channel.deleted == true) return; //maybe log to server log channel
+	let embed = create_embed(title, description);
 	channel.send(embed);
+	if (!logging_channel || logging_channel.deleted == true) return;
+	logging_channel.send(embed);
 }
 
 module.exports = {
@@ -604,4 +619,5 @@ module.exports = {
 	parse_message: parse_message,
 	help_module_commands: help_module_commands,
 	emb: emb,
+	embl: embl,
 };
