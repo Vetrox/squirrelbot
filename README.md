@@ -1,5 +1,5 @@
 # squirrelbot
-Ein discord Bot für den FB 12
+Ein discord Bot für die Fachschaft des FB 12
 
 
 ## How to contribute
