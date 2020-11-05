@@ -77,6 +77,26 @@ const attributes = {
 				),
 			]
 		),
+		new bot.api.Command("invite", "Läd Personen ein/aus.", [
+			new bot.api.Parameter(
+				"-name",
+				"required",
+				[],
+				"Der user, mit einem @ davor",
+				(nr) => nr == 1,
+				[],
+				false
+			),
+			new bot.api.Parameter(
+				"-remove",
+				"required",
+				[],
+				"Ob der User aus deinem Channel ausgeladen werden soll. Wenn weggelassen, dann wird er hinzugefügt.",
+				(nr) => nr == 1,
+				["false"],
+				true
+			),
+		]),
 		new bot.api.Command(
 			"delete",
 			"Löscht einen Text oder Voicechannel. Dies kann per Definition immer nur der Owner.",
@@ -150,8 +170,8 @@ const databases = [
 			"channelID",
 			"ownerID",
 			"is_part_of_category", //true or false
+			"is_category_parent", // when it's the parent of a private user channel. false by default
 			"manage_type", //role or userID. important for deletion and change
-			//"allowed", // [list of roles] //TODO: remove. we can fetch permissions from category itself
 		],
 	},
 	{
@@ -179,7 +199,7 @@ function initialize() {
 }
 
 let cfg = {
-	collecting_category: "undefined", // the category under which all user created areas will be collected
+	collecting_category: "undefined", // the category under which all user created areas will be collected //TODO: this isnt possible i think, because there are only top level categories allowed
 	area_role_attributes: "undefined", // eine Vorlagenrolle (name), die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
 	logging_channel: "undefined", // der channel, in den alle creations geloggt werden sollen.
 };
@@ -254,6 +274,7 @@ async function onMessage(message) {
 						channel.id,
 						message.author.id,
 						false, //is not part of category
+						true,
 						"role",
 					]);
 					message.channel.send("Channel erfolgreich kreiert.");
@@ -355,18 +376,21 @@ async function onMessage(message) {
 					category.id,
 					message.author.id,
 					true, //is part of category
+					true,
 					access_type,
 				]);
 				bot.api.database_row_add(databases[0].name, [
 					text.id,
 					message.author.id,
 					true,
+					false,
 					access_type,
 				]);
 				bot.api.database_row_add(databases[0].name, [
 					voice.id,
 					message.author.id,
 					true,
+					false,
 					access_type,
 				]);
 
@@ -376,7 +400,6 @@ async function onMessage(message) {
 			case "delete_area": {
 				await check_role(message.author, message.guild, "delete_area");
 				let channelMgr = message.guild.channels;
-				let deleted = 0;
 				let owner_id = message.author.id;
 				if (res.params["-here"] == "true") {
 					let owner_of_this_channel_id;
@@ -385,7 +408,7 @@ async function onMessage(message) {
 							databases[0].name,
 							bot.api.lookup_key_value(
 								databases[0].name,
-								databases[0].keys[0], //channelID
+								"channelID",
 								message.channel.id
 							)[0],
 							databases[0].keys[1] //ownerID
@@ -414,82 +437,81 @@ async function onMessage(message) {
 						return;
 					}
 				}
-				while (true) { //TODO: rework this whole process please
-					let index;
-					let indices;
-					let i = 0;
-					try {
-						indices = bot.api.lookup_key_value(
-							databases[0].name,
-							databases[0].keys[1], //ownerID
-							owner_id
-						);
-						index = indices[i];
-					} catch (error) {
-						break;
-					}
-					while (true) {
-						let is_cat = bot.api.lookup_index(
-							databases[0].name,
-							indices[i],
-							"is_part_of_category"
-						);
-						if (is_cat == false) {
-							i++;
-						}else{
-							break;
-						}
-					}
-					let channelID = bot.api.lookup_index(
-						databases[0].name,
-						index,
-						databases[0].keys[0]
-					);
-					let channel = await channelMgr.cache.get(channelID);
-					//unassign and delete role.
-					let manage_type = bot.api.lookup_index(
-						databases[0].name,
-						index,
-						"manage_type"
-					);
-					if (manage_type == "role") {
-						let role_id;
-						channel.permissionOverwrites.each((r) => {
-							if (r.type == "role" && r.id != message.guild.roles.everyone.id)
-								role_id = r.id;
-						});
-						message.guild.roles
-							.fetch(role_id)
-							.then((role) => role.delete())
-							.catch((e) => undefined);
-						message.member.roles.remove(role_id).catch((e) => undefined);
-					} else if (manage_type == "userID") {
-						//i think nothing needs to be implemented here
-					} else {
-						bot.api.emb(
-							"Datenbank fehler.",
-							"Der manage_type war weder role noch userID",
-							message.channel
-						);
-					}
-					bot.api.database_row_delete(databases[0].name, index);
-					channel.delete();
-					deleted++;
-				}
-				if (deleted == 0) {
-					bot.api.emb(
-						"Nicht gefunden",
-						"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
-						message.channel
-					);
-				} else {
+				try {
+					let deleted = await deleteArea(message, owner_id, channelMgr);
 					bot.api.emb(
 						"Erfolgreich gelöscht",
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
 						message.channel
 					);
 					bot.api.save_databases(); //TODO: remove
+				} catch (error) {
+					bot.api.emb(
+						"Nicht gefunden",
+						"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
+						message.channel
+					);
+					console.log(error);
+					return;
 				}
+				break;
+			}
+			case "invite": {
+				await check_role(message.author, message.guild, "invite");
+				let index, category;
+				let thischannel = await message.channel.fetch(true); //get the full version of this channel
+				/*check, if user is owner of this channel and get the parent category of it, if its a child*/
+				try {
+					index = bot.api.lookup_key_value(
+						databases[0].name,
+						"channelID",
+						message.channel.id
+					)[0];
+					let owner = bot.api.lookup_index(databases[0].name, index, "ownerID");
+					if (owner != message.author.id) throw new Error();
+					if (thischannel.type != "category") {
+						//could be replaced by channel.type == 'category' because there are only top level categories.
+						category = thischannel.parent;
+					} else {
+						category = thischannel;
+					}
+				} catch (error) {
+					bot.api.emb(
+						"Berechtigungsfehler",
+						"Du bist nicht der Owner des Channels."
+					);
+					throw error; //TODO: remove (debug only)
+					return;
+				}
+
+				let remove = res.params["-remove"][0];
+				let guildMember;
+				try {
+					let user_str = res.params["-name"][0];
+					guildMember = await message.guild.members.fetch(
+						user_str.substring(3, user_str.length - 1)
+					);
+				} catch (error) {
+					bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
+					return;
+				}
+				if (
+					bot.api.lookup_index(databases[0].name, index, "manage_type") ==
+					"role"
+				) {
+					category.permissionOverwrites.each((r) => {
+						if (r.type == "role" && r.id != message.guild.roles.everyone.id) {
+							if (remove == 'false' && guildMember.roles.cache.has(r.id) == false) {
+								guildMember.roles.add(r.id);
+							} else if (remove == 'true' && guildMember.roles.cache.has(r.id) == true) {
+								guildMember.roles.remove(r.id);
+							}
+						}
+					});
+				} else {
+					//ADD USER TO CATEGORY EXCEPTIONS based on the cfg permissions for roles
+				}
+
 				break;
 			}
 			case "delete": {
@@ -500,7 +522,7 @@ async function onMessage(message) {
 					let channel = await channelMgr.cache.get(chID);
 					let i = bot.api.lookup_key_value(
 						databases[0].name,
-						databases[0].keys[0],
+						"channelID",
 						channel.id
 					);
 					if (
@@ -673,10 +695,89 @@ async function onMessage(message) {
 				help(message.channel);
 		}
 	} catch (error) {
-		message.channel.send(
-			`Etwas ist schief gelaufen: ${error}\n${error.message}`
-		);
+		bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
 	}
+}
+
+async function deleteArea(message, owner_id, channelMgr) {
+	let data = [];
+	let child_ch_nr = 0;
+	for (ind of bot.api.lookup_key_value(
+		databases[0].name,
+		"ownerID",
+		owner_id
+	)) {
+		let c = [];
+		let skip = false;
+		for (key of databases[0].keys) {
+			let value = bot.api.lookup_index(databases[0].name, ind, key);
+			if (key == "is_part_of_category" && value == false) {
+				skip = true;
+				break;
+			}
+			if (key == "is_category_parent" && value == false) {
+				child_ch_nr++;
+			}
+			c.push(value);
+		}
+		if (skip == true) continue;
+		data.push(c);
+	}
+	console.log(data);
+	console.log(child_ch_nr);
+
+	let i = 0;
+	let deleted = 0;
+	while (data.length > 0) {
+		i = i >= data.length ? 0 : i;
+		let is_parent = data[i][3];
+		if (child_ch_nr > 0 && is_parent == true) {
+			i++;
+			continue;
+		}
+		let channel = await channelMgr.cache.get(data[i][0]);
+		if (!channel || channel.deleted == true) {
+			i++;
+			continue;
+		}
+		let manage_type = data[i][4];
+		if (manage_type == "role") {
+			let role_id;
+			channel.permissionOverwrites.each((r) => {
+				if (r.type == "role" && r.id != message.guild.roles.everyone.id)
+					role_id = r.id;
+			});
+			message.guild.roles
+				.fetch(role_id)
+				.then((role) => role.delete())
+				.catch((e) => undefined);
+			message.member.roles.remove(role_id).catch((e) => undefined);
+		} else if (manage_type == "userID") {
+			//i think nothing needs to be implemented here
+		} else {
+			bot.api.emb(
+				"Datenbank fehler.",
+				"Der manage_type war weder role noch userID",
+				message.channel
+			);
+		}
+		/*get the row of this channel in the database */
+		let row = bot.api.lookup_key_value(
+			databases[0].name,
+			"channelID",
+			channel.id
+		);
+		bot.api.database_row_delete(databases[0].name, row);
+		console.log("deleted " + channel.id);
+		channel.delete();
+		data.splice(i, 1);
+		if (is_parent == false) {
+			child_ch_nr--;
+		}
+		deleted++;
+		i++;
+	}
+	return deleted;
 }
 
 module.exports.hooks = {
