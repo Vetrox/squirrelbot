@@ -175,6 +175,33 @@ function initialize() {
 	for (let dbs of databases) {
 		bot.api.database_create_if_not_exists(dbs.name, dbs.keys);
 	}
+	updateCFG();
+}
+
+let cfg = {
+	collecting_category: "undefined", // the category under which all user created areas will be collected
+	area_role_attributes: "undefined", // eine Vorlagenrolle (name), die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
+	logging_channel: "undefined", // der channel, in den alle creations geloggt werden sollen.
+};
+
+function updateCFG() {
+	/*add every config key to database and update cfg with real data*/
+	for (cfg_key in cfg) {
+		try {
+			let i = bot.api.lookup_key_value(
+				databases[1].name,
+				databases[1].keys[0],
+				cfg_key
+			);
+			cfg[cfg_key] = bot.api.lookup_index(
+				databases[1].name,
+				i[0],
+				databases[1].keys[1]
+			);
+		} catch (error) {
+			bot.api.database_row_add(databases[1].name, [cfg_key, cfg[cfg_key]]);
+		}
+	}
 }
 
 async function check_role(user, guild, cmd) {
@@ -240,6 +267,41 @@ async function onMessage(message) {
 			case "create_area": {
 				await check_role(message.author, message.guild, "create_area");
 				let channelMgr = message.guild.channels;
+				let permissions = {
+					//maybe manage with a role, that can be applied over the config command
+					VIEW_CHANNEL: true,
+					ADD_REACTIONS: true,
+					STREAM: true,
+					SEND_MESSAGES: true,
+					SEND_TTS_MESSAGES: true,
+					EMBED_LINKS: true,
+					ATTACH_FILES: true,
+					READ_MESSAGE_HISTORY: true,
+					USE_EXTERNAL_EMOJIS: true,
+					CONNECT: true,
+					SPEAK: true,
+				};
+				if (cfg.area_role_attributes != "undefined") {
+					let role_name = cfg.area_role_attributes;
+					console.log(role_name);
+					if (typeof role_name == "object") {
+						console.log("T0192: OBJECT");
+						role_name = role_name[0];
+						console.log(role_name);
+					} else {
+						console.log("T&!: " + typeof role_name);
+					}
+					//TODO: implement checking permissions for the role and implement having the category channel have the complement of the role. assign the permissions later to the user.
+					let role = message.guild.roles.cache.find(
+						(role) =>
+							role.name.toLowerCase() == role_name.toLowerCase() ||
+							role.name.toLowerCase() == "@" + role_name.toLowerCase()
+					);
+					permissions = { VIEW_CHANNEL: true };
+					for (perm of role.permissions.toArray()) {
+						permissions[perm] = true;
+					}
+				}
 				let category = await channelMgr.create(res.params["-name"][0], {
 					type: "category",
 					permissionOverwrites: [
@@ -258,20 +320,7 @@ async function onMessage(message) {
 					parent: category,
 				});
 				let access_type = res.params["-access_type"][0];
-				const permissions = {
-					//maybe manage with a role, that can be applied over the config command
-					VIEW_CHANNEL: true,
-					ADD_REACTIONS: true,
-					STREAM: true,
-					SEND_MESSAGES: true,
-					SEND_TTS_MESSAGES: true,
-					EMBED_LINKS: true,
-					ATTACH_FILES: true,
-					READ_MESSAGE_HISTORY: true,
-					USE_EXTERNAL_EMOJIS: true,
-					CONNECT: true,
-					SPEAK: true,
-				};
+
 				if (access_type == "role") {
 					message.guild.roles
 						.create({
@@ -365,23 +414,32 @@ async function onMessage(message) {
 						return;
 					}
 				}
-				while (true) {
+				while (true) { //TODO: rework this whole process please
 					let index;
+					let indices;
+					let i = 0;
 					try {
-						index = bot.api.lookup_key_value(
+						indices = bot.api.lookup_key_value(
 							databases[0].name,
 							databases[0].keys[1], //ownerID
 							owner_id
-						)[0];
+						);
+						index = indices[i];
 					} catch (error) {
 						break;
 					}
-					let is_cat = bot.api.lookup_index(
-						databases[0].name,
-						index,
-						"is_part_of_category"
-					);
-					if (is_cat == false) continue;
+					while (true) {
+						let is_cat = bot.api.lookup_index(
+							databases[0].name,
+							indices[i],
+							"is_part_of_category"
+						);
+						if (is_cat == false) {
+							i++;
+						}else{
+							break;
+						}
+					}
 					let channelID = bot.api.lookup_index(
 						databases[0].name,
 						index,
@@ -492,38 +550,19 @@ async function onMessage(message) {
 					);
 					return;
 				}
-
-				const cfg = {
-					collecting_category: 'undefined', // the category under which all user created areas will be collected
-					area_role_attributes: 'undefined', // eine Vorlagenrolle, die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
-					logging_channel: 'undefined', // der channel, in den alle creations geloggt werden sollen.
-				};
-				/*add every config key to database and update cfg with real data*/
-				for (cfg_key in cfg) {
-					try {
-						let i = bot.api.lookup_key_value(
-							databases[1].name,
-							databases[1].keys[0],
-							cfg_key
-						);
-						cfg[cfg_key] = bot.api.lookup_index(
-							databases[1].name,
-							i[0],
-							databases[1].keys[1]
-						);
-					} catch (error) {
-						bot.api.database_row_add(databases[1].name, [
-							cfg_key,
-							cfg[cfg_key],
-						]);
-					}
-				}
-
-				if (!res.params["-key"]) {
+				updateCFG(); //maybe redundant
+				if (!res.params["-key"]?.length || res.params["-key"]?.length == 0) {
 					bot.api.emb("Konfiguration", JSON.stringify(cfg), message.channel); //TODO: rework
 				} else {
-					let key = res.params["-key"],
-						value = res.params["-value"];
+					let key = res.params["-key"][0];
+					let value = res.params["-value"][0];
+					if (!key || !value) {
+						bot.api.emb(
+							"Invalide Daten",
+							"Die angegebenen Daten waren nicht richtig."
+						);
+						return;
+					}
 					if (!(key in cfg)) {
 						bot.api.emb("Fehler", "Unbekannter Schlüssel", message.channel);
 						return;
@@ -540,12 +579,15 @@ async function onMessage(message) {
 						databases[1].keys[1],
 						value
 					);
+					updateCFG();
 					bot.api.emb(
 						"Eintrag erfolgreich.",
-						`Der Schlüssel ${key} besitzt jetzt den Wert ${value}`
+						`Der Schlüssel ${key} besitzt jetzt den Wert ${value}`,
+						message.channel
 					);
 				}
 				bot.api.save_databases(); //TODO: remove
+
 				break;
 			}
 			case "setup_cmd_permissions": {
@@ -631,7 +673,9 @@ async function onMessage(message) {
 				help(message.channel);
 		}
 	} catch (error) {
-		message.channel.send(`Etwas ist schief gelaufen: ${error}\n${error.message}`);
+		message.channel.send(
+			`Etwas ist schief gelaufen: ${error}\n${error.message}`
+		);
 	}
 }
 
