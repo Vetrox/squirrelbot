@@ -205,6 +205,7 @@ let cfg = {
 };
 
 function updateCFG() {
+	//add modified listener here to save unneccessary overhead
 	/*add every config key to database and update cfg with real data*/
 	for (cfg_key in cfg) {
 		try {
@@ -288,41 +289,7 @@ async function onMessage(message) {
 			case "create_area": {
 				await check_role(message.author, message.guild, "create_area");
 				let channelMgr = message.guild.channels;
-				let permissions = {
-					//maybe manage with a role, that can be applied over the config command
-					VIEW_CHANNEL: true,
-					ADD_REACTIONS: true,
-					STREAM: true,
-					SEND_MESSAGES: true,
-					SEND_TTS_MESSAGES: true,
-					EMBED_LINKS: true,
-					ATTACH_FILES: true,
-					READ_MESSAGE_HISTORY: true,
-					USE_EXTERNAL_EMOJIS: true,
-					CONNECT: true,
-					SPEAK: true,
-				};
-				if (cfg.area_role_attributes != "undefined") {
-					let role_name = cfg.area_role_attributes;
-					console.log(role_name);
-					if (typeof role_name == "object") {
-						console.log("T0192: OBJECT");
-						role_name = role_name[0];
-						console.log(role_name);
-					} else {
-						console.log("T&!: " + typeof role_name);
-					}
-					//TODO: implement checking permissions for the role and implement having the category channel have the complement of the role. assign the permissions later to the user.
-					let role = message.guild.roles.cache.find(
-						(role) =>
-							role.name.toLowerCase() == role_name.toLowerCase() ||
-							role.name.toLowerCase() == "@" + role_name.toLowerCase()
-					);
-					permissions = { VIEW_CHANNEL: true };
-					for (perm of role.permissions.toArray()) {
-						permissions[perm] = true;
-					}
-				}
+				let permissions = gatherPermissions(message.guild);
 				let category = await channelMgr.create(res.params["-name"][0], {
 					type: "category",
 					permissionOverwrites: [
@@ -411,7 +378,7 @@ async function onMessage(message) {
 								"channelID",
 								message.channel.id
 							)[0],
-							databases[0].keys[1] //ownerID
+							"ownerID"
 						);
 					} catch (error) {
 						bot.api.emb(
@@ -480,7 +447,6 @@ async function onMessage(message) {
 						"Berechtigungsfehler",
 						"Du bist nicht der Owner des Channels."
 					);
-					throw error; //TODO: remove (debug only)
 					return;
 				}
 
@@ -495,23 +461,65 @@ async function onMessage(message) {
 					bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
 					return;
 				}
+
 				if (
 					bot.api.lookup_index(databases[0].name, index, "manage_type") ==
 					"role"
 				) {
 					category.permissionOverwrites.each((r) => {
 						if (r.type == "role" && r.id != message.guild.roles.everyone.id) {
-							if (remove == 'false' && guildMember.roles.cache.has(r.id) == false) {
+							if (
+								remove == "false" &&
+								guildMember.roles.cache.has(r.id) == false
+							) {
 								guildMember.roles.add(r.id);
-							} else if (remove == 'true' && guildMember.roles.cache.has(r.id) == true) {
+								bot.api.emb(
+									"Erfolgreich",
+									`${guildMember.toString()} ist jetzt per Rolle eingeladen.`,
+									message.channel
+								);
+								return;
+							} else if (
+								remove == "true" &&
+								guildMember.roles.cache.has(r.id) == true
+							) {
 								guildMember.roles.remove(r.id);
+								bot.api.emb(
+									"Erfolgreich",
+									`${guildMember.toString()} ist jetzt per Rolle ausgeladen.`,
+									message.channel
+								);
+								return;
+							} else {
+								bot.api.emb(
+									"Fehler",
+									`${guildMember.toString()} wurde entweder schon entfernt oder hinzugefügt.`,
+									message.channel
+								);
 							}
 						}
 					});
 				} else {
-					//ADD USER TO CATEGORY EXCEPTIONS based on the cfg permissions for roles
+					if (remove == "false") {
+						let permissions = gatherPermissions(message.guild);
+						category.updateOverwrite(guildMember, permissions);
+						bot.api.emb(
+							"Erfolgreich",
+							`${guildMember.toString()} ist jetzt per userID eingeladen.`,
+							message.channel
+						);
+						return;
+					} else if (remove == "true") {
+						/* theoretically we could re-set all permissions to hide blacklisted users*/
+						category.updateOverwrite(guildMember, { VIEW_CHANNEL: false });
+						bot.api.emb(
+							"Erfolgreich",
+							`${guildMember.toString()} ist jetzt per userID ausgeladen.`,
+							message.channel
+						);
+						return;
+					}
 				}
-
 				break;
 			}
 			case "delete": {
@@ -778,6 +786,36 @@ async function deleteArea(message, owner_id, channelMgr) {
 		i++;
 	}
 	return deleted;
+}
+
+function gatherPermissions(guild) {
+	updateCFG();
+	let permissions = {
+		VIEW_CHANNEL: true,
+		ADD_REACTIONS: true,
+		STREAM: true,
+		SEND_MESSAGES: true,
+		SEND_TTS_MESSAGES: true,
+		EMBED_LINKS: true,
+		ATTACH_FILES: true,
+		READ_MESSAGE_HISTORY: true,
+		USE_EXTERNAL_EMOJIS: true,
+		CONNECT: true,
+		SPEAK: true,
+	};
+	if (cfg.area_role_attributes != "undefined") {
+		let role_name = cfg.area_role_attributes;
+		let role = guild.roles.cache.find(
+			(role) =>
+				role.name.toLowerCase() == role_name.toLowerCase() ||
+				role.name.toLowerCase() == "@" + role_name.toLowerCase()
+		);
+		permissions = { VIEW_CHANNEL: true };
+		for (perm of role.permissions.toArray()) {
+			permissions[perm] = true;
+		}
+	}
+	return permissions;
 }
 
 module.exports.hooks = {
