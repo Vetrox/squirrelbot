@@ -1,4 +1,4 @@
 {
-	"useTabs": true,
-	"endOfLine": "crlf"
+  "useTabs": false,
+  "endOfLine": "crlf"
 }

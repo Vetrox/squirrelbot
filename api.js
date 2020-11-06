@@ -170,7 +170,7 @@ class Database {
 	Writes the data on disk. If done so it returns true.
 **/
 	write_data() {
-		if (this.data.length <= 0) return false;
+		//if (this.data.length <= 0) return false;
 		let write_data = "";
 		for (let key of this.keys) {
 			write_data += key + " ";
@@ -187,7 +187,6 @@ class Database {
 			log.logMessage(`The database ${this.name} has been saved!`);
 		});
 		this.data_modified = false;
-		return true;
 	}
 }
 
@@ -254,7 +253,13 @@ class Command {
 				}
 				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
-						console.log(dep_name + " " + (dep_name in this.par_desc_map) + " " + this.par_desc_map[dep_name]);
+						console.log(
+							dep_name +
+								" " +
+								(dep_name in this.par_desc_map) +
+								" " +
+								this.par_desc_map[dep_name]
+						);
 						if (this.par_desc_map[dep_name].default_construct == true) {
 							//assign the default arguments of this parameter to the param list
 							params[dep_name] = this.par_desc_map[dep_name].default_args;
@@ -356,10 +361,9 @@ function save_databases() {
 	let n = 0;
 	for (database in databases) {
 		if (databases[database].data_modified === true) {
-			if (databases[database].write_data() === true) {
-				log.logMessage(`Saved database ${databases[database].name}`);
-				n++;
-			}
+			databases[database].write_data();
+			log.logMessage(`Saved database ${databases[database].name}`);
+			n++;
 		}
 	}
 	if (n > 0) {
@@ -453,7 +457,7 @@ function load_database(database) {
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
 	let data = [];
-	for (let i = 1; i < rows.length - 1; i += keys.length) {
+	for (let i = 1; i <= rows.length - keys.length; i += keys.length) {
 		let cache = [];
 		for (let i_k = 0; i_k < keys.length; i_k++) {
 			let row_index = i + i_k;
@@ -461,7 +465,6 @@ function load_database(database) {
 		}
 		data.push(cache);
 	}
-
 	databases[database] = new Database(database, keys, data);
 }
 
@@ -565,11 +568,8 @@ function help_module_commands(mod_attributes, channel) {
 	channel.send(embed);
 }
 
-/**
-	shortcut for creating discordjs embeds
-**/
-function emb(title, description, channel) {
-	const embed = new Discord.MessageEmbed()
+function create_embed(title, description) {
+	return new Discord.MessageEmbed()
 		.setColor("#ff9900")
 		.setTitle(title)
 		.setDescription(description)
@@ -578,7 +578,25 @@ function emb(title, description, channel) {
 			bot.client.user.username,
 			bot.client.user.displayAvatarURL({ size: 32 })
 		);
+}
+
+/**
+	shortcut for creating discordjs embeds
+**/
+function emb(title, description, channel) {
+	if (!channel || channel.deleted == true) return; //maybe log to server log channel
+	channel.send(create_embed(title, description));
+}
+
+/**
+	can be used to create embeds with simulaniously logging it to a logging channel
+**/
+function embl(title, description, channel, logging_channel = undefined) {
+	if (!channel || channel.deleted == true) return; //maybe log to server log channel
+	let embed = create_embed(title, description);
 	channel.send(embed);
+	if (!logging_channel || logging_channel.deleted == true) return;
+	logging_channel.send(embed);
 }
 
 module.exports = {
@@ -601,4 +619,5 @@ module.exports = {
 	parse_message: parse_message,
 	help_module_commands: help_module_commands,
 	emb: emb,
+	embl: embl,
 };
