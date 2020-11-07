@@ -15,10 +15,6 @@ const attributes = {
 const wait = require("util").promisify(setTimeout); //doesn't block the execution
 let invites = {};
 
-function help(channel) {
-  channel.send("invite_manager");
-}
-
 async function initialize() {
   await wait(1000); //we need to wait for about a second+, just to make sure the 'fetchInvites' function does actually return a value. Why? IDK!!!'
   log.logMessage("Fetching invites...");
@@ -73,7 +69,11 @@ function onMessage(message) {
             ]);
           else throw error;
         }
-        message.channel.send("Attached this channel to log invites to. :)");
+        bot.api.emb(
+          "Erfolgreich",
+          "Attached this channel to log invites to. :)",
+          message.channel
+        );
       } catch (error) {
         throw error;
       }
@@ -92,7 +92,11 @@ function onMessage(message) {
             message.guild.id.toString()
           )[0]
         );
-        message.channel.send("Detatched this channel from logging here.");
+        bot.api.emb(
+          "Erfolgreich",
+          "Detatched this channel from logging here.",
+          message.channel
+        );
       } catch (error) {
         throw error;
       }
@@ -149,10 +153,11 @@ function onGuildMemberAdd(member) {
   });
 }
 
-module.exports.hooks = {
-  message: onMessage,
-  guildMemberAdd: onGuildMemberAdd,
+module.exports = {
+  hooks: {
+    message: onMessage,
+    guildMemberAdd: onGuildMemberAdd,
+  },
+  initialize,
+  attributes,
 };
-module.exports.help = help;
-module.exports.initialize = initialize;
-module.exports.attributes = attributes;

@@ -1,6 +1,5 @@
 /*REQUIRE*/
-const discord = require("discord.js");
-const discordTTS = require("discord-tts");
+const Discord = require("discord.js");
 const fs = require("fs");
 const log = require("./log.js");
 const api = require("./api.js");
@@ -8,7 +7,7 @@ const errors = require('./errors.js');
 require("dotenv").config(); // read in environment variables
 
 /*CONSTANTS*/
-const client = new discord.Client();
+const client = new Discord.Client();
 
 /*GLOBAL VARIABLES*/
 global.bot = { client: client, running: true }; // the bot variable can be accessed by any module to share information across modules. constants can easily be written in the declaration.
@@ -25,16 +24,15 @@ function initialize_modules() {
     /* add event hooks */
     for (event in mod.hooks) {
       client.on(event, mod.hooks[event]);
-      log.logMessage(`Attached event hook '${event}' from module '${file}'`);
     }
     modules.push(mod);
   }
-  bot["modules"] = modules;
+  bot.modules = modules;
 }
 
 function initialize() {
   log.logMessage("Initializing the bot...");
-  bot["api"] = api;
+  bot.api = api;
   bot.err = errors;
   bot.api.initialize();
   initialize_modules();
@@ -53,4 +51,5 @@ async function on_ready() {
 
 /*EXECUTION*/
 initialize();
+log.logMessage("Logging in");
 client.login(process.env.BOT_TOKEN); //-> triggers the event-handlers

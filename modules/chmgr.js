@@ -187,10 +187,6 @@ const databases = [
 	},
 ];
 
-function help(channel) {
-	bot.api.help_module_commands(attributes, channel);
-}
-
 function initialize() {
 	for (let dbs of databases) {
 		bot.api.database_create_if_not_exists(dbs.name, dbs.keys);
@@ -269,21 +265,19 @@ async function onMessage(message) {
 				let opt = {};
 				opt.type = res.params["-type"][0];
 				if (parentID) opt.parent = parentID;
-				try {
-					let channel = await channelMgr.create(res.params["-name"][0], opt);
-					bot.api.database_row_add(databases[0].name, [
-						channel.id,
-						message.author.id,
-						false, //is not part of category
-						true,
-						"role",
-					]);
-					message.channel.send("Channel erfolgreich kreiert.");
-				} catch (error) {
-					message.channel.send(
-						`Konnte den Channel leider nicht erschaffen: ${error.message}`
-					);
-				}
+				let channel = await channelMgr.create(res.params["-name"][0], opt);
+				bot.api.database_row_add(databases[0].name, [
+					channel.id,
+					message.author.id,
+					false, //is not part of category
+					true,
+					"role",
+				]);
+				bot.api.emb(
+					"Erfolgreich",
+					"Channel erfolgreich kreiert.",
+					message.channel
+				);
 				break;
 			}
 			case "create_area": {
@@ -360,7 +354,11 @@ async function onMessage(message) {
 					false,
 					access_type,
 				]);
-				bot.api.emb('Erfolgreich', 'Alle Channel wurden kreiert!', message.channel);
+				bot.api.emb(
+					"Erfolgreich",
+					"Alle Channel wurden kreiert!",
+					message.channel
+				);
 				break;
 			}
 			case "delete_area": {
@@ -410,7 +408,6 @@ async function onMessage(message) {
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
 						message.channel
 					);
-					
 				} catch (error) {
 					bot.api.emb(
 						"Nicht gefunden",
@@ -813,9 +810,10 @@ function gatherPermissions(guild) {
 	return permissions;
 }
 
-module.exports.hooks = {
-	message: onMessage,
+module.exports = {
+	hooks: {
+		message: onMessage,
+	},
+	initialize,
+	attributes,
 };
-module.exports.help = help;
-module.exports.initialize = initialize;
-module.exports.attributes = attributes;

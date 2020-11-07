@@ -8,14 +8,6 @@ const attributes = {
 
 let connection;
 
-function help(channel) {
-  let text = `Alle Commands für ${attributes.modulename}:`;
-  for (command of attributes.commands) {
-    text += "\n" + command;
-  }
-  channel.send(text);
-}
-
 function initialize() {}
 
 async function onVoiceStateUpdate(oldState, newState) {
@@ -39,21 +31,18 @@ async function onMessage(message) {
   switch (split[1]) {
     case attributes.commands[0]:
       connection = await message.member.voice.channel.join();
-      message.channel.send("Joining your channel.");
       break;
     case attributes.commands[1]:
-      connection = await connection?.channel.leave(); //connection <- undefined
-      message.channel.send("Leaving your channel.");
+      connection = await connection?.channel.leave();
       break;
-    default:
-      help(message.channel);
   }
 }
 
-module.exports.hooks = {
-  voiceStateUpdate: onVoiceStateUpdate,
-  message: onMessage,
+module.exports = {
+  hooks: {
+    voiceStateUpdate: onVoiceStateUpdate,
+    message: onMessage,
+  },
+  initialize,
+  attributes,
 };
-module.exports.help = help;
-module.exports.initialize = initialize;
-module.exports.attributes = attributes;

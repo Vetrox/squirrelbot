@@ -1,6 +1,4 @@
 const Discord = require("discord.js");
-const log = require("../log.js");
-const err = require("../errors.js");
 const { prefix } = require("../config.json");
 const attributes = {
   modulename: "reacted",
@@ -168,7 +166,7 @@ async function setupCollector(data) {
       }
     } catch (error) {
       //delete collector
-      if (error instanceof err.BotError) {
+      if (error instanceof bot.err.BotError) {
         if (orig_msgID in collectors) {
           //should never be executed tho
           delete collectors[orig_msgID];
@@ -215,8 +213,10 @@ async function onMessage(message) {
             messageID
           );
           //if no error is thrown -> the message is in the database.
-          message.channel.send(
-            `Die Datenbank beinhaltet diese Nachricht schon.`
+          bot.api.emb(
+            "Fehler",
+            `Die Datenbank beinhaltet diese Nachricht schon.`,
+            message.channel
           );
           return;
         } catch (error) {}
@@ -225,8 +225,10 @@ async function onMessage(message) {
         try {
           msg = await message.channel.messages.fetch(messageID);
         } catch (error) {
-          message.channel.send(
-            `Konnte die Nachricht mit der id ${messageID} nicht finden.`
+          bot.api.emb(
+            "Fehler",
+            `Konnte die Nachricht mit der id ${messageID} nicht finden.`,
+            message.channel
           );
           return; //ensures msg has a value;
         }
@@ -244,7 +246,11 @@ async function onMessage(message) {
               ).id
             );
           } catch (error) {
-            message.channel.send("Konnte die Rolle nicht finden.");
+            bot.api.emb(
+              "Fehler",
+              "Konnte die Rolle nicht finden.",
+              message.channel
+            );
             return;
           }
         }
@@ -258,7 +264,11 @@ async function onMessage(message) {
                 role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
             ).id;
           } catch (error) {
-            message.channel.send("Konnte die Rolle nicht finden.");
+            bot.api.emb(
+              "Fehler",
+              "Konnte die Rolle nicht finden.",
+              message.channel
+            );
             return;
           }
         }
@@ -332,12 +342,12 @@ async function onMessage(message) {
         try {
           bot.api.database_row_add(attributes.modulename, data);
           setupCollector(data);
-          message.channel.send(
-            `Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`
+          bot.api.emb(
+            "Erfolgreich"`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`,
+            message.channel
           );
         } catch (error) {
-          message.channel.send("Etwas ist schief gelaufen. Siehe im Log.");
-          log.logMessage(error);
+          bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
         }
         break;
       }
@@ -362,13 +372,17 @@ async function onMessage(message) {
             .fetch(new_msg_id)
             .then((msg) => msg.delete());
           bot.api.database_row_delete(attributes.modulename, i[0]);
-          message.channel.send(
-            "Nachricht erfolgreich aus der Datenbank gelöscht."
+          bot.api.emb(
+            "Erfolgreich",
+            "Nachricht erfolgreich aus der Datenbank gelöscht.",
+            message.channel
           );
         } catch (error) {
-          if (error instanceof err.Find) {
-            message.channel.send(
-              "Konnte die Nachricht in der Datenbank nicht finden"
+          if (error instanceof bot.err.Find) {
+            bot.api.emb(
+              "Fehler",
+              "Konnte die Nachricht in der Datenbank nicht finden.",
+              message.channel
             );
           } else {
             throw error;
@@ -378,18 +392,15 @@ async function onMessage(message) {
       }
     }
   } catch (error) {
-    if (error instanceof err.Command) {
-      message.channel.send(error.message);
-    } else {
-      throw error;
-    }
+    bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
   }
 }
 
-module.exports.hooks = {
-  message: onMessage,
-  raw: onRaw,
+module.exports = {
+  hooks: {
+    message: onMessage,
+    raw: onRaw,
+  },
+  initialize,
+  attributes,
 };
-module.exports.help = help;
-module.exports.initialize = initialize;
-module.exports.attributes = attributes;

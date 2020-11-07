@@ -1,7 +1,4 @@
 const discord = require("discord.js");
-const { prefix } = require("../config.json");
-const err = require("../errors.js");
-const log = require("../log.js");
 const attributes = {
   modulename: "help",
   description:
@@ -26,15 +23,11 @@ const attributes = {
   ],
 };
 
-function help(channel) {
-  bot.api.help_module_commands(attributes, channel);
-}
-
 function initialize() {}
 
 function onMessage(message) {
   try {
-    if(bot.api.isGT(message.channel) == false) return;
+    if (bot.api.isGT(message.channel) == false) return;
     let res = bot.api.parse_message(message, attributes);
     if (res == false) return;
     switch (res.name) {
@@ -44,11 +37,12 @@ function onMessage(message) {
             mod.help &&
             mod?.attributes?.modulename === res.params["-name"][0]
           ) {
-            mod.help(message.channel);
+            bot.api.help_module(mod.attributes, message.channel);
             return;
           }
         }
-        message.channel.send(
+        bot.api.emb(
+          "Keine Hilfeseite",
           `Konnte keine Hilfeseite für das Modul ${res.params["-name"][0]} finden.`
         );
         break;
@@ -57,7 +51,7 @@ function onMessage(message) {
         let desc = "";
         for (mod of bot.modules) {
           if (mod?.attributes?.modulename) {
-            desc += "\n🡒 " + mod.attributes.modulename;
+            desc += "\n→ " + mod.attributes.modulename;
           }
         }
         bot.api.emb("Alle Module", desc, message.channel);
@@ -65,23 +59,24 @@ function onMessage(message) {
       }
     }
   } catch (error) {
-    if (error instanceof err.Command) {
-      if (error instanceof err.CommandNameNotFound) {
-        help(message.channel);
+    if (error instanceof bot.err.Command) {
+      if (error instanceof bot.err.CommandNameNotFound) {
+        bot.api.help_module(attributes, message.channel);
         return;
       }
-      message.channel.send(`Something went wrong: ${error.message}`);
-    } else if (error instanceof err.CommandNameNotFound) {
-      message.channel.send(`Wrong command-name: ${error.message}`);
-    } else {
-      throw error;
+      bot.api.emb("Something went wrong", error, message.channel);
+    } else if (error instanceof bot.err.CommandNameNotFound) {
+      bot.api.emb("Wrong command-name", error, message.channel);
+    } else{
+      bot.log.logMessage(error);
     }
   }
 }
 
-module.exports.hooks = {
-  message: onMessage,
+module.exports = {
+  hooks: {
+    message: onMessage,
+  },
+  initialize,
+  attributes,
 };
-module.exports.help = help;
-module.exports.initialize = initialize;
-module.exports.attributes = attributes;

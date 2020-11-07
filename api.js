@@ -5,7 +5,7 @@ const util = require("util");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
-const wait = require("util").promisify(setTimeout); //TODO: remove, for test purpose only
+const wait = require("util").promisify(setTimeout);
 
 /**** CLASSES ****/
 class Database {
@@ -348,10 +348,29 @@ class Command {
 
 /**** FUNCTIONS ****/
 
+async function shutdown() {
+	await wait(100); //give the saving time
+	bot.api.log.logMessage("Preparing shutdown.");
+	bot.api.save_databases();
+	bot.client.destroy();
+	bot.api.running = false; //not used at this time but hey
+	await wait(1000); //give the saving time
+	bot.api.log.logMessage("Bye...");
+	process.exit();
+}
+function hookexit() {
+	process.on("exit", shutdown);
+	process.on("SIGINT", shutdown);
+	process.on("SIGUSR1", shutdown);
+	process.on("SIGUSR2", shutdown);
+	process.on("uncaughtException", shutdown);
+}
 let databases = {}; //highly inefficient lookup for each database could result in long clustered lookups.
 let possible_databases = [];
 
 function initialize() {
+	hookexit();
+
 	if (!fs.existsSync("./data")) {
 		log.logMessage("Creating database folder...");
 		fs.mkdirSync("./data");
@@ -367,15 +386,9 @@ function initialize() {
 	saves the databases asynchronously, so the execution is not blocked. makes the save_databases_interval function redundant.
 **/
 function save_databases() {
-	if (bot["running"] != true) return;
-	console.log("Starting to save the databases...");
-	let n = 0;
-	for (database in databases) {
-		if (databases[database].data_modified === true) {
-			databases[database].write_data().then(() => console.log(n++));
-		}
-	}
-	console.log("Finished function, but hopefully not writing...");
+	for (database in databases)
+		if (databases[database].data_modified === true)
+			databases[database].write_data();
 }
 
 //TODO: remove because of redundancy
@@ -542,9 +555,10 @@ function parse_message(message, mod_attributes) {
 }
 
 /**
+	help for module and it's commands
 	requires: attributes.modulename, attributes.description, attributes.commands
 **/
-function help_module_commands(mod_attributes, channel) {
+function help_module(mod_attributes, channel) {
 	const embed = new Discord.MessageEmbed()
 		.setColor("#ffaaff")
 		.setAuthor("Hilfeseite")
@@ -626,25 +640,26 @@ function isGT(channel) {
 
 module.exports = {
 	/*objects*/
-	Parameter: Parameter,
-	Command: Command,
+	Parameter,
+	Command,
 	/*functions*/
-	initialize: initialize,
-	lookup_key_value: lookup_key_value,
-	load_database: load_database,
-	create_database: create_database,
-	exists: exists,
-	lookup_index: lookup_index,
-	database_row_add: database_row_add,
-	database_row_delete: database_row_delete,
-	database_row_change: database_row_change,
-	database_for_each: database_for_each,
-	database_create_if_not_exists: database_create_if_not_exists,
-	save_databases: save_databases,
-	parse_message: parse_message,
-	help_module_commands: help_module_commands,
-	emb: emb,
-	embl: embl,
-	channel_check: channel_check,
-	isGT: isGT,
+	initialize,
+	lookup_key_value,
+	load_database,
+	create_database,
+	exists,
+	lookup_index,
+	database_row_add,
+	database_row_delete,
+	database_row_change,
+	database_for_each,
+	database_create_if_not_exists,
+	save_databases,
+	parse_message,
+	help_module,
+	emb,
+	embl,
+	channel_check,
+	isGT,
+	log,
 };
