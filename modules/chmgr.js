@@ -177,13 +177,6 @@ const databases = [
 	{
 		name: attributes.modulename + "_settings",
 		keys: ["key", "value"],
-		/**all keys:
-			<cmdname>: role_ids // per command setting of minimum role to execute it.
-
-			collecting_category : categoryID // the category under which all user created areas will be collected
-			area_role_attributes: roleid // eine Vorlagenrolle, die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
-			logging_channel: channelID // der channel, in den alle creations geloggt werden sollen.
-		**/
 	},
 ];
 
@@ -195,7 +188,6 @@ function initialize() {
 }
 
 let cfg = {
-	collecting_category: "undefined", // the category under which all user created areas will be collected //TODO: this isnt possible i think, because there are only top level categories allowed
 	area_role_attributes: "undefined", // eine Vorlagenrolle (name), die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
 	logging_channel: "undefined", // der channel, in den alle creations geloggt werden sollen.
 };

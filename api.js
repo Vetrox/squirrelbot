@@ -5,7 +5,7 @@ const util = require("util");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
-const wait = require("util").promisify(setTimeout);
+const wait = require("util").promisify(setTimeout); //async wait
 
 /**** CLASSES ****/
 class Database {
@@ -175,8 +175,9 @@ class Database {
 
 	/**
 	Writes the data on disk (async)
+	(optional callback)
 **/
-	async write_data() {
+	async write_data(callback) {
 		let cached_data = this.data;
 		let write_data = "";
 		for (let key of this.keys) {
@@ -192,6 +193,7 @@ class Database {
 		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
 			if (err) throw err;
 			log.logMessage(`The database ${this.name} has been saved!`);
+			typeof callback === "function" && callback();
 		});
 		this.data_modified = false;
 	}
@@ -349,12 +351,11 @@ class Command {
 /**** FUNCTIONS ****/
 
 async function shutdown() {
-	await wait(100); //give the saving time
+	if (!bot.running || bot.running == false) return;
 	bot.api.log.logMessage("Preparing shutdown.");
-	bot.api.save_databases();
+	await save_databases_wait();
 	bot.client.destroy();
-	bot.api.running = false; //not used at this time but hey
-	await wait(1000); //give the saving time
+	bot.running = false; //not used at this time but hey
 	bot.api.log.logMessage("Bye...");
 	process.exit();
 }
@@ -370,7 +371,6 @@ let possible_databases = [];
 
 function initialize() {
 	hookexit();
-
 	if (!fs.existsSync("./data")) {
 		log.logMessage("Creating database folder...");
 		fs.mkdirSync("./data");
@@ -380,6 +380,22 @@ function initialize() {
 		possible_databases.push(file);
 	}
 	save_databases_interval();
+}
+
+/**
+waits for them to finish saving
+**/
+async function save_databases_wait() {
+	let n = 0;
+	for (database in databases)
+		if (databases[database].data_modified === true) {
+			n++;
+			databases[database].write_data(() => n--);
+		}
+	while (n > 0) {
+		await wait(100);
+	}
+	log.logMessage("Saved all Databases controlled.");
 }
 
 /**
@@ -410,7 +426,6 @@ function database_create_if_not_exists(database, keys) {
 	if (!exists(database)) {
 		create_database(database, keys);
 	} else {
-		//TODO: this is new: check if it serves it purpose
 		cache_dbs(database);
 		databases[database].validate_keys(keys);
 	}
@@ -607,7 +622,11 @@ function create_embed(title, description) {
 **/
 function emb(title, description, channel) {
 	if (!channel || channel.deleted == true) return; //maybe log to server log channel
-	channel.send(create_embed(title, description));
+	try {
+		channel.send(create_embed(title, description));
+	} catch (error) {
+		log.logMessage(`Error: ${error}`);
+	}
 }
 
 /**
@@ -637,6 +656,17 @@ function channel_check(channel, req_list) {
 function isGT(channel) {
 	return channel_check(channel, ["text", "category"]);
 }
+/**
+	handle error
+**/
+function hErr(e, channel) {
+	try {
+		ebm("Ein Fehler ist aufgetreten", e, channel);
+		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+	} catch (error) {
+		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+	}
+}
 
 module.exports = {
 	/*objects*/
@@ -662,4 +692,5 @@ module.exports = {
 	channel_check,
 	isGT,
 	log,
+	wait,
 };

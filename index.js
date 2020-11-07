@@ -3,7 +3,7 @@ const Discord = require("discord.js");
 const fs = require("fs");
 const log = require("./log.js");
 const api = require("./api.js");
-const errors = require('./errors.js');
+const errors = require("./errors.js");
 require("dotenv").config(); // read in environment variables
 
 /*CONSTANTS*/
@@ -44,7 +44,13 @@ function initialize() {
 async function on_ready() {
   log.logMessage("Discordjs ready!");
   for (mod of bot["modules"]) {
-    await mod.initialize(); //this function lets each module initialize its local variables, in case they need to.
+    try {
+      await mod.initialize();
+    } catch (error) {
+      log.logMessage(
+        `Error while initializing module ${mod.attributes.modulename}\n${error}`
+      );
+    }
   }
   log.logMessage("Bot ready!");
 }

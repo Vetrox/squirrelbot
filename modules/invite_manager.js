@@ -4,36 +4,72 @@ const log = require("../log.js");
 const err = require("../errors.js");
 const attributes = {
   modulename: "invite_manager",
+  description:
+    "Der Manger, der zu einer neuen Person den zugehörigen Invitelink findet.",
   commands: [
-    "create_invite",
-    "log_here",
-    "stop_logging_here",
-    "on_join_give_role",
+    new bot.api.Command(
+      "config",
+      "Lässt dich Werte Konfigurieren. Zum anzeigen der jetzigen und möglichen Schlüssel keine Parameter angeben.",
+      [
+        new bot.api.Parameter(
+          "-key",
+          "optional",
+          ["-value"],
+          "Der Schlüssel.",
+          (nr) => nr == 1,
+          [],
+          false
+        ),
+        new bot.api.Parameter(
+          "-value",
+          "optional",
+          ["-key"],
+          "Der Wert.",
+          (nr) => nr == 1,
+          [],
+          false
+        ),
+      ]
+    ),
   ],
 };
-
-const wait = require("util").promisify(setTimeout); //doesn't block the execution
-let invites = {};
+//TODO: rework this module
 
 async function initialize() {
-  await wait(1000); //we need to wait for about a second+, just to make sure the 'fetchInvites' function does actually return a value. Why? IDK!!!'
-  log.logMessage("Fetching invites...");
+  await fetchInvites();
+}
 
+let invites = {};
+let expected_responses = 0;
+async function fetchInvites(){
+  if (bot.client.guilds.cache.keyArray().length == 0) {
+    bot.api.log.logMessage(
+      "Maybe this isn't that bad, but there aren't any guilds in the cache"
+    );
+    return;
+  }
+  bot.api.log.logMessage("Fetching invites...");
   bot.client.guilds.cache.each((guild) => {
+    expected_responses++;
     guild.fetchInvites().then(
       (guildInvites) => {
         invites[guild.id] = guildInvites;
+        expected_responses--;
       },
       (reason) => {
-        log.logMessage(
-          "Guild: " +
-            guild.id +
-            " doesn't provide the required permissions to fetch invites..."
+        expected_responses--;
+        bot.api.log.logMessage(
+          `Guild: ${guild.id} doesn't provide the required permission to fetch invites.`
         );
       }
     );
   });
-  await wait(1000);
+  while (isReady() == false) await bot.api.wait(10);
+  bot.api.log.logMessage("Finished.");
+}
+
+function isReady() {
+  return expected_responses == 0;
 }
 
 function onMessage(message) {

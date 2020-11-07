@@ -5,32 +5,47 @@ const path = require("path");
 	Logs the message to the console using the console.log() command. Also saves the message at the end of the log.txt file
 **/
 function logMessage(message) {
-	let filename = getCallerFile();
-	filename = filename.substring(0, filename.length-3);
-	let length = 8;
-	let trm =
-		filename.length > length
-			? filename.substring(0, length - 2) + ".."
-			: filename;
-	trm = `[${trm}]`;
-	trm = trm.padEnd(length+2, ' ');
-	const m = `${DDMMYYYYHHMMSS()} ${trm} ${message}`;
-	console.log(m);
-	fs.appendFileSync("log.txt", m + "\n");
+	try {
+		let filename = getCallerFile();
+		filename = filename.substring(0, filename.length - 3);
+		let length = 8;
+		let trm =
+			filename.length > length
+				? filename.substring(0, length - 2) + ".."
+				: filename;
+		trm = `[${trm}]`;
+		trm = trm.padEnd(length + 2, " ");
+		const m = `${DDMMYYYYHHMMSS()} ${trm} ${message}`;
+		console.log(m);
+		fs.appendFileSync("log.txt", m + "\n");
+	} catch (error) {
+		console.log(
+			`Could not log this message ${message ?? "<undefined>"}. Error: ${error}`
+		);
+	}
 }
 
 function DDMMYYYYHHMMSS() {
 	const date = new Date();
 	return `${date.getDate()}/${
 		date.getMonth() + 1
-	}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`.padEnd(19, ' ');
+	}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`.padEnd(
+		19,
+		" "
+	);
 }
 
 /**
 	Logs the message only to the console. This is better than console.log(), beacause it shows infinite depth.
 **/
 function logC(obj) {
-	console.log(util.inspect(obj, false, null, true));
+	try {
+		console.log(util.inspect(obj, false, null, true));
+	} catch (error) {
+		console.log(
+			`Could not log this object ${obj ?? "<undefined>"}. Error: ${error}`
+		);
+	}
 }
 
 function getCallerFile() {

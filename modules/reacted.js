@@ -79,16 +79,9 @@ const databases = [
   },
 ];
 
-//TODO: make it possible to create reacted in other channels...
-
-function help(channel) {
-  bot.api.help_module_commands(attributes, channel);
-}
-
-let collectors = {}; //messageID : lambda(args) //TODO:add args
+let collectors = {}; //messageID : lambda(args)
 
 async function initialize() {
-  //go through every saved message to react to and add reactioncollector to it.
   bot.api.database_create_if_not_exists(databases[0].name, databases[0].keys);
   await bot.api.database_for_each(attributes.modulename, setupCollector);
 }
@@ -184,17 +177,22 @@ async function setupCollector(data) {
 }
 
 async function onRaw(raw) {
-  if (raw.t != "MESSAGE_REACTION_ADD" && raw.t != "MESSAGE_REACTION_REMOVE")
-    return;
-  let user_id = raw.d.user_id,
-    message_id = raw.d.message_id,
-    channel_id = raw.d.channel_id,
-    guild_id = raw.d.guild_id,
-    emoji = raw.d.emoji;
-  let guild = bot["client"].guilds.cache.get(guild_id);
+  try {
+    if (raw.t != "MESSAGE_REACTION_ADD" && raw.t != "MESSAGE_REACTION_REMOVE")
+      return;
 
-  for (orig_msgID in collectors) {
-    await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
+    let user_id = raw.d.user_id,
+      message_id = raw.d.message_id,
+      channel_id = raw.d.channel_id,
+      guild_id = raw.d.guild_id,
+      emoji = raw.d.emoji;
+    let guild = bot["client"].guilds.cache.get(guild_id);
+
+    for (orig_msgID in collectors) {
+      await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
+    }
+  } catch (error) {
+    bot.api.log.logMessage(`Error: ${error}`);
   }
 }
 
