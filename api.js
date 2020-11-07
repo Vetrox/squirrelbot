@@ -5,6 +5,8 @@ const util = require("util");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
+const wait = require("util").promisify(setTimeout); //TODO: remove, for test purpose only
+
 /**** CLASSES ****/
 class Database {
 	constructor(name, keys, data) {
@@ -16,6 +18,12 @@ class Database {
 
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
+
+	setModAndSave(){
+		this.data_modified = true;
+		this.write_data();
+	}
+
 	/**
 		throws:
 			Nothing.
@@ -101,7 +109,7 @@ class Database {
 			}
 			this.index[i][data_new[i]].push(new_index);
 		}
-		this.data_modified = true;
+		this.setModAndSave();
 		return new_index;
 	}
 
@@ -113,9 +121,8 @@ class Database {
 		this.val_t(data_index, "number");
 		if (data_index < 0 || data_index >= this.data.length)
 			throw new err.Range("index");
-		this.data_modified = true;
 		this.data.splice(data_index, 1); //hopefully this works
-		//possibly need to re-index //alternative: overwrite with DELETED (then deleted would be a keyword)
+		this.setModAndSave();
 		this.indexing();
 	}
 
@@ -163,22 +170,22 @@ class Database {
 			this.index[i][new_value] = []; //declare
 		}
 		this.index[i][new_value].push(data_index);
-		this.data_modified = true;
+		this.setModAndSave();
 	}
 
 	/**
-	Writes the data on disk. If done so it returns true.
+	Writes the data on disk (async)
 **/
-	write_data() {
-		//if (this.data.length <= 0) return false;
+	async write_data() {
+		let cached_data = this.data;
 		let write_data = "";
 		for (let key of this.keys) {
 			write_data += key + " ";
 		}
 		write_data += "\n";
-		for (let row_i in this.data) {
+		for (let row_i in cached_data) {
 			for (let key_in in this.keys) {
-				write_data += JSON.stringify(this.data[row_i][key_in]) + "\n";
+				write_data += JSON.stringify(cached_data[row_i][key_in]) + "\n";
 			}
 		}
 
@@ -188,6 +195,8 @@ class Database {
 		});
 		this.data_modified = false;
 	}
+
+	
 }
 
 class Parameter {
@@ -356,21 +365,22 @@ function initialize() {
 	save_databases_interval();
 }
 
+/**
+	saves the databases asynchronously, so the execution is not blocked. makes the save_databases_interval function redundant.
+**/
 function save_databases() {
 	if (bot["running"] != true) return;
+	console.log('Starting to save the databases...');
 	let n = 0;
 	for (database in databases) {
 		if (databases[database].data_modified === true) {
-			databases[database].write_data();
-			log.logMessage(`Saved database ${databases[database].name}`);
-			n++;
+			databases[database].write_data().then(()=>console.log(n++));
 		}
 	}
-	if (n > 0) {
-		log.logMessage(`Saved ${n} databases`);
-	}
+	console.log('Finished function, but hopefully not writing...');
 }
 
+//TODO: remove because of redundancy
 function save_databases_interval() {
 	save_databases();
 	setTimeout(save_databases_interval, 50 * 1000);
@@ -475,7 +485,7 @@ function create_database(database, keys) {
 		log.logMessage("Creating database " + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
-		databases[database].data_modified = true;
+		databases[database].setModAndSave();
 	}
 }
 

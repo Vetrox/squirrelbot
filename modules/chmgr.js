@@ -40,7 +40,7 @@ const attributes = {
 		),
 		new bot.api.Command(
 			"create_area",
-			"Kreiert deinen eigenen Bereich, auf den nur eingeladene Personen Zugriff haben. Zum hinzufügen/entfernen von Personen siehe change_area. Jeder Bereich hat eine maximale Nutzeranzahl, die in den Permissions festgelegt werden kann (TODO)",
+			"Kreiert deinen eigenen Bereich, auf den nur eingeladene Personen Zugriff haben. Zum hinzufügen/entfernen von Personen siehe invite.",
 			[
 				new bot.api.Parameter(
 					"-name",
@@ -360,8 +360,7 @@ async function onMessage(message) {
 					false,
 					access_type,
 				]);
-
-				bot.api.save_databases(); //TODO: remove
+				bot.api.emb('Erfolgreich', 'Alle Channel wurden kreiert!', message.channel);
 				break;
 			}
 			case "delete_area": {
@@ -411,14 +410,13 @@ async function onMessage(message) {
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
 						message.channel
 					);
-					bot.api.save_databases(); //TODO: remove
+					
 				} catch (error) {
 					bot.api.emb(
 						"Nicht gefunden",
 						"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
 						message.channel
 					);
-					console.log(error);
 					return;
 				}
 				break;
@@ -616,7 +614,7 @@ async function onMessage(message) {
 						message.channel
 					);
 				}
-				bot.api.save_databases(); //TODO: remove
+				//bot.api.save_databases(); //TODO: remove
 
 				break;
 			}
@@ -731,8 +729,6 @@ async function deleteArea(message, owner_id, channelMgr) {
 		if (skip == true) continue;
 		data.push(c);
 	}
-	console.log(data);
-	console.log(child_ch_nr);
 
 	let i = 0;
 	let deleted = 0;
@@ -776,7 +772,6 @@ async function deleteArea(message, owner_id, channelMgr) {
 			channel.id
 		);
 		bot.api.database_row_delete(databases[0].name, row);
-		console.log("deleted " + channel.id);
 		channel.delete();
 		data.splice(i, 1);
 		if (is_parent == false) {
