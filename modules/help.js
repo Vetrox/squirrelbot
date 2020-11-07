@@ -34,6 +34,7 @@ function initialize() {}
 
 function onMessage(message) {
   try {
+    if(bot.api.isGT(message.channel) == false) return;
     let res = bot.api.parse_message(message, attributes);
     if (res == false) return;
     switch (res.name) {

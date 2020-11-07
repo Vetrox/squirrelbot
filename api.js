@@ -19,7 +19,7 @@ class Database {
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
 
-	setModAndSave(){
+	setModAndSave() {
 		this.data_modified = true;
 		this.write_data();
 	}
@@ -195,8 +195,6 @@ class Database {
 		});
 		this.data_modified = false;
 	}
-
-	
 }
 
 class Parameter {
@@ -370,14 +368,14 @@ function initialize() {
 **/
 function save_databases() {
 	if (bot["running"] != true) return;
-	console.log('Starting to save the databases...');
+	console.log("Starting to save the databases...");
 	let n = 0;
 	for (database in databases) {
 		if (databases[database].data_modified === true) {
-			databases[database].write_data().then(()=>console.log(n++));
+			databases[database].write_data().then(() => console.log(n++));
 		}
 	}
-	console.log('Finished function, but hopefully not writing...');
+	console.log("Finished function, but hopefully not writing...");
 }
 
 //TODO: remove because of redundancy
@@ -609,6 +607,23 @@ function embl(title, description, channel, logging_channel = undefined) {
 	logging_channel.send(embed);
 }
 
+function channel_check(channel, req_list) {
+	if (!channel) throw new err.BotError("Channel war nicht definiert.");
+	for (req of req_list) {
+		if (["dm", "text", "voice", "category", "news", "store"].indexOf(req) == -1)
+			throw new err.BotError(`Der gesuchte Channel-Typ ${req} ist invalide.`);
+		if (channel.type == req) return true;
+	}
+	return false;
+}
+
+/** 
+	is Guild-Text Channel
+**/
+function isGT(channel) {
+	return channel_check(channel, ["text", "category"]);
+}
+
 module.exports = {
 	/*objects*/
 	Parameter: Parameter,
@@ -630,4 +645,6 @@ module.exports = {
 	help_module_commands: help_module_commands,
 	emb: emb,
 	embl: embl,
+	channel_check: channel_check,
+	isGT: isGT,
 };
