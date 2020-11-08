@@ -364,7 +364,11 @@ function hookexit() {
 	process.on("SIGINT", shutdown);
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
-	process.on("uncaughtException", shutdown);
+	process.on("uncaughtException", (error) => {
+		log.logMessage(error);
+		log.logMessage(error.stack);
+		shutdown();
+	});
 }
 let databases = {}; //highly inefficient lookup for each database could result in long clustered lookups.
 let possible_databases = [];
@@ -663,6 +667,7 @@ function hErr(e, channel) {
 	try {
 		emb("Ein Fehler ist aufgetreten", e, channel);
 		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
+		log.logMessage(e.stack);
 	} catch (error) {
 		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
 	}
@@ -674,56 +679,77 @@ function hErr(e, channel) {
 	throws:
 		Doublication if the key ends up more than one time in the database.
 **/
-function config_saveall(mod_attributes, config) {
+function config_saveall(mod_attributes, guild_ID, config) {
 	if (!config) {
 		config = mod_attributes.default_config;
-	}
-	const dbs = mod_attributes.modulename + "_config";
-	database_create_if_not_exists(dbs, ["key", "value"]);
-	for (cfg_key in config) {
-		try {
-			let i = lookup_key_value(dbs, "key", cfg_key);
-			if (i.length != 1) {
-				throw new err.Dublication("The Entry (more than 1)");
-			}
-			database_row_change(dbs, i[0], "value", config[cfg_key]);
-		} catch (error) {
-			if (error instanceof err.Find) {
-				database_row_add(dbs, [cfg_key, config[cfg_key]]);
-			}
+	} else {
+		for (key in config) {
+			if (!(key in mod_attributes.default_config))
+				throw new err.BotError("Falscher key.");
+		}
+		for (key in mod_attributes.default_config) {
+			if (!(key in config)) config[key] = mod_attributes.default_config[key];
 		}
 	}
+	const dbs = mod_attributes.modulename + "_config";
+	database_create_if_not_exists(dbs, ["guild", "key_value"]);
+	try {
+		let i = lookup_key_value(dbs, "guild", guild_ID);
+		database_row_change(dbs, i[0], "key_value", config);
+	} catch (e) {
+		database_row_add(dbs, [guild_ID, config]);
+	}
 }
 
-function config_update(mod_attributes, key, value) {
+function config_update(mod_attributes, guild_ID, key, value) {
 	const dbs = mod_attributes.modulename + "_config";
-	let config = config_load(mod_attributes);
+	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	config[key] = value;
-	config_saveall(mod_attributes, config);
+	config_saveall(mod_attributes, guild_ID, config);
 }
 
-function config_load(mod_attributes) {
+function config_load(mod_attributes, guild_ID) {
 	const dbs = mod_attributes.modulename + "_config";
 	let config = mod_attributes.default_config;
-	database_create_if_not_exists(dbs, ["key", "value"]);
-	database_for_each(dbs, (row) => (config[row[0]] = row[1]));
+	database_create_if_not_exists(dbs, ["guild", "key_value"]);
+	try {
+		let i = lookup_key_value(dbs, "guild", guild_ID);
+		if (i.length > 1) throw new err.BotError("Zu viele Einträge.");
+		config = lookup_index(dbs, i[0], "key_value");
+	} catch (e) {}
 	return config;
 }
 
-function config_get(mod_attributes, key){
-	let config = config_load(mod_attributes);
-	if(!(key in config)) throw new err.BotError("Kein valider Key.");
+function config_get(mod_attributes, guild_ID, key) {
+	let config = config_load(mod_attributes, guild_ID);
+	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	return config[key];
 }
 
-function config_toStr(mod_attributes) {
-	let config = config_load(mod_attributes);
+function config_toStr(mod_attributes, guild_ID) {
+	let config = config_load(mod_attributes, guild_ID);
 	let out = "";
 	for (cfg_key in config) {
 		out += `${cfg_key} = ${JSON.stringify(config[cfg_key])}\n`;
 	}
 	return out.trim();
+}
+/**
+	throws:
+	Bot-Error, if the user isn't an admin
+**/
+async function is_admin(user_ID, guild) {
+	let guildMember = await guild.members.fetch({
+		user: user_ID,
+		cache: true,
+		force: true,
+	});
+	let is_admin = guildMember.roles.highest.permissions.has("ADMINISTRATOR");
+	if (!is_admin || is_admin == false)
+		throw new err.BotError(
+			"Du benötigst Admin-Berechtigungen, um diesen Befehl ausführen zu können."
+		);
 }
 module.exports = {
 	/*objects*/
@@ -756,4 +782,5 @@ module.exports = {
 	config_update,
 	config_toStr,
 	config_get,
+	is_admin,
 };

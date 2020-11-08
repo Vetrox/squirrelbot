@@ -4,6 +4,26 @@ const attributes = {
 	modulename: "chmgr",
 	description:
 		"Der Channel-Manager. Hier kannst Du Channels kreieren und löschen. Auch ganze Bereiche, die nur Du und deine Freunde betreten können, kannst du hier erschaffen. Die Administratoren können mithilfe des setup Commands Rollen für jeden Command angeben, die diesen Ausführen dürfen.",
+	default_config: {
+		area_role_attributes: {
+			VIEW_CHANNEL: true,
+			ADD_REACTIONS: true,
+			STREAM: true,
+			SEND_MESSAGES: true,
+			SEND_TTS_MESSAGES: true,
+			EMBED_LINKS: true,
+			ATTACH_FILES: true,
+			READ_MESSAGE_HISTORY: true,
+			USE_EXTERNAL_EMOJIS: true,
+			CONNECT: true,
+			SPEAK: true,
+		},
+		create: ["everyone"],
+		create_area: ["everyone"],
+		delete_area: ["everyone"],
+		invite: ["everyone"],
+		delete: ["everyone"],
+	},
 	commands: [
 		new bot.api.Command(
 			"create",
@@ -113,30 +133,6 @@ const attributes = {
 			]
 		),
 		new bot.api.Command(
-			"setup_cmd_permissions",
-			"Setzt permissions. Aus Sicherheitsgründen dürfen dies nur die Administratoren des Servers ausführen",
-			[
-				new bot.api.Parameter(
-					"-cmdname",
-					"required",
-					[],
-					"Der name des Commands (delete/create/...)",
-					(nr) => nr == 1,
-					[],
-					false
-				),
-				new bot.api.Parameter(
-					"-roles",
-					"optional",
-					[],
-					"Die Rollen, die diesen Command ausführen dürfen. Wenn dieser Parameter weggelassen wird, werden die bisherigen erlaubten Rollen angezeigt.",
-					(nr) => nr > 0,
-					["everyone"],
-					true
-				),
-			]
-		),
-		new bot.api.Command(
 			"config",
 			"Setzt Konfigurationen. Wenn du keinen Parameter angibst, werden dir alle Gespeicherten Keys und auch die möglichen Keys angezeigt.",
 			[
@@ -154,7 +150,7 @@ const attributes = {
 					"optional",
 					["-key"],
 					"Der Wert, auf den die Einstellung gesetzt wird.",
-					(nr) => nr == 1,
+					(nr) => nr >= 1,
 					[],
 					false
 				),
@@ -174,75 +170,33 @@ const databases = [
 			"manage_type", //role or userID. important for deletion and change
 		],
 	},
-	{
-		name: attributes.modulename + "_settings",
-		keys: ["key", "value"],
-	},
 ];
 
 function initialize() {
-	for (let dbs of databases) {
+	for (let dbs of databases)
 		bot.api.database_create_if_not_exists(dbs.name, dbs.keys);
-	}
-	updateCFG();
-}
-
-let cfg = {
-	area_role_attributes: "undefined", // eine Vorlagenrolle (name), die zum setzen der berechtigungen für die category teilnehmer benutzt wird. TODO: setze @everyone das komplement dessen
-	logging_channel: "undefined", // der channel, in den alle creations geloggt werden sollen.
-};
-
-function updateCFG() {
-	//add modified listener here to save unneccessary overhead
-	/*add every config key to database and update cfg with real data*/
-	for (cfg_key in cfg) {
-		try {
-			let i = bot.api.lookup_key_value(
-				databases[1].name,
-				databases[1].keys[0],
-				cfg_key
-			);
-			cfg[cfg_key] = bot.api.lookup_index(
-				databases[1].name,
-				i[0],
-				databases[1].keys[1]
-			);
-		} catch (error) {
-			bot.api.database_row_add(databases[1].name, [cfg_key, cfg[cfg_key]]);
-		}
-	}
 }
 
 async function check_role(user, guild, cmd) {
 	if (user.bot == true)
 		throw new bot.err.BotError("Der User darf kein Bot sein.");
-	try {
-		let i = bot.api.lookup_key_value(
-			databases[1].name,
-			databases[1].keys[0],
-			cmd
+	let required_roles = bot.api.config_get(attributes, guild.id, cmd);
+	let guildMember = await guild.members.fetch({
+		user: user.id,
+		cache: true,
+		force: true,
+	});
+	for (role_name of required_roles) {
+		let required_role = guild.roles.cache.find(
+			(role) =>
+				role.name.toLowerCase() == role_name.toLowerCase() ||
+				role.name.toLowerCase() == "@" + role_name.toLowerCase()
 		);
-		let required_roles = bot.api.lookup_index(
-			databases[1].name,
-			i[0],
-			databases[1].keys[1]
-		);
-		let guildMember = await guild.members.fetch({
-			user: user.id,
-			cache: true,
-			force: true,
-		});
-		for (role_id of required_roles) {
-			let required_role = await guild.roles.fetch(role_id);
-			if (guildMember.roles.cache.has(required_role.id)) return;
+		if (guildMember.roles.highest.comparePositionTo(required_role) >= 0) {
+			return true;
 		}
-		throw new bot.err.BotError("Der User hat keine der benötigten Rollen.");
-	} catch (error) {
-		if (error instanceof bot.err.Find) {
-			return;
-		}
-		throw error;
 	}
+	throw new bot.err.BotError("Der User hat keine der benötigten Rollen.");
 }
 
 async function onMessage(message) {
@@ -275,7 +229,11 @@ async function onMessage(message) {
 			case "create_area": {
 				await check_role(message.author, message.guild, "create_area");
 				let channelMgr = message.guild.channels;
-				let permissions = gatherPermissions(message.guild);
+				let permissions = bot.api.config_get(
+					attributes,
+					message.guild.id,
+					"area_role_attributes"
+				);
 				let category = await channelMgr.create(res.params["-name"][0], {
 					type: "category",
 					permissionOverwrites: [
@@ -488,7 +446,11 @@ async function onMessage(message) {
 					});
 				} else {
 					if (remove == "false") {
-						let permissions = gatherPermissions(message.guild);
+						let permissions = bot.api.config_get(
+							attributes,
+							message.guild.id,
+							"area_role_attributes"
+						);
 						category.updateOverwrite(guildMember, permissions);
 						bot.api.emb(
 							"Erfolgreich",
@@ -551,146 +513,41 @@ async function onMessage(message) {
 				break;
 			}
 			case "config": {
-				let guildMember = await message.guild.members.fetch({
-					user: message.author.id,
-					cache: true,
-					force: true,
-				});
-				let is_admin = guildMember.roles.highest.permissions.has(
-					"ADMINISTRATOR"
-				);
-				if (!is_admin) {
-					bot.api.emb(
-						"Berechtigungsfehler",
-						"Du musst ein Administrator sein, um diesen Command ausführen zu können",
-						message.channel
-					);
-					return;
-				}
-				updateCFG(); //maybe redundant
-				if (!res.params["-key"]?.length || res.params["-key"]?.length == 0) {
-					bot.api.emb("Konfiguration", JSON.stringify(cfg), message.channel); //TODO: rework
-				} else {
+				await bot.api.is_admin(message.author.id, message.guild);
+				if ("-key" in res.params) {
 					let key = res.params["-key"][0];
-					let value = res.params["-value"][0];
-					if (!key || !value) {
-						bot.api.emb(
-							"Invalide Daten",
-							"Die angegebenen Daten waren nicht richtig."
+					let values = res.params["-value"];
+					if (key == "area_role_attributes") {
+						let role_name = values[0];
+						let role = message.guild.roles.cache.find(
+							(role) =>
+								role.name.toLowerCase() == role_name.toLowerCase() ||
+								role.name.toLowerCase() == "@" + role_name.toLowerCase()
 						);
-						return;
-					}
-					if (!(key in cfg)) {
-						bot.api.emb("Fehler", "Unbekannter Schlüssel", message.channel);
-						return;
-					}
-					//HINWEIS: hier werden die Daten nicht auf Richtigkeit geprüft, das muss bei jedem individuellen anwendungsfall passieren
-					let i = bot.api.lookup_key_value(
-						databases[1].name,
-						databases[1].keys[0],
-						key
-					);
-					bot.api.database_row_change(
-						databases[1].name,
-						i[0],
-						databases[1].keys[1],
-						value
-					);
-					updateCFG();
-					bot.api.emb(
-						"Eintrag erfolgreich.",
-						`Der Schlüssel ${key} besitzt jetzt den Wert ${value}`,
-						message.channel
-					);
-				}
-				//bot.api.save_databases(); //TODO: remove
-
-				break;
-			}
-			case "setup_cmd_permissions": {
-				let guildMember = await message.guild.members.fetch({
-					user: message.author.id,
-					cache: true,
-					force: true,
-				});
-				let is_admin = guildMember.roles.highest.permissions.has(
-					"ADMINISTRATOR"
-				);
-				if (!is_admin) {
-					bot.api.emb(
-						"Berechtigungsfehler",
-						"Du musst ein Administrator sein, um diesen Command ausführen zu können",
-						message.channel
-					);
-					return;
-				}
-				let cmd = res.params["-cmdname"][0];
-				let roles = res.params["-roles"];
-				let i;
-				try {
-					i = bot.api.lookup_key_value(
-						databases[1].name,
-						databases[1].keys[0],
-						cmd
-					);
-				} catch (error) {}
-				if (roles) {
-					//set roles
-					let parsed_roles = [];
-					for (role of roles) {
-						parsed_roles.push(
-							message.guild.roles.cache.find(
-								(r) =>
-									r.name.toLowerCase() == role.toLowerCase() ||
-									r.name.toLowerCase() == "@" + role.toLowerCase()
-							).id
-						);
-					}
-					if (i) {
-						bot.api.database_row_change(
-							databases[1].name,
-							i[0],
-							databases[1].keys[1],
-							parsed_roles
+						permissions = { VIEW_CHANNEL: true };
+						for (perm of role.permissions.toArray()) {
+							permissions[perm] = true;
+						}
+						bot.api.config_update(
+							attributes,
+							message.guild.id,
+							key,
+							permissions
 						);
 					} else {
-						bot.api.database_row_add(databases[1].name, [cmd, parsed_roles]);
+						bot.api.config_update(attributes, message.guild.id, key, values);
 					}
-					bot.api.emb(
-						"Rollen erfolgreich geupdated",
-						`Die benötigten Rollen sind jetzt:\n ${roles}`,
-						message.channel
-					);
-				} else if (i) {
-					let data = bot.api.lookup_index(
-						databases[1].name,
-						i[0],
-						databases[1].keys[1]
-					);
-					let parsed_roles = [];
-					for (r_id of data) {
-						let required_role = await message.guild.roles.fetch(r_id);
-						parsed_roles.push(required_role.name);
-					}
-					bot.api.emb(
-						"Erlaubte Rollen",
-						parsed_roles.toString(),
-						message.channel
-					);
-				} else {
-					bot.api.emb(
-						"Das tut mir leid",
-						`Konnte den Command '${cmd}' nicht finden.`,
-						message.channel
-					);
 				}
+				bot.api.emb(
+					"Konfiguration",
+					bot.api.config_toStr(attributes, message.guild.id),
+					message.channel
+				);
 				break;
 			}
-			default:
-				help(message.channel);
 		}
 	} catch (error) {
-		bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
+		bot.api.hErr(error, message.channel);
 	}
 }
 
@@ -770,36 +627,6 @@ async function deleteArea(message, owner_id, channelMgr) {
 		i++;
 	}
 	return deleted;
-}
-
-function gatherPermissions(guild) {
-	updateCFG();
-	let permissions = {
-		VIEW_CHANNEL: true,
-		ADD_REACTIONS: true,
-		STREAM: true,
-		SEND_MESSAGES: true,
-		SEND_TTS_MESSAGES: true,
-		EMBED_LINKS: true,
-		ATTACH_FILES: true,
-		READ_MESSAGE_HISTORY: true,
-		USE_EXTERNAL_EMOJIS: true,
-		CONNECT: true,
-		SPEAK: true,
-	};
-	if (cfg.area_role_attributes != "undefined") {
-		let role_name = cfg.area_role_attributes;
-		let role = guild.roles.cache.find(
-			(role) =>
-				role.name.toLowerCase() == role_name.toLowerCase() ||
-				role.name.toLowerCase() == "@" + role_name.toLowerCase()
-		);
-		permissions = { VIEW_CHANNEL: true };
-		for (perm of role.permissions.toArray()) {
-			permissions[perm] = true;
-		}
-	}
-	return permissions;
 }
 
 module.exports = {

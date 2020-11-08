@@ -86,11 +86,11 @@ function onMessage(message) {
           for (let i = 0; i < res.params["-value"].length - 1; i += 2) {
             value[res.params["-value"][i]] = res.params["-value"][i + 1];
           }
-          bot.api.config_update(attributes, key, value);
+          bot.api.config_update(attributes, message.guild.id, key, value);
         }
         bot.api.emb(
           "Konfiguation",
-          `Die Werte sind\n${bot.api.config_toStr(attributes)}`,
+          `Die Werte sind\n${bot.api.config_toStr(attributes, message.guild.id)}`,
           message.channel
         );
         break;
@@ -111,7 +111,7 @@ function onGuildMemberAdd(member) {
       log.logMessage(
         `${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
       );
-      let cfg = bot.api.config_load(attributes).map;
+      let cfg = bot.api.config_load(attributes, member.guild.id).map;
       if (!(invite.code in cfg)) {
         console.log("no matching invite code");
         return;
@@ -123,6 +123,7 @@ function onGuildMemberAdd(member) {
           role.name.toLowerCase() == "@" + role_name.toLowerCase()
       ).id;
       member.roles.add(role_id);
+      log.logMessage(`Gave the user ${member.user.tag} the role ${role_name}.`);
     });
   } catch (error) {
     log.logMessage(error);
