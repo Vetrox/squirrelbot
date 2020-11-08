@@ -661,13 +661,70 @@ function isGT(channel) {
 **/
 function hErr(e, channel) {
 	try {
-		ebm("Ein Fehler ist aufgetreten", e, channel);
-		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		emb("Ein Fehler ist aufgetreten", e.message, channel);
+		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
 	} catch (error) {
 		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
 	}
 }
 
+/** CONFIG **/
+/**
+	a config is a dictionary with key and value pairs
+	throws:
+		Doublication if the key ends up more than one time in the database.
+**/
+function config_saveall(mod_attributes, config) {
+	if (!config) {
+		config = mod_attributes.default_config;
+	}
+	const dbs = mod_attributes.modulename + "_config";
+	database_create_if_not_exists(dbs, ["key", "value"]);
+	for (cfg_key in config) {
+		try {
+			let i = lookup_key_value(dbs, "key", cfg_key);
+			if (i.length != 1) {
+				throw new err.Dublication("The Entry (more than 1)");
+			}
+			database_row_change(dbs, i[0], "value", config[cfg_key]);
+		} catch (error) {
+			if (error instanceof err.Find) {
+				database_row_add(dbs, [cfg_key, config[cfg_key]]);
+			}
+		}
+	}
+}
+
+function config_update(mod_attributes, key, value) {
+	const dbs = mod_attributes.modulename + "_config";
+	let config = config_load(mod_attributes);
+	if (!(key in config)) throw new err.BotError("Kein valider Key.");
+	config[key] = value;
+	config_saveall(mod_attributes, config);
+}
+
+function config_load(mod_attributes) {
+	const dbs = mod_attributes.modulename + "_config";
+	let config = mod_attributes.default_config;
+	database_create_if_not_exists(dbs, ["key", "value"]);
+	database_for_each(dbs, (row) => (config[row[0]] = row[1]));
+	return config;
+}
+
+function config_get(mod_attributes, key){
+	let config = config_load(mod_attributes);
+	if(!(key in config)) return throw new err.BotError("Kein valider Key.");
+	return config[key];
+}
+
+function config_toStr(mod_attributes) {
+	let config = config_load(mod_attributes);
+	let out = "";
+	for (cfg_key in config) {
+		out += `${cfg_key} = ${config[cfg_key]}\n`;
+	}
+	return out.trim();
+}
 module.exports = {
 	/*objects*/
 	Parameter,
@@ -693,4 +750,10 @@ module.exports = {
 	isGT,
 	log,
 	wait,
+	hErr,
+	config_load,
+	config_saveall,
+	config_update,
+	config_toStr,
+	config_get,
 };

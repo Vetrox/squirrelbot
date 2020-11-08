@@ -21,7 +21,6 @@ function initialize_modules() {
   let files = fs.readdirSync("./modules");
   for (file of files) {
     const mod = require("./modules/" + file);
-    /* add event hooks */
     for (event in mod.hooks) {
       client.on(event, mod.hooks[event]);
     }
@@ -37,7 +36,7 @@ function initialize() {
   bot.api.initialize();
   initialize_modules();
   client.once("ready", async () => {
-    await on_ready();
+   await on_ready();
   });
 }
 

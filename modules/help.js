@@ -33,17 +33,15 @@ function onMessage(message) {
     switch (res.name) {
       case "modulehelp": {
         for (mod of bot.modules) {
-          if (
-            mod.help &&
-            mod?.attributes?.modulename === res.params["-name"][0]
-          ) {
+          if (mod?.attributes?.modulename === res.params["-name"][0]) {
             bot.api.help_module(mod.attributes, message.channel);
             return;
           }
         }
         bot.api.emb(
           "Keine Hilfeseite",
-          `Konnte keine Hilfeseite für das Modul ${res.params["-name"][0]} finden.`
+          `Konnte keine Hilfeseite für das Modul ${res.params["-name"][0]} finden.`,
+          message.channel
         );
         break;
       }
@@ -59,17 +57,11 @@ function onMessage(message) {
       }
     }
   } catch (error) {
-    if (error instanceof bot.err.Command) {
-      if (error instanceof bot.err.CommandNameNotFound) {
-        bot.api.help_module(attributes, message.channel);
-        return;
-      }
-      bot.api.emb("Something went wrong", error, message.channel);
-    } else if (error instanceof bot.err.CommandNameNotFound) {
-      bot.api.emb("Wrong command-name", error, message.channel);
-    } else{
-      bot.log.logMessage(error);
+    if (error instanceof bot.err.CommandNameNotFound) {
+      bot.api.help_module(attributes, message.channel);
+      return;
     }
+    bot.api.hErr(error, message.channel);
   }
 }
 
