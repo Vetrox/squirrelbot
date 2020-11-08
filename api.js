@@ -661,7 +661,7 @@ function isGT(channel) {
 **/
 function hErr(e, channel) {
 	try {
-		emb("Ein Fehler ist aufgetreten", e.message, channel);
+		emb("Ein Fehler ist aufgetreten", e, channel);
 		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
 	} catch (error) {
 		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
@@ -713,7 +713,7 @@ function config_load(mod_attributes) {
 
 function config_get(mod_attributes, key){
 	let config = config_load(mod_attributes);
-	if(!(key in config)) return throw new err.BotError("Kein valider Key.");
+	if(!(key in config)) throw new err.BotError("Kein valider Key.");
 	return config[key];
 }
 
@@ -721,7 +721,7 @@ function config_toStr(mod_attributes) {
 	let config = config_load(mod_attributes);
 	let out = "";
 	for (cfg_key in config) {
-		out += `${cfg_key} = ${config[cfg_key]}\n`;
+		out += `${cfg_key} = ${JSON.stringify(config[cfg_key])}\n`;
 	}
 	return out.trim();
 }

@@ -36,7 +36,7 @@ function initialize() {
   bot.api.initialize();
   initialize_modules();
   client.once("ready", async () => {
-   await on_ready();
+    await on_ready();
   });
 }
 

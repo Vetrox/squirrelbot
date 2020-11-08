@@ -6,7 +6,7 @@ const attributes = {
   description:
     "Der Manger, der zu einer neuen Person den zugehörigen Invitelink findet.",
   default_config: {
-    test: "def",
+    map: {},
   },
   commands: [
     new bot.api.Command(
@@ -17,7 +17,7 @@ const attributes = {
           "-key",
           "optional",
           ["-value"],
-          "Der Schlüssel.",
+          "Der Schlüssel. (momentan nur 'map'",
           (nr) => nr == 1,
           [],
           false
@@ -26,8 +26,8 @@ const attributes = {
           "-value",
           "optional",
           ["-key"],
-          "Der Wert.",
-          (nr) => nr == 1,
+          "Rollen-Link-Paare. Beispiel: -value 7z43i2e Rolle1",
+          (nr) => nr >= 2 && nr % 2 == 0,
           [],
           false
         ),
@@ -35,7 +35,6 @@ const attributes = {
     ),
   ],
 };
-//TODO: rework this module
 
 async function initialize() {
   await fetchInvites();
@@ -82,8 +81,12 @@ function onMessage(message) {
     switch (res.name) {
       case "config": {
         let key = res.params["-key"]?.[0];
-        if (key) {
-          bot.api.config_update(attributes, key, res.params["-value"][0]);
+        if (key && key == "map") {
+          let value = {};
+          for (let i = 0; i < res.params["-value"].length - 1; i += 2) {
+            value[res.params["-value"][i]] = res.params["-value"][i + 1];
+          }
+          bot.api.config_update(attributes, key, value);
         }
         bot.api.emb(
           "Konfiguation",
@@ -99,16 +102,31 @@ function onMessage(message) {
 }
 
 function onGuildMemberAdd(member) {
-  member.guild.fetchInvites().then(async (guildInvites) => {
-    let ei = invites[member.guild.id];
-    // Look through the invites, find the one for which the uses went up.
-    const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
-    invites[member.guild.id] = guildInvites;
-    log.logMessage(
-      `${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
-    );
-    //TODO add possibility to give user a role based on the invite link.
-  });
+  try {
+    member.guild.fetchInvites().then(async (guildInvites) => {
+      let ei = invites[member.guild.id];
+      // Look through the invites, find the one for which the uses went up.
+      const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
+      invites[member.guild.id] = guildInvites;
+      log.logMessage(
+        `${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
+      );
+      let cfg = bot.api.config_load(attributes).map;
+      if (!(invite.code in cfg)) {
+        console.log("no matching invite code");
+        return;
+      }
+      let role_name = cfg[invite.code];
+      let role_id = member.guild.roles.cache.find(
+        (role) =>
+          role.name.toLowerCase() == role_name.toLowerCase() ||
+          role.name.toLowerCase() == "@" + role_name.toLowerCase()
+      ).id;
+      member.roles.add(role_id);
+    });
+  } catch (error) {
+    log.logMessage(error);
+  }
 }
 
 module.exports = {
