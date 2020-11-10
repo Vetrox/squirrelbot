@@ -90,7 +90,10 @@ function onMessage(message) {
         }
         bot.api.emb(
           "Konfiguation",
-          `Die Werte sind\n${bot.api.config_toStr(attributes, message.guild.id)}`,
+          `Die Werte sind\n${bot.api.config_toStr(
+            attributes,
+            message.guild.id
+          )}`,
           message.channel
         );
         break;
@@ -102,8 +105,8 @@ function onMessage(message) {
 }
 
 function onGuildMemberAdd(member) {
-  try {
-    member.guild.fetchInvites().then(async (guildInvites) => {
+  member.guild.fetchInvites().then(async (guildInvites) => {
+    try {
       let ei = invites[member.guild.id];
       // Look through the invites, find the one for which the uses went up.
       const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
@@ -124,10 +127,11 @@ function onGuildMemberAdd(member) {
       ).id;
       member.roles.add(role_id);
       log.logMessage(`Gave the user ${member.user.tag} the role ${role_name}.`);
-    });
-  } catch (error) {
-    log.logMessage(error);
-  }
+    } catch (error) {
+      log.logMessage(error);
+      log.logMessage(error.stack);
+    }
+  });
 }
 
 module.exports = {
