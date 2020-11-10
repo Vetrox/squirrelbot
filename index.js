@@ -49,6 +49,7 @@ async function on_ready() {
       log.logMessage(
         `Error while initializing module ${mod.attributes.modulename}\n${error}`
       );
+      log.logMessage(error.stack);
     }
   }
   log.logMessage("Bot ready!");

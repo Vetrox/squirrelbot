@@ -15,6 +15,7 @@ class Database {
 		this.keys = keys;
 		this.data = data;
 		this.data_modified = false;
+		this.is_saving = false;
 
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
@@ -122,8 +123,8 @@ class Database {
 		if (data_index < 0 || data_index >= this.data.length)
 			throw new err.Range("index");
 		this.data.splice(data_index, 1); //hopefully this works
-		this.setModAndSave();
 		this.indexing();
+		this.setModAndSave();
 	}
 
 	/**
@@ -178,6 +179,9 @@ class Database {
 	(optional callback)
 **/
 	async write_data(callback) {
+		log.logMessage("Starting saving of database" + this.name);
+		while (this.is_saving == true) await wait(10); //wait for other async task
+		this.is_saving = true;
 		let cached_data = this.data;
 		let write_data = "";
 		for (let key of this.keys) {
@@ -191,11 +195,30 @@ class Database {
 		}
 
 		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
-			if (err) throw err;
-			log.logMessage(`The database ${this.name} has been saved!`);
-			typeof callback === "function" && callback();
+			if (err) {
+				log.logMessage(err);
+				log.logMessage(err.stack);
+			} else {
+				log.logMessage(`The database ${this.name} has been saved!`);
+				try {
+					typeof callback === "function" && callback();
+				} catch (error) {}
+			}
+			this.is_saving = false;
+			if (this.isEqual(cached_data, this.data) == true) {
+				this.data_modified = false;
+			} else {
+				this.setModAndSave(); //in case the data got modidfied during the save (rare, if not impossible)
+			}
 		});
-		this.data_modified = false;
+	}
+
+	isEqual(data1, data2) {
+		if (!data1 || !data2 || data1.length != data2.length) return false;
+		for (let i = 0; i < data1.length; i++) {
+			if (data1[i] != data2[i]) return false;
+		}
+		return true;
 	}
 }
 
@@ -359,6 +382,7 @@ async function shutdown() {
 	bot.api.log.logMessage("Bye...");
 	process.exit();
 }
+
 function hookexit() {
 	process.on("exit", shutdown);
 	process.on("SIGINT", shutdown);
@@ -431,7 +455,12 @@ function database_create_if_not_exists(database, keys) {
 		create_database(database, keys);
 	} else {
 		cache_dbs(database);
-		databases[database].validate_keys(keys);
+		try {
+			databases[database].validate_keys(keys);
+		} catch {
+			log.logMessage("CRITICAL DATABASE ERROR!!! " + database);
+			process.exit();
+		}
 	}
 }
 
