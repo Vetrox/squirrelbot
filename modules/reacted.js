@@ -341,7 +341,7 @@ async function onMessage(message) {
           bot.api.database_row_add(attributes.modulename, data);
           setupCollector(data);
           bot.api.emb(
-            "Erfolgreich"`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`,
+            "Erfolgreich",`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`,
             message.channel
           );
         } catch (error) {
