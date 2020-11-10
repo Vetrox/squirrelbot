@@ -111,6 +111,9 @@ function onGuildMemberAdd(member) {
       // Look through the invites, find the one for which the uses went up.
       const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
       invites[member.guild.id] = guildInvites;
+      if(!invite) {
+        return;
+      }
       log.logMessage(
         `${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
       );
