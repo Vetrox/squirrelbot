@@ -29,7 +29,7 @@ const attributes = {
         ),
         new bot.api.Parameter(
           "-wl",
-          "optional",
+          "required",
           [],
           "Die Whitelist an Rollen, die ein User benötigt, damit der Bot ihm eine Rolle gibt.",
           (nr) => nr > 0,
@@ -38,7 +38,7 @@ const attributes = {
         ),
         new bot.api.Parameter(
           "-wl_mode",
-          "optional",
+          "required",
           ["-wl"],
           "Der Modus der Whitelist. Zugelassen sind: lower, equal, not_equal (blacklisting), higher. [lower] Dabei muss die höchste Rolle vom User unter oder gleich einer der wl-Roles sein. [equal] Dabi muss der User eine der wl-Roles besitzen. [higher] Dabei muss die höchste Rolle vom User gleich oder höher einer wl-Rolle sein.",
           (nr) => nr == 1,
