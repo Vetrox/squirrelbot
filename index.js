@@ -50,6 +50,7 @@ async function on_ready() {
         `Error while initializing module ${mod.attributes.modulename}\n${error}`
       );
       log.logMessage(error.stack);
+      process.exit();
     }
   }
   log.logMessage("Bot ready!");
