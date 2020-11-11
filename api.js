@@ -179,7 +179,7 @@ class Database {
 	(optional callback)
 **/
 	async write_data(callback) {
-		log.logMessage("Starting saving of database" + this.name);
+		log.logMessage("Starting saving of database " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
