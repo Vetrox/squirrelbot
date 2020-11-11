@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*REQUIRE*/
 const Discord = require("discord.js");
 const fs = require("fs");
