@@ -137,7 +137,7 @@ async function setupCollector(data) {
       }
       if (required_roles.length > 0 && role_check === false) {
         //if there are required roles and the user has failed the check
-        log.logMessage(`${guildMember} has not passed the test.`);
+        bot.api.log.logMessage(`${guildMember} has not passed the test.`);
         return false;
       }
       let assigned_role_id;
@@ -163,13 +163,13 @@ async function setupCollector(data) {
         if (orig_msgID in collectors) {
           //should never be executed tho
           delete collectors[orig_msgID];
-          log.logMessage("This code should be unreachable");
+          bot.api.log.logMessage("This code should be unreachable");
           return false;
         }
       } else {
-        log.logMessage(error.name);
-        log.logMessage(error.message);
-        log.logMessage(error.toString());
+        bot.api.log.logMessage(error.name);
+        bot.api.log.logMessage(error.message);
+        bot.api.log.logMessage(error.toString());
         throw error;
       }
     }
@@ -203,6 +203,11 @@ async function onMessage(message) {
 
     switch (res.name) {
       case "add": {
+        await bot.api.has_permission(
+          message.author.id,
+          message.guild,
+          "MANAGE_ROLES"
+        );
         let messageID = res.params["-messageID"][0];
         try {
           bot.api.lookup_key_value(
@@ -241,7 +246,7 @@ async function onMessage(message) {
                 (role) =>
                   role.name.toLowerCase() == rl.toLowerCase() ||
                   role.name.toLowerCase() == "@" + rl.toLowerCase()
-              ).id
+              )
             );
           } catch (error) {
             bot.api.emb(
@@ -253,14 +258,38 @@ async function onMessage(message) {
           }
         }
         let required_type = res.params["-wl_mode"]?.[0];
+        if (
+          required_type != "equal" &&
+          required_type != "not_equal" &&
+          required_type != "lower" &&
+          required_type != "higher"
+        )
+          throw new bot.err.BotError(`Falscher wl_mode. ${required_type}`);
 
+        let guildMember = await message.guild.members.fetch({
+          user: message.author.id,
+          cache: true,
+          force: true,
+        });
         let emoji_map = {};
         for (let i = 0; i <= assigns_list.length - 2; i += 2) {
           try {
-            emoji_map[assigns_list[i]] = message.guild.roles.cache.find(
+            let cached_role = message.guild.roles.cache.find(
               (role) =>
-                role.name.toLowerCase() === assigns_list[i + 1].toLowerCase()
-            ).id;
+                role.name.toLowerCase() == assigns_list[i + 1].toLowerCase() ||
+                role.name.toLowerCase() == "@" + assigns_list[i+1].toLowerCase()
+            );
+            if (!cached_role || !cached_role?.id) throw new Error(); //maybe redundant
+
+            if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
+              bot.api.emb(
+                "Fehler",
+                "Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
+                message.channel
+              );
+              return;
+            }
+            emoji_map[assigns_list[i]] = cached_role.id;
           } catch (error) {
             bot.api.emb(
               "Fehler",
@@ -341,7 +370,8 @@ async function onMessage(message) {
           bot.api.database_row_add(attributes.modulename, data);
           setupCollector(data);
           bot.api.emb(
-            "Erfolgreich",`Nachricht in Datenbank gespeichert. Erwarte Reaktionen.`,
+            "Erfolgreich",
+            "Nachricht in Datenbank gespeichert. Erwarte Reaktionen.",
             message.channel
           );
         } catch (error) {
@@ -360,6 +390,29 @@ async function onMessage(message) {
           );
 
           if (i.length > 1) throw new Error();
+
+          //check the permission of this user. He has to have a higher role than all of the roles specified.
+          let mapped = bot.api.lookup_index(
+            attributes.modulename,
+            i[0],
+            databases[0].keys[1]
+          );
+          let guildMember = await message.guild.members.fetch({
+            user: message.author.id,
+            cache: true,
+            force: true,
+          });
+          for (emoji in mapped) {
+            let cached_role = await message.guild.roles.fetch(mapped[emoji]);
+            if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
+              bot.api.emb(
+                "Fehler",
+                "Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
+                message.channel
+              );
+              return;
+            }
+          }
 
           let new_msg_id = bot.api.lookup_index(
             attributes.modulename,

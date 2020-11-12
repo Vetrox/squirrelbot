@@ -766,18 +766,22 @@ function config_toStr(mod_attributes, guild_ID) {
 }
 /**
 	throws:
-	Bot-Error, if the user isn't an admin
+		Bot-Error, if the user isn't an admin
 **/
 async function is_admin(user_ID, guild) {
+	await has_permission(user_ID, guild, "ADMINISTRATOR");
+}
+
+async function has_permission(user_ID, guild, perm_name) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
 		cache: true,
 		force: true,
 	});
-	let is_admin = guildMember.roles.highest.permissions.has("ADMINISTRATOR");
-	if (!is_admin || is_admin == false)
+	let has = guildMember.roles.highest.permissions.has(perm_name);
+	if (!has || has == false)
 		throw new err.BotError(
-			"Du benötigst Admin-Berechtigungen, um diesen Befehl ausführen zu können."
+			`Du brauchst die ${perm_name} Berechtigung, um dies auszuführen.`
 		);
 }
 module.exports = {
@@ -812,4 +816,5 @@ module.exports = {
 	config_toStr,
 	config_get,
 	is_admin,
+	has_permission
 };
