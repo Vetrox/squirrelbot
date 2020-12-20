@@ -338,7 +338,6 @@ async function onMessage(message) {
 				let owner_id = message.author.id;
 				if (res.params["-here"] == "true") {
 					await bot.api.is_admin(message.author.id, message.guild); // throws
-					let owner_of_this_channel_id;
 					try {
 						owner_id = bot.api.lookup_index(
 							databases[0].name,
