@@ -626,7 +626,7 @@ function help_module(mod_attributes, channel) {
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
 		desc += '\`\`\`diff\n+ Beispiel(e) +\n';
-		for (let example in cmd.examples) {
+		for (let example of cmd.examples) {
 			desc += example + '\n';
 		}
 		desc += '\`\`\`';
