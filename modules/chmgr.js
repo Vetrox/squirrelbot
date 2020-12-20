@@ -1,5 +1,3 @@
-// const discord = require("discord.js");
-// const log = require("../log.js");
 const attributes = {
 	modulename: "chmgr",
 	description:
@@ -56,6 +54,13 @@ const attributes = {
 					[],
 					false
 				),
+			],
+			[
+				"!chmgr create -name MeinChannel",
+				"!chmgr create -name MeinChannel -type text",
+				"!chmgr create -name MeinChannel -type voice",
+				"!chmgr create -name MeinChannel -type category",
+				"!chmgr create -name MeinUnterChannel -parentID 69696969696969",
 			]
 		),
 		new bot.api.Command(
@@ -80,11 +85,15 @@ const attributes = {
 					["role"],
 					true
 				),
+			],
+			[
+				"!chmgr create_area -name Mein_Bereich",
+				"!chmgr create_area -name Mein_Bereich -access_type userID",
 			]
 		),
 		new bot.api.Command(
 			"delete_area",
-			"Löscht alle deine Areas. Eigentlich solltest du nicht mehrere Haben können.",
+			"Löscht alle deine Areas. Eigentlich solltest du nicht mehrere haben können.",
 			[
 				new bot.api.Parameter(
 					"-here",
@@ -95,28 +104,34 @@ const attributes = {
 					["true"],
 					true
 				),
-			]
+			],
+			["!chmgr delete_area", "!chmgr delete_area -here"]
 		),
-		new bot.api.Command("invite", "Läd Personen ein/aus.", [
-			new bot.api.Parameter(
-				"-name",
-				"required",
-				[],
-				"Der user, mit einem @ davor",
-				(nr) => nr == 1,
-				[],
-				false
-			),
-			new bot.api.Parameter(
-				"-remove",
-				"required",
-				[],
-				"Ob der User aus deinem Channel ausgeladen werden soll. Wenn weggelassen, dann wird er hinzugefügt.",
-				(nr) => nr == 1,
-				["false"],
-				true
-			),
-		]),
+		new bot.api.Command(
+			"invite",
+			"Läd Personen ein/aus.",
+			[
+				new bot.api.Parameter(
+					"-name",
+					"required",
+					[],
+					"Der user, mit einem @ davor",
+					(nr) => nr == 1,
+					[],
+					false
+				),
+				new bot.api.Parameter(
+					"-remove",
+					"required",
+					[],
+					"Ob der User aus deinem Channel ausgeladen werden soll. Wenn weggelassen, dann wird er hinzugefügt.",
+					(nr) => nr == 1,
+					["false"],
+					true
+				),
+			],
+			["!chmgr invite -name @Max", "!chmgr invite -name @Max -remove true"]
+		),
 		new bot.api.Command(
 			"delete",
 			"Löscht einen Text oder Voicechannel. Dies kann per Definition immer nur der Owner.",
@@ -130,11 +145,12 @@ const attributes = {
 					[],
 					false
 				),
-			]
+			],
+			["!chmgr delete -channelID 69696969696969"]
 		),
 		new bot.api.Command(
 			"config",
-			"Setzt Konfigurationen. Wenn du keinen Parameter angibst, werden dir alle Gespeicherten Keys und auch die möglichen Keys angezeigt.",
+			"Setzt Konfigurationen. Wenn du keinen Parameter angibst, werden dir alle Gespeicherten Keys und auch die möglichen Keys angezeigt. Du musst ein Admin sein, um diesen Command ausführen zu können.",
 			[
 				new bot.api.Parameter(
 					"-key",
@@ -154,6 +170,11 @@ const attributes = {
 					[],
 					false
 				),
+			],
+			[
+				"!chmgr config",
+				"!chmgr config -key create_area -value Rolle1 Rolle2 Rolle3",
+				"!chmgr config -key create_area -value everyone",
 			]
 		),
 	],

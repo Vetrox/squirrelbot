@@ -31,7 +31,8 @@ const attributes = {
           [],
           false
         ),
-      ]
+      ],
+      ['!invite_manager config', "!invite_manager config -key map -value 7z43i2e Rolle1"]
     ),
   ],
 };

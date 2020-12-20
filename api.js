@@ -244,9 +244,15 @@ class Parameter {
 }
 
 class Command {
-	constructor(name, description, parameter_list) {
+	constructor(
+		name,
+		description,
+		parameter_list,
+		examples // ['!help modulehelp -name help', '!help modulehelp -name chmgr',...]
+	) {
 		this.name = name;
 		this.description = description;
+		this.examples = examples;
 		this.par_desc_map = {};
 		for (let param of parameter_list) {
 			this.par_desc_map[param.parname] = param;
@@ -619,6 +625,11 @@ function help_module(mod_attributes, channel) {
 		);
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
+		desc += '\`\`\`diff\n+ Beispiel(e) +\n';
+		for (let example in cmd.examples) {
+			desc += example + '\n';
+		}
+		desc += '\`\`\`';
 		for (let par_name in cmd.par_desc_map) {
 			let c = cmd.par_desc_map[par_name];
 			desc +=
@@ -816,5 +827,5 @@ module.exports = {
 	config_toStr,
 	config_get,
 	is_admin,
-	has_permission
+	has_permission,
 };

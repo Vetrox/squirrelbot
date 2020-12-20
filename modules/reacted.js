@@ -45,6 +45,11 @@ const attributes = {
           ["equal"],
           true
         ),
+      ],
+      [
+        "!reacted add -messageID 696969696969",
+        "!reacted add -messageID 696969696969 -map ✅ Verified",
+        "!reacted add -messageID 696969696969 -map ✅ Verified -wl everyone -wl_mode lower",
       ]
     ),
     new bot.api.Command(
@@ -60,7 +65,8 @@ const attributes = {
           [],
           false
         ),
-      ]
+      ],
+      ['!reacted remove -messageID 696969696969']
     ),
   ],
 };
@@ -277,7 +283,8 @@ async function onMessage(message) {
             let cached_role = message.guild.roles.cache.find(
               (role) =>
                 role.name.toLowerCase() == assigns_list[i + 1].toLowerCase() ||
-                role.name.toLowerCase() == "@" + assigns_list[i+1].toLowerCase()
+                role.name.toLowerCase() ==
+                  "@" + assigns_list[i + 1].toLowerCase()
             );
             if (!cached_role || !cached_role?.id) throw new Error(); //maybe redundant
 
