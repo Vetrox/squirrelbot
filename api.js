@@ -644,7 +644,7 @@ function help_module(mod_attributes, channel) {
 					: "") +
 				`\`\`\``;
 		}
-		embed.addField(`cmd: ${cmd.name}`, desc, true);
+		embed.addField(`cmd: ${cmd.name}`, desc, false);
 	}
 	channel.send(embed);
 }
