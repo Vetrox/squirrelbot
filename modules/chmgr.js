@@ -21,6 +21,7 @@ const attributes = {
 		delete_area: ["everyone"],
 		invite: ["everyone"],
 		delete: ["everyone"],
+		category_logging_channel: null,
 	},
 	commands: [
 		new bot.api.Command(
@@ -222,6 +223,7 @@ async function check_role(user, guild, cmd) {
 
 async function onMessage(message) {
 	try {
+		await log_message_in_user_channels(message);
 		const res = bot.api.parse_message(message, attributes);
 		if (res == false) return;
 		switch (res.name) {
@@ -632,6 +634,56 @@ async function deleteArea(message, owner_id, channelMgr) {
 		i++;
 	}
 	return deleted;
+}
+
+async function log_message_in_user_channels(message) {
+	const logging_channel_id = bot.api.config_get(
+		attributes,
+		message.guild.id,
+		"category_logging_channel"
+	)?.[0];
+	const channel = await message.guild.channels.cache.get(logging_channel_id);
+	if (!channel) {
+		console.log("DEBUG: logging channel in chmgr was null");
+		return; // intuition, maybe redundant
+	}
+
+	// check, if the message came from a dedicated area channel
+	try {
+		const indices = bot.api.lookup_key_value(
+			databases[0].name,
+			"channelID",
+			message.channel.id
+		);
+		if (indices.length != 1) return; // intuition, maybe redundant
+		const is_part_of_category = bot.api.lookup_index(
+			databases[0].name,
+			indices[0],
+			"is_part_of_category"
+		);
+		const owner_id = bot.api.lookup_index(
+			databases[0].name,
+			indices[0],
+			"ownerID"
+		);
+		const message_channel = await message.channel.fetch(true);
+		const category = message_channel.parent;
+
+		if (is_part_of_category && is_part_of_category == true) {
+			bot.api.emb(
+				`Channel: ${message_channel.name}, Kategorie: ${
+					category.name
+				}, Besitzer: ${await bot.api.get_nickname(owner_id, message.guild)}`,
+				`Nachricht von: ${await bot.api.get_nickname(
+					message.author.id,
+					message.guild
+				)}\n${message.cleanContent}`,
+				channel
+			); // cleanContent gets the message without mentions
+		}
+	} catch (e) {
+		// find error. doesn't matter at all
+	}
 }
 
 module.exports = {

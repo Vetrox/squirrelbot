@@ -795,6 +795,16 @@ async function has_permission(user_ID, guild, perm_name) {
 			`Du brauchst die ${perm_name} Berechtigung, um dies auszuführen.`
 		);
 }
+
+async function get_nickname(user_ID, guild){
+	let guildMember = await guild.members.fetch({
+		user: user_ID,
+		cache: true,
+		force: true,
+	});
+	return guildMember.displayName;
+}
+
 module.exports = {
 	/*objects*/
 	Parameter,
@@ -828,4 +838,5 @@ module.exports = {
 	config_get,
 	is_admin,
 	has_permission,
+	get_nickname,
 };
