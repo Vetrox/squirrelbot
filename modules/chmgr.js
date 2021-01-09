@@ -223,9 +223,11 @@ async function check_role(user, guild, cmd) {
 
 async function onMessage(message) {
 	try {
-		await log_message_in_user_channels(message);
 		const res = bot.api.parse_message(message, attributes);
 		if (res == false) return;
+
+		
+		await log_message_in_user_channels(message);
 		switch (res.name) {
 			case "create": {
 				await check_role(message.author, message.guild, "create");
