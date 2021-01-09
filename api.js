@@ -612,7 +612,7 @@ function parse_message(message, mod_attributes) {
 	help for module and it's commands
 	requires: attributes.modulename, attributes.description, attributes.commands
 **/
-function help_module(mod_attributes, channel) {
+async function help_module(mod_attributes, channel) {
 	const embed = new Discord.MessageEmbed()
 		.setColor("#ffaaff")
 		.setAuthor("Hilfeseite")
@@ -623,6 +623,7 @@ function help_module(mod_attributes, channel) {
 			bot.client.user.username,
 			bot.client.user.displayAvatarURL({ size: 32 })
 		);
+
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
 		desc += '\`\`\`diff\n+ Beispiel(e) +\n';
@@ -646,7 +647,7 @@ function help_module(mod_attributes, channel) {
 		}
 		embed.addField(`cmd: ${cmd.name}`, desc, false);
 	}
-	channel.send(embed);
+	await channel.send(embed);
 }
 
 function create_embed(title, description) {

@@ -31,7 +31,7 @@ const attributes = {
 
 function initialize() {}
 
-function onMessage(message) {
+async function onMessage(message) {
   try {
     if (bot.api.isGT(message.channel) == false) return;
     let res = bot.api.parse_message(message, attributes);
@@ -40,7 +40,7 @@ function onMessage(message) {
       case "modulehelp": {
         for (mod of bot.modules) {
           if (mod?.attributes?.modulename === res.params["-name"][0]) {
-            bot.api.help_module(mod.attributes, message.channel);
+            await bot.api.help_module(mod.attributes, message.channel);
             return;
           }
         }
@@ -64,7 +64,7 @@ function onMessage(message) {
     }
   } catch (error) {
     if (error instanceof bot.err.CommandNameNotFound) {
-      bot.api.help_module(attributes, message.channel);
+      await bot.api.help_module(attributes, message.channel);
       return;
     }
     bot.api.hErr(error, message.channel);

@@ -13,7 +13,7 @@ const attributes = {
           "-messageID",
           "required",
           [],
-          "Um die MessageID von einer Nachricht zu bekommen, musst du den Developer-Modus in Discord aktivieren und anschließend auf deine Nachricht klicken. Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.",
+          "Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.",
           (nr) => nr == 1,
           [],
           false
@@ -40,7 +40,7 @@ const attributes = {
           "-wl_mode",
           "required",
           ["-wl"],
-          "Der Modus der Whitelist. Zugelassen sind: lower, equal, not_equal (blacklisting), higher. [lower] Dabei muss die höchste Rolle vom User unter oder gleich einer der wl-Roles sein. [equal] Dabi muss der User eine der wl-Roles besitzen. [higher] Dabei muss die höchste Rolle vom User gleich oder höher einer wl-Rolle sein.",
+          "Der Modus der Whitelist. Zugelassen sind: lower, equal, not_equal (blacklisting), higher.",
           (nr) => nr == 1,
           ["equal"],
           true

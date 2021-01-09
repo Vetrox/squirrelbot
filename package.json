@@ -19,12 +19,12 @@
   },
   "homepage": "https://github.com/Vetrox/squirrelbot#readme",
   "dependencies": {
-    "@discordjs/opus": "^0.3.2",
-    "discord-tts": "^1.0.1",
-    "discord.js": "^12.4.0",
+    "@discordjs/opus": "^0.3.3",
+    "discord-tts": "^1.0.3",
+    "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
-    "eslint": "^7.12.1",
-    "nodemon": "^2.0.6",
+    "eslint": "^7.17.0",
+    "nodemon": "^2.0.7",
     "util": "^0.12.3"
   },
   "devDependencies": {
