@@ -252,7 +252,7 @@ async function onMessage(message) {
                 (role) =>
                   role.name.toLowerCase() == rl.toLowerCase() ||
                   role.name.toLowerCase() == "@" + rl.toLowerCase()
-              )
+              ).id
             );
           } catch (error) {
             bot.api.emb(

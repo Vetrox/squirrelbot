@@ -400,6 +400,7 @@ function hookexit() {
 		shutdown();
 	});
 }
+
 let databases = {}; //highly inefficient lookup for each database could result in long clustered lookups.
 let possible_databases = [];
 
