@@ -289,7 +289,7 @@ async function onMessage(message) {
               assigns_list[i + 1]
             );
             if (!cached_role || !cached_role?.id) {
-              message.guild.roles.cache.find(
+              cached_role = message.guild.roles.cache.find(
                 (role) =>
                   role.name.toLowerCase() ==
                     assigns_list[i + 1].toLowerCase() ||
