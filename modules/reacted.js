@@ -311,7 +311,7 @@ async function onMessage(message) {
           } catch (error) {
             bot.api.emb(
               "Fehler",
-              "Konnte die Rolle " + rl + " nicht finden.",
+              "Konnte die Rolle " + assigns_list[i + 1] + " nicht finden.",
               message.channel
             );
             return;
