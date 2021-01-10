@@ -262,7 +262,7 @@ async function onMessage(message) {
           } catch (error) {
             bot.api.emb(
               "Fehler",
-              "Konnte die Rolle nicht finden.",
+              "Konnte die Rolle " + rl + " nicht finden.",
               message.channel
             );
             return;
@@ -311,7 +311,7 @@ async function onMessage(message) {
           } catch (error) {
             bot.api.emb(
               "Fehler",
-              "Konnte die Rolle nicht finden.",
+              "Konnte die Rolle " + rl + " nicht finden.",
               message.channel
             );
             return;
