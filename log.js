@@ -65,6 +65,7 @@ function getCallerFile() {
 
 			if (currentfile !== callerfile) return path.basename(callerfile);
 		}
+		// eslint-disable-next-line
 	} catch (err) {}
 	return undefined;
 }
