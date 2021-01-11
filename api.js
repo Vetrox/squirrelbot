@@ -626,11 +626,11 @@ async function help_module(mod_attributes, channel) {
 
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
-		desc += '\`\`\`diff\n+ Beispiel(e) +\n';
+		desc += "```diff\n+ Beispiel(e) +\n";
 		for (let example of cmd.examples) {
-			desc += example + '\n';
+			desc += example + "\n";
 		}
-		desc += '\`\`\`';
+		desc += "```";
 		for (let par_name in cmd.par_desc_map) {
 			let c = cmd.par_desc_map[par_name];
 			desc +=
@@ -665,10 +665,10 @@ function create_embed(title, description) {
 /**
 	shortcut for creating discordjs embeds
 **/
-function emb(title, description, channel) {
+async function emb(title, description, channel) {
 	if (!channel || channel.deleted == true) return; //maybe log to server log channel
 	try {
-		channel.send(create_embed(title, description));
+		await channel.send(create_embed(title, description));
 	} catch (error) {
 		log.logMessage(`Error: ${error}`);
 	}
@@ -678,6 +678,7 @@ function emb(title, description, channel) {
 	can be used to create embeds with simulaniously logging it to a logging channel
 **/
 function embl(title, description, channel, logging_channel = undefined) {
+	// TODO: make async
 	if (!channel || channel.deleted == true) return; //maybe log to server log channel
 	let embed = create_embed(title, description);
 	channel.send(embed);
@@ -704,11 +705,11 @@ function isGT(channel) {
 /**
 	handle error
 **/
-function hErr(e, channel) {
+async function hErr(e, channel) {
 	try {
-		emb("Ein Fehler ist aufgetreten", e, channel);
 		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
 		log.logMessage(e.stack);
+		await emb("Ein Fehler ist aufgetreten", e, channel);
 	} catch (error) {
 		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
 	}
@@ -797,7 +798,7 @@ async function has_permission(user_ID, guild, perm_name) {
 		);
 }
 
-async function get_nickname(user_ID, guild){
+async function get_nickname(user_ID, guild) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
 		cache: true,

@@ -89,7 +89,7 @@ function onMessage(message) {
           }
           bot.api.config_update(attributes, message.guild.id, key, value);
         }
-        bot.api.emb(
+        await bot.api.emb(
           "Konfiguation",
           `Die Werte sind\n${bot.api.config_toStr(
             attributes,

@@ -66,7 +66,7 @@ const attributes = {
           false
         ),
       ],
-      ['!reacted remove -messageID 696969696969']
+      ["!reacted remove -messageID 696969696969"]
     ),
   ],
 };
@@ -222,7 +222,7 @@ async function onMessage(message) {
             messageID
           );
           //if no error is thrown -> the message is in the database.
-          bot.api.emb(
+          await bot.api.emb(
             "Fehler",
             `Die Datenbank beinhaltet diese Nachricht schon.`,
             message.channel
@@ -234,7 +234,7 @@ async function onMessage(message) {
         try {
           msg = await message.channel.messages.fetch(messageID);
         } catch (error) {
-          bot.api.emb(
+          await bot.api.emb(
             "Fehler",
             `Konnte die Nachricht mit der id ${messageID} nicht finden.`,
             message.channel
@@ -255,7 +255,7 @@ async function onMessage(message) {
               )
             );
           } catch (error) {
-            bot.api.emb(
+            await bot.api.emb(
               "Fehler",
               "Konnte die Rolle nicht finden.",
               message.channel
@@ -289,7 +289,7 @@ async function onMessage(message) {
             if (!cached_role || !cached_role?.id) throw new Error(); //maybe redundant
 
             if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
-              bot.api.emb(
+              await bot.api.emb(
                 "Fehler",
                 "Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
                 message.channel
@@ -298,7 +298,7 @@ async function onMessage(message) {
             }
             emoji_map[assigns_list[i]] = cached_role.id;
           } catch (error) {
-            bot.api.emb(
+            await bot.api.emb(
               "Fehler",
               "Konnte die Rolle nicht finden.",
               message.channel
@@ -376,13 +376,17 @@ async function onMessage(message) {
         try {
           bot.api.database_row_add(attributes.modulename, data);
           setupCollector(data);
-          bot.api.emb(
+          await bot.api.emb(
             "Erfolgreich",
             "Nachricht in Datenbank gespeichert. Erwarte Reaktionen.",
             message.channel
           );
         } catch (error) {
-          bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
+          await bot.api.emb(
+            "Etwas ist schief gelaufen",
+            error,
+            message.channel
+          );
         }
         break;
       }
@@ -412,7 +416,7 @@ async function onMessage(message) {
           for (emoji in mapped) {
             let cached_role = await message.guild.roles.fetch(mapped[emoji]);
             if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
-              bot.api.emb(
+              await bot.api.emb(
                 "Fehler",
                 "Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
                 message.channel
@@ -430,14 +434,14 @@ async function onMessage(message) {
             .fetch(new_msg_id)
             .then((msg) => msg.delete());
           bot.api.database_row_delete(attributes.modulename, i[0]);
-          bot.api.emb(
+          await bot.api.emb(
             "Erfolgreich",
             "Nachricht erfolgreich aus der Datenbank gelöscht.",
             message.channel
           );
         } catch (error) {
           if (error instanceof bot.err.Find) {
-            bot.api.emb(
+            await bot.api.emb(
               "Fehler",
               "Konnte die Nachricht in der Datenbank nicht finden.",
               message.channel
@@ -450,7 +454,7 @@ async function onMessage(message) {
       }
     }
   } catch (error) {
-    bot.api.emb("Etwas ist schief gelaufen", error, message.channel);
+    bot.api.hErr(error, message.channel);
   }
 }
 

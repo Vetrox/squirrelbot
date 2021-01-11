@@ -44,7 +44,7 @@ async function onMessage(message) {
             return;
           }
         }
-        bot.api.emb(
+        await bot.api.emb(
           "Keine Hilfeseite",
           `Konnte keine Hilfeseite für das Modul ${res.params["-name"][0]} finden.`,
           message.channel
@@ -58,7 +58,7 @@ async function onMessage(message) {
             desc += "\n→ " + mod.attributes.modulename;
           }
         }
-        bot.api.emb("Alle Module", desc, message.channel);
+        await bot.api.emb("Alle Module", desc, message.channel);
         break;
       }
     }

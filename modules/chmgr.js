@@ -242,7 +242,7 @@ async function onMessage(message) {
 					true,
 					"role",
 				]);
-				bot.api.emb(
+				await bot.api.emb(
 					"Erfolgreich",
 					"Channel erfolgreich kreiert.",
 					message.channel
@@ -299,7 +299,7 @@ async function onMessage(message) {
 				} else if (access_type == "userID") {
 					category.createOverwrite(message.author, permissions);
 				} else {
-					bot.api.emb(
+					await bot.api.emb(
 						"Falscher Zugriffs-Typ",
 						`${access_type} ist weder 'role' noch 'userID'`,
 						message.channel
@@ -327,7 +327,7 @@ async function onMessage(message) {
 					false,
 					access_type,
 				]);
-				bot.api.emb(
+				await bot.api.emb(
 					"Erfolgreich",
 					"Alle Channel wurden kreiert!",
 					message.channel
@@ -356,13 +356,13 @@ async function onMessage(message) {
 				}
 				try {
 					const deleted = await deleteArea(message, owner_id, channelMgr);
-					bot.api.emb(
+					await bot.api.emb(
 						"Erfolgreich gelöscht",
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
 						message.channel
 					);
 				} catch (error) {
-					bot.api.emb(
+					await bot.api.emb(
 						"Nicht gefunden",
 						"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
 						message.channel
@@ -395,7 +395,7 @@ async function onMessage(message) {
 						category = thischannel;
 					}
 				} catch (error) {
-					bot.api.emb(
+					await bot.api.emb(
 						"Berechtigungsfehler",
 						"Du bist nicht der Owner des Channels."
 					);
@@ -410,7 +410,7 @@ async function onMessage(message) {
 						user_str.substring(3, user_str.length - 1)
 					);
 				} catch (error) {
-					bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
+					await bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
 					return;
 				}
 
@@ -425,7 +425,7 @@ async function onMessage(message) {
 								guildMember.roles.cache.has(r.id) == false
 							) {
 								guildMember.roles.add(r.id);
-								bot.api.emb(
+								await bot.api.emb(
 									"Erfolgreich",
 									`${guildMember.toString()} ist jetzt per Rolle eingeladen.`,
 									message.channel
@@ -436,14 +436,14 @@ async function onMessage(message) {
 								guildMember.roles.cache.has(r.id) == true
 							) {
 								guildMember.roles.remove(r.id);
-								bot.api.emb(
+								await bot.api.emb(
 									"Erfolgreich",
 									`${guildMember.toString()} ist jetzt per Rolle ausgeladen.`,
 									message.channel
 								);
 								return;
 							} else {
-								bot.api.emb(
+								await bot.api.emb(
 									"Fehler",
 									`${guildMember.toString()} wurde entweder schon entfernt oder hinzugefügt.`,
 									message.channel
@@ -459,7 +459,7 @@ async function onMessage(message) {
 							"area_role_attributes"
 						);
 						category.updateOverwrite(guildMember, permissions);
-						bot.api.emb(
+						await bot.api.emb(
 							"Erfolgreich",
 							`${guildMember.toString()} ist jetzt per userID eingeladen.`,
 							message.channel
@@ -468,7 +468,7 @@ async function onMessage(message) {
 					} else if (remove == "true") {
 						/* theoretically we could re-set all permissions to hide blacklisted users*/
 						category.updateOverwrite(guildMember, { VIEW_CHANNEL: false });
-						bot.api.emb(
+						await bot.api.emb(
 							"Erfolgreich",
 							`${guildMember.toString()} ist jetzt per userID ausgeladen.`,
 							message.channel
@@ -496,7 +496,7 @@ async function onMessage(message) {
 							"is_part_of_category"
 						) == true
 					) {
-						bot.api.emb(
+						await bot.api.emb(
 							"Kann nicht gelöscht werden",
 							"Der angegebene Channel gehört zu einer Kategorie und kann somit nicht mit diesem Command gelöscht werden.",
 							message.channel
@@ -505,13 +505,13 @@ async function onMessage(message) {
 					}
 					bot.api.database_row_delete(databases[0].name, i[0]);
 					channel.delete();
-					bot.api.emb(
+					await bot.api.emb(
 						"Erfolg!",
 						"Channel erfolgreich gelöscht.",
 						message.channel
 					);
 				} catch (error) {
-					bot.api.emb(
+					await bot.api.emb(
 						"Lösch Fehler",
 						`Beim löschen des Channels mit der ID ${chID} ist ein Fehler aufgetreten. Prüfe bitte auch die Permissions. Error: ${error.message}`,
 						message.channel
@@ -545,7 +545,7 @@ async function onMessage(message) {
 						bot.api.config_update(attributes, message.guild.id, key, values);
 					}
 				}
-				bot.api.emb(
+				await bot.api.emb(
 					"Konfiguration",
 					bot.api.config_toStr(attributes, message.guild.id),
 					message.channel
@@ -612,7 +612,7 @@ async function deleteArea(message, owner_id, channelMgr) {
 		} else if (manage_type == "userID") {
 			//i think nothing needs to be implemented here
 		} else {
-			bot.api.emb(
+			await bot.api.emb(
 				"Datenbank fehler.",
 				"Der manage_type war weder role noch userID",
 				message.channel
@@ -670,7 +670,7 @@ async function log_message_in_user_channels(message) {
 		const category = message_channel.parent;
 
 		if (is_part_of_category && is_part_of_category == true) {
-			bot.api.emb(
+			await bot.api.emb(
 				`Channel: ${message_channel.name}, Kategorie: ${
 					category.name
 				}, Besitzer: ${await bot.api.get_nickname(owner_id, message.guild)}`,
