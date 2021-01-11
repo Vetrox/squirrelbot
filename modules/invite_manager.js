@@ -74,7 +74,7 @@ function isReady() {
   return expected_responses == 0;
 }
 
-function onMessage(message) {
+async function onMessage(message) {
   try {
     if (bot.api.isGT(message.channel) == false) return;
     let res = bot.api.parse_message(message, attributes);
@@ -89,7 +89,7 @@ function onMessage(message) {
           }
           bot.api.config_update(attributes, message.guild.id, key, value);
         }
-        bot.api.emb(
+        await bot.api.emb(
           "Konfiguation",
           `Die Werte sind\n${bot.api.config_toStr(
             attributes,
