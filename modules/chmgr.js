@@ -420,7 +420,7 @@ async function onMessage(message) {
 					bot.api.lookup_index(databases[0].name, index, "manage_type") ==
 					"role"
 				) {
-					category.permissionOverwrites.each((r) => {
+					category.permissionOverwrites.each(async (r) => {
 						if (r.type == "role" && r.id != message.guild.roles.everyone.id) {
 							if (
 								remove == "false" &&
