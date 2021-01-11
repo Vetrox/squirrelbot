@@ -21,9 +21,9 @@ function initialize_modules() {
 	let modules = [];
 	/* read all modules from modules directory */
 	let files = fs.readdirSync("./modules");
-	for (file of files) {
+	for (let file of files) {
 		const mod = require("./modules/" + file);
-		for (event in mod.hooks) {
+		for (let event in mod.hooks) {
 			client.on(event, mod.hooks[event]);
 		}
 		modules.push(mod);
@@ -44,7 +44,7 @@ function initialize() {
 
 async function on_ready() {
 	log.logMessage("Discordjs ready!");
-	for (mod of bot["modules"]) {
+	for (let mod of bot["modules"]) {
 		try {
 			await mod.initialize();
 		} catch (error) {
