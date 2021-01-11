@@ -64,7 +64,11 @@ async function onMessage(message) {
     }
   } catch (error) {
     if (error instanceof bot.err.CommandNameNotFound) {
-      await bot.api.help_module(attributes, message.channel);
+      try {
+        await bot.api.help_module(attributes, message.channel);
+      } catch (err) {
+        bot.api.hErr(err, message.channel);
+      }
       return;
     }
     bot.api.hErr(error, message.channel);
