@@ -74,7 +74,7 @@ function isReady() {
   return expected_responses == 0;
 }
 
-function onMessage(message) {
+async function onMessage(message) {
   try {
     if (bot.api.isGT(message.channel) == false) return;
     let res = bot.api.parse_message(message, attributes);

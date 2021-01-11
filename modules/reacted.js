@@ -247,17 +247,22 @@ async function onMessage(message) {
         for (let i in res.params["-wl"]) {
           let rl = res.params["-wl"][i];
           try {
-            required_roles.push(
-              message.guild.roles.cache.find(
+            let rl_id = message.guild.roles.cache.get(rl)?.id; //try getting it by id in case it has whitespaces.
+            if (!rl_id) {
+              rl_id = message.guild.roles.cache.find(
                 (role) =>
                   role.name.toLowerCase() == rl.toLowerCase() ||
                   role.name.toLowerCase() == "@" + rl.toLowerCase()
-              )
-            );
+              )?.id;
+            }
+            if (!rl_id) {
+              throw new Error();
+            }
+            required_roles.push(rl_id);
           } catch (error) {
             await bot.api.emb(
               "Fehler",
-              "Konnte die Rolle nicht finden.",
+              "Konnte die Rolle " + rl + " nicht finden.",
               message.channel
             );
             return;
@@ -280,13 +285,19 @@ async function onMessage(message) {
         let emoji_map = {};
         for (let i = 0; i <= assigns_list.length - 2; i += 2) {
           try {
-            let cached_role = message.guild.roles.cache.find(
-              (role) =>
-                role.name.toLowerCase() == assigns_list[i + 1].toLowerCase() ||
-                role.name.toLowerCase() ==
-                  "@" + assigns_list[i + 1].toLowerCase()
+            let cached_role = message.guild.roles.cache.get(
+              assigns_list[i + 1]
             );
-            if (!cached_role || !cached_role?.id) throw new Error(); //maybe redundant
+            if (!cached_role || !cached_role?.id) {
+              cached_role = message.guild.roles.cache.find(
+                (role) =>
+                  role.name.toLowerCase() ==
+                    assigns_list[i + 1].toLowerCase() ||
+                  role.name.toLowerCase() ==
+                    "@" + assigns_list[i + 1].toLowerCase()
+              );
+            }
+            if (!cached_role || !cached_role?.id) throw new Error();
 
             if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
               await bot.api.emb(
@@ -300,7 +311,7 @@ async function onMessage(message) {
           } catch (error) {
             await bot.api.emb(
               "Fehler",
-              "Konnte die Rolle nicht finden.",
+              "Konnte die Rolle " + assigns_list[i + 1] + " nicht finden.",
               message.channel
             );
             return;
