@@ -608,7 +608,9 @@ async function deleteArea(message, owner_id, channelMgr) {
 			message.guild.roles
 				.fetch(role_id)
 				.then((role) => role.delete())
+				// eslint-disable-next-line
 				.catch((w) => undefined);
+			// eslint-disable-next-line
 			message.member.roles.remove(role_id).catch((w) => undefined);
 		} else if (manage_type == "userID") {
 			//i think nothing needs to be implemented here
@@ -626,6 +628,7 @@ async function deleteArea(message, owner_id, channelMgr) {
 			channel.id
 		);
 		bot.api.database_row_delete(databases[0].name, row);
+		// eslint-disable-next-line
 		await channel.delete().catch((e) => undefined);
 		data.splice(i, 1);
 		if (is_parent == false) {
