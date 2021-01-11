@@ -1,4 +1,6 @@
+// eslint-disable-next-line
 const discord = require("discord.js");
+// eslint-disable-next-line
 const { prefix } = require("../config.json");
 const log = require("../log.js");
 const attributes = {
@@ -58,6 +60,7 @@ async function fetchInvites() {
 				invites[guild.id] = guildInvites;
 				expected_responses--;
 			},
+			// eslint-disable-next-line
 			(reason) => {
 				expected_responses--;
 				bot.api.log.logMessage(
