@@ -16,7 +16,7 @@ Der Bot hat aktuell vier Grundfunktionen.
 <br/><br/>
 <img src="https://user-images.githubusercontent.com/33632422/104245618-df9cf380-5464-11eb-957d-6267bb84c57a.png" style="max-width:90%;">
 <br /><br />
-
+ 
 | Name      | Beschreibung                                                                      |
 |-----------|-----------------------------------------------------------------------------------|
 |chmgr| Channel-Manager - Erstellen von (privaten) Channels und Bereichen durch den Bot. |
