@@ -6,7 +6,7 @@ const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
 const wait = require("util").promisify(setTimeout); //async wait
-
+ 
 /**** CLASSES ****/
 class Database {
 	constructor(name, keys, data) {
