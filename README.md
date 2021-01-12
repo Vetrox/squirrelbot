@@ -1,5 +1,5 @@
 <h1 align="center">squirrelbot</h1>
-
+ 
 <p align="center">Discord-Bot für die Fachschaft Mathematik und Informatik der Philipps-Universität Marburg.</p>
 <p align="center">
     <b><a href="README.md#Get-Started">Get Started</a></b>
