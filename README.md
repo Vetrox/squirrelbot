@@ -4,7 +4,7 @@
 <p align="center">
     <b><a href="README.md#Get-Started">Get Started</a></b>
     |
-    <b><a href="blob/main/documentation.md">Documentation</a></b>
+    <b><a href="documentation.md">Documentation</a></b>
     |
     <b><a href="README.md#Contributing">Contributing</a></b>
 </p>
