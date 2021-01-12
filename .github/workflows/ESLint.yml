@@ -10,10 +10,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: '14'
-      - run: npm ci # or yarn install
+      - run: yarn install #npm ci # or yarn install
       - uses: sibiraj-s/action-eslint@v1
-        with:
-          eslintArgs: '--ignore-path .gitignore --quiet'
-          extensions: 'js, jsx, ts, tsx'
         env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
