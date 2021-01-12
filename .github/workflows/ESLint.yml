@@ -1,15 +1,10 @@
-name: eslint
-  
-on: pull_request 
+name: Lint
+
+on: [push]
 
 jobs:
-  lint:
+  eslint:
     runs-on: ubuntu-latest
-    name: Run eslint
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: '13.x'
-      - run: yarn
-      - run: yarn lint
+      - uses: stefanoeb/eslint-action@1.0.2
