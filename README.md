@@ -27,9 +27,9 @@ Der Bot hat aktuell vier Grundfunktionen.
 
 ## Roadmap
 
-* Abstimmungen
-* Nachrichten in Archiv-Channel verschieben
-* ...
+Nutze unser Suggestions Board um neue Features vorzuschlagen.
+
+[Suggestions Board](https://discordbot.hearken.io/)
 <br /><br />
 
 ## Contributing
