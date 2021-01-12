@@ -9,7 +9,7 @@
     <b><a href="README.md#Contributing">Contributing</a></b>
 </p>
 <br />
-
+ 
 ## Get Started
 
 Der Bot hat aktuell vier Grundfunktionen.
