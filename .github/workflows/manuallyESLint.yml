@@ -1,4 +1,4 @@
-name: Lint
+name: manuallyESLint
 
 on:
   workflow_dispatch:
