@@ -18,44 +18,44 @@ global.bot = { client: client, running: true }; // the bot variable can be acces
 
 /*FUNCTIONS*/
 function initialize_modules() {
-  let modules = [];
-  /* read all modules from modules directory */
-  let files = fs.readdirSync("./modules");
-  for (file of files) {
-    const mod = require("./modules/" + file);
-    for (event in mod.hooks) {
-      client.on(event, mod.hooks[event]);
-    }
-    modules.push(mod);
-  }
-  bot.modules = modules;
+	let modules = [];
+	/* read all modules from modules directory */
+	let files = fs.readdirSync("./modules");
+	for (let file of files) {
+		const mod = require("./modules/" + file + "/" + file);
+		for (let event in mod.hooks) {
+			client.on(event, mod.hooks[event]);
+		}
+		modules.push(mod);
+	}
+	bot.modules = modules;
 }
 
 function initialize() {
-  log.logMessage("Initializing the bot...");
-  bot.api = api;
-  bot.err = errors;
-  bot.api.initialize();
-  initialize_modules();
-  client.once("ready", async () => {
-    await on_ready();
-  });
+	log.logMessage("Initializing the bot...");
+	bot.api = api;
+	bot.err = errors;
+	bot.api.initialize();
+	initialize_modules();
+	client.once("ready", async () => {
+		await on_ready();
+	});
 }
 
 async function on_ready() {
-  log.logMessage("Discordjs ready!");
-  for (mod of bot["modules"]) {
-    try {
-      await mod.initialize();
-    } catch (error) {
-      log.logMessage(
-        `Error while initializing module ${mod.attributes.modulename}\n${error}`
-      );
-      log.logMessage(error.stack);
-      process.exit();
-    }
-  }
-  log.logMessage("Bot ready!");
+	log.logMessage("Discordjs ready!");
+	for (let mod of bot["modules"]) {
+		try {
+			await mod.initialize();
+		} catch (error) {
+			log.logMessage(
+				`Error while initializing module ${mod.attributes.modulename}\n${error}`
+			);
+			log.logMessage(error.stack);
+			process.exit();
+		}
+	}
+	log.logMessage("Bot ready!");
 }
 
 /*EXECUTION*/
