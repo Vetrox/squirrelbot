@@ -22,6 +22,7 @@ const attributes = {
 		invite: ["everyone"],
 		delete: ["everyone"],
 		category_logging_channel: null,
+		category_inactivity_cap_hours: -1, // all negative values mean it's not checked
 	},
 	commands: [
 		new bot.api.Command(
@@ -197,6 +198,100 @@ const databases = [
 function initialize() {
 	for (const dbs of databases)
 		bot.api.database_create_if_not_exists(dbs.name, dbs.keys);
+
+	delete_unused_categories_interval();
+}
+
+async function delete_unused_categories_interval() {
+	try {
+		bot.api.log.logMessage("Deleting unused categories...");
+
+		const guilds = bot.client.guilds;
+		guilds.cache.each(async (guild, guild_ID) => {
+			bot.api.log.logMessage("Checking guild " + guild.name);
+			/* retrieve the full guild object */
+			//const guild = await guilds.fetch(g, true, true);
+
+			const inactivity_H = bot.api.config_get(
+				attributes,
+				"" + guild_ID, //needs to be converted to string
+				"category_inactivity_cap_hours"
+			)?.[0];
+
+			if (inactivity_H == undefined || inactivity_H <= 0) return;
+
+			const channels = guild.channels;
+			channels.cache.each(async (channel, channelID) => {
+				if (
+					channel.type != "text" ||
+					!channel.viewable ||
+					channel.parentID == undefined ||
+					!channel.deletable ||
+					channel.deleted
+				)
+					return;
+
+				let lastMessage;
+				try {
+					lastMessage = await channel.messages.fetch(channel.lastMessageID);
+				} catch (error) {}
+
+				const lastMsgDate = lastMessage?.createdAt;
+				let compTime = channel.createdAt.getTime();
+				if (lastMsgDate != undefined) compTime = lastMsgDate.getTime();
+
+				const diff_H = (Date.now() - compTime) / 1000 / 60 / 60;
+				if (diff_H < inactivity_H) return;
+
+				let index;
+				try {
+					index = bot.api.lookup_key_value(
+						databases[0].name,
+						"channelID",
+						channelID
+					)[0];
+				} catch (error) {
+					//bot.api.log.logMessage("Channel not found in database");
+				}
+				if (index == undefined) return;
+
+				const is_part_of_category = bot.api.lookup_index(
+					databases[0].name,
+					index,
+					"is_part_of_category"
+				);
+				if (!is_part_of_category) return;
+
+				const owner_id = bot.api.lookup_index(
+					databases[0].name,
+					index,
+					"ownerID"
+				);
+
+				try {
+					bot.api.log.logMessage(
+						`Trying to delete the channel ${channel.name} of guild ${guild.name}`
+					);
+					const deleted = await deleteArea(guild, owner_id);
+					bot.api.log.logMessage(
+						`Deleted ${deleted} channels from the owner ${owner_id}.`
+					);
+				} catch (error) {
+					bot.api.log.logMessage(
+						"An error occured during deleting an inactive channel: "
+					);
+					bot.api.log.logMessage(error);
+				}
+			});
+		});
+	} catch (error) {
+		bot.api.log.logMessage(
+			"An error occured during deleting inactive channels: "
+		);
+		bot.api.log.logMessage(error);
+	}
+
+	setTimeout(delete_unused_categories_interval, 10 * 60 * 1000); // every 10 mins
 }
 
 async function check_role(user, guild, cmd) {
@@ -223,10 +318,11 @@ async function check_role(user, guild, cmd) {
 
 async function onMessage(message) {
 	try {
+		await log_message_in_user_channels(message);
+
 		const res = bot.api.parse_message(message, attributes);
 		if (res == false) return;
 
-		await log_message_in_user_channels(message);
 		switch (res.name) {
 			case "create": {
 				await check_role(message.author, message.guild, "create");
@@ -356,7 +452,7 @@ async function onMessage(message) {
 					}
 				}
 				try {
-					const deleted = await deleteArea(message, owner_id, channelMgr);
+					const deleted = await deleteArea(message.guild, owner_id);
 					await bot.api.emb(
 						"Erfolgreich gelöscht",
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
@@ -559,7 +655,7 @@ async function onMessage(message) {
 	}
 }
 
-async function deleteArea(message, owner_id, channelMgr) {
+async function deleteArea(guild, owner_id) {
 	const data = [];
 	let child_ch_nr = 0;
 	for (const ind of bot.api.lookup_key_value(
@@ -593,7 +689,7 @@ async function deleteArea(message, owner_id, channelMgr) {
 			i++;
 			continue;
 		}
-		const channel = await channelMgr.cache.get(data[i][0]);
+		const channel = await guild.channels.cache.get(data[i][0]);
 		if (!channel || channel.deleted == true) {
 			i++;
 			continue;
@@ -602,21 +698,18 @@ async function deleteArea(message, owner_id, channelMgr) {
 		if (manage_type == "role") {
 			let role_id;
 			channel.permissionOverwrites.each((r) => {
-				if (r.type == "role" && r.id != message.guild.roles.everyone.id)
-					role_id = r.id;
+				if (r.type == "role" && r.id != guild.roles.everyone.id) role_id = r.id;
 			});
-			message.guild.roles
+			guild.roles
 				.fetch(role_id)
 				.then((role) => role.delete())
 				.catch((w) => undefined);
-			message.member.roles.remove(role_id).catch((w) => undefined);
+			//message.member.roles.remove(role_id).catch((w) => undefined); // TODO the role is deleted, why whould we remove it still???
 		} else if (manage_type == "userID") {
 			//i think nothing needs to be implemented here
 		} else {
-			await bot.api.emb(
-				"Datenbank fehler.",
-				"Der manage_type war weder role noch userID",
-				message.channel
+			bot.api.log.logMessage(
+				"Datenbank fehler.\n Der manage_type war weder role noch userID"
 			);
 		}
 		/*get the row of this channel in the database */
@@ -638,52 +731,57 @@ async function deleteArea(message, owner_id, channelMgr) {
 }
 
 async function log_message_in_user_channels(message) {
-	const logging_channel_id = bot.api.config_get(
-		attributes,
-		message.guild.id,
-		"category_logging_channel"
-	)?.[0];
-	const channel = await message.guild.channels.cache.get(logging_channel_id);
-	if (!channel) {
-		console.log("DEBUG: logging channel in chmgr was null");
-		return; // intuition, maybe redundant
-	}
-
-	// check, if the message came from a dedicated area channel
 	try {
-		const indices = bot.api.lookup_key_value(
-			databases[0].name,
-			"channelID",
-			message.channel.id
-		);
-		if (indices.length != 1) return; // intuition, maybe redundant
-		const is_part_of_category = bot.api.lookup_index(
-			databases[0].name,
-			indices[0],
-			"is_part_of_category"
-		);
-		const owner_id = bot.api.lookup_index(
-			databases[0].name,
-			indices[0],
-			"ownerID"
-		);
-		const message_channel = await message.channel.fetch(true);
-		const category = message_channel.parent;
+		const logging_channel_id = bot.api.config_get(
+			attributes,
+			message.guild.id,
+			"category_logging_channel"
+		)?.[0];
+		const channel = await message.guild.channels.cache.get(logging_channel_id);
+		if (!channel) {
+			console.log("DEBUG: logging channel in chmgr was null");
+			return; // intuition, maybe redundant
+		}
 
-		if (is_part_of_category && is_part_of_category == true) {
-			await bot.api.emb(
-				`Channel: ${message_channel.name}, Kategorie: ${
-					category.name
-				}, Besitzer: ${await bot.api.get_nickname(owner_id, message.guild)}`,
-				`Nachricht von: ${await bot.api.get_nickname(
-					message.author.id,
-					message.guild
-				)}\n${message.cleanContent}`,
-				channel
-			); // cleanContent gets the message without mentions
+		// check, if the message came from a dedicated area channel
+		try {
+			const indices = bot.api.lookup_key_value(
+				databases[0].name,
+				"channelID",
+				message.channel.id
+			);
+			if (indices.length != 1) return; // intuition, maybe redundant
+			const is_part_of_category = bot.api.lookup_index(
+				databases[0].name,
+				indices[0],
+				"is_part_of_category"
+			);
+			const owner_id = bot.api.lookup_index(
+				databases[0].name,
+				indices[0],
+				"ownerID"
+			);
+			const message_channel = await message.channel.fetch(true);
+			const category = message_channel.parent;
+
+			if (is_part_of_category && is_part_of_category == true) {
+				await bot.api.emb(
+					`Channel: ${message_channel.name}, Kategorie: ${
+						category.name
+					}, Besitzer: ${await bot.api.get_nickname(owner_id, message.guild)}`,
+					`Nachricht von: ${await bot.api.get_nickname(
+						message.author.id,
+						message.guild
+					)}\n${message.cleanContent}`,
+					channel
+				); // cleanContent gets the message without mentions
+			}
+		} catch (e) {
+			// find error. doesn't matter at all
 		}
 	} catch (e) {
-		// find error. doesn't matter at all
+		console.log(e);
+		//supress any error here!!
 	}
 }
 
