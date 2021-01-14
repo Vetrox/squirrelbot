@@ -84,7 +84,7 @@ const attributes = {
 					[],
 					"Der Zugriffs-Management-Typ. 'role' oder 'userID'",
 					(nr) => nr == 1,
-					["role"],
+					["userID"],
 					true
 				),
 			],
@@ -361,6 +361,10 @@ async function onMessage(message) {
 						{
 							id: message.guild.roles.everyone,
 							deny: ["VIEW_CHANNEL"],
+						},
+						{
+							id: bot.client.user.id,
+							allow: ["VIEW_CHANNEL", "SEND_MESSAGES", "CONNECT", "SPEAK", "MANAGE_ROLES", "MANAGE_CHANNELS"],
 						},
 					],
 				});
