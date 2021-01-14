@@ -203,7 +203,7 @@ function initialize() {
 	delete_unused_categories_interval();
 }
 
-function delete_unused_categories_interval() {
+async function delete_unused_categories_interval() {
 	try {
 		bot.api.log.logMessage("Deleting unused categories...");
 		bot.client.guilds.cache.each((guild, guild_ID) => {
@@ -268,7 +268,7 @@ function delete_unused_categories_interval() {
 						bot.api.log.logMessage(
 							`Trying to delete the channel ${channel.name} of guild ${guild.name}:${guild_ID}`
 						);
-						const deleted = await deleteArea(guild, owner_id);
+						const deleted = await deleteArea_1(guild, owner_id);
 						bot.api.log.logMessage(
 							`Deleted ${deleted} channels from the owner ${owner_id}.`
 						);
@@ -293,7 +293,7 @@ function delete_unused_categories_interval() {
 		bot.api.log.logMessage(error);
 	}
 
-	setTimeout(delete_unused_categories_interval, 10 * 60 * 1000); // every 10 mins
+	setTimeout(delete_unused_categories_interval, 5 * 60 * 1000); // every 5 mins
 }
 
 async function check_role(user, guild, cmd) {
@@ -495,7 +495,7 @@ async function onMessage(message) {
 					}
 				}
 				try {
-					const deleted = await deleteArea(message.guild, owner_id);
+					const deleted = await deleteArea_1(message.guild, owner_id);
 					await bot.api.emb(
 						"Erfolgreich gelöscht",
 						`${deleted} Channel wurden erfolgreich gelöscht.`,
@@ -698,80 +698,148 @@ async function onMessage(message) {
 	}
 }
 
-async function deleteArea(guild, owner_id) {
-	const data = [];
-	let child_ch_nr = 0;
-	for (const ind of bot.api.lookup_key_value(
-		databases[0].name,
-		"ownerID",
-		owner_id
-	)) {
-		const c = [];
-		let skip = false;
-		for (const key of databases[0].keys) {
-			const value = bot.api.lookup_index(databases[0].name, ind, key);
-			if (key == "is_part_of_category" && value == false) {
-				skip = true;
-				break;
+async function deleteArea_1(guild, ownerID) {
+	bot.api.log.logMessage(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
+	const del_channels = [];
+	try{
+		const indices = bot.api.lookup_key_value(
+			databases[0].name,
+			"ownerID",
+			ownerID
+		);
+		for(const index of indices) {
+			try{
+				const is_part_of_category = bot.api.lookup_index(databases[0].name, index, "is_part_of_category");
+				if(is_part_of_category == false) continue;
+				const guild_ID = bot.api.lookup_index(databases[0].name, index, "guildID");
+				if(guild_ID != guild.id) continue;
+				const owner_ID = bot.api.lookup_index(databases[0].name, index, "ownerID");
+				if(owner_ID != ownerID) continue;
+				const channel_ID = bot.api.lookup_index(databases[0].name, index, "channelID");
+				const channel = await guild.channels.cache.get(channel_ID);
+				if(!channel || channel.deleted == true) continue;
+				if(channel.deletable == false) {
+					bot.api.log.logMessage(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
+				}
+				const manage_type = bot.api.lookup_index(databases[0].name, index, "manage_type");
+
+				if(manage_type == "role") {
+					try{
+						await channel.permissionOverwrites.find(
+							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
+						).delete();
+					}catch(error) {
+						bot.api.log.logMessage(`Konnte die Rolle zum channel ${channel_ID}:${channel.name} nicht löschen.`);
+					}
+				}
+				try{
+					await channel.delete();
+				}catch(error) {
+					bot.api.log.logMessage(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
+				}
+				del_channels.push(channel_ID);
+			}catch (error) {
+				bot.api.log.logMessage(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
+				bot.api.log.logMessage(error);
 			}
-			if (key == "is_category_parent" && value == false) {
-				child_ch_nr++;
-			}
-			c.push(value);
 		}
-		if (skip == true) continue;
-		data.push(c);
+
+	}catch (error) {
+		bot.api.log.logMessage(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
+		bot.api.log.logMessage(error);
 	}
 
-	let i = 0;
-	let deleted = 0;
-	while (data.length > 0) {
-		i = i >= data.length ? 0 : i;
-		const is_parent = data[i][3];
-		if (child_ch_nr > 0 && is_parent == true) {
-			i++;
-			continue;
+	for(const channel_ID of del_channels) {
+		try{
+			const index = bot.api.lookup_key_value(
+				databases[0].name,
+				"channelID",
+				channel_ID,
+			)[0];
+			bot.api.database_row_delete(databases[0].name, index);
+		}catch(error){
+			bot.api.log.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
+			bot.api.log.logMessage(error);
 		}
-		const channel = await guild.channels.cache.get(data[i][0]);
-		if (!channel || channel.deleted == true) {
-			i++;
-			continue;
-		}
-		const manage_type = data[i][4];
-		if (manage_type == "role") {
-			let role_id;
-			channel.permissionOverwrites.each((r) => {
-				if (r.type == "role" && r.id != guild.roles.everyone.id) role_id = r.id;
-			});
-			guild.roles
-				.fetch(role_id)
-				.then((role) => role.delete())
-				.catch((w) => undefined);
-			//message.member.roles.remove(role_id).catch((w) => undefined); // TODO the role is deleted, why whould we remove it still???
-		} else if (manage_type == "userID") {
-			//i think nothing needs to be implemented here
-		} else {
-			bot.api.log.logMessage(
-				"Datenbank fehler.\n Der manage_type war weder role noch userID"
-			);
-		}
-		/*get the row of this channel in the database */
-		const row = bot.api.lookup_key_value(
-			databases[0].name,
-			"channelID",
-			channel.id
-		);
-		bot.api.database_row_delete(databases[0].name, row);
-		await channel.delete().catch((e) => undefined);
-		data.splice(i, 1);
-		if (is_parent == false) {
-			child_ch_nr--;
-		}
-		deleted++;
-		i++;
 	}
-	return deleted;
+	bot.api.log.logMessage(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
+	return del_channels.length;
 }
+
+// async function deleteArea(guild, owner_id) { //TODO: rework
+// 	const data = [];
+// 	let child_ch_nr = 0;
+// 	for (const ind of bot.api.lookup_key_value(
+// 		databases[0].name,
+// 		"ownerID",
+// 		owner_id
+// 	)) {
+// 		const c = [];
+// 		let skip = false;
+// 		for (const key of databases[0].keys) {
+// 			const value = bot.api.lookup_index(databases[0].name, ind, key);
+// 			if (key == "is_part_of_category" && value == false) {
+// 				skip = true;
+// 				break;
+// 			}
+// 			if (key == "is_category_parent" && value == false) {
+// 				child_ch_nr++;
+// 			}
+// 			c.push(value);
+// 		}
+// 		if (skip == true) continue;
+// 		data.push(c);
+// 	}
+
+// 	let i = 0;
+// 	let deleted = 0;
+// 	while (data.length > 0) {
+// 		i = i >= data.length ? 0 : i;
+// 		const is_parent = data[i][3];
+// 		if (child_ch_nr > 0 && is_parent == true) {
+// 			i++;
+// 			continue;
+// 		}
+// 		const channel = await guild.channels.cache.get(data[i][0]);
+// 		if (!channel || channel.deleted == true) {
+// 			i++;
+// 			continue;
+// 		}
+// 		const manage_type = data[i][4];
+// 		if (manage_type == "role") {
+// 			let role_id;
+// 			channel.permissionOverwrites.each((r) => {
+// 				if (r.type == "role" && r.id != guild.roles.everyone.id) role_id = r.id;
+// 			});
+// 			guild.roles
+// 				.fetch(role_id)
+// 				.then((role) => role.delete())
+// 				.catch((w) => undefined);
+// 			//message.member.roles.remove(role_id).catch((w) => undefined); // TODO the role is deleted, why whould we remove it still???
+// 		} else if (manage_type == "userID") {
+// 			//i think nothing needs to be implemented here
+// 		} else {
+// 			bot.api.log.logMessage(
+// 				"Datenbank fehler.\n Der manage_type war weder role noch userID"
+// 			);
+// 		}
+// 		/*get the row of this channel in the database */
+// 		const row = bot.api.lookup_key_value(
+// 			databases[0].name,
+// 			"channelID",
+// 			channel.id
+// 		);
+// 		bot.api.database_row_delete(databases[0].name, row);
+// 		await channel.delete().catch((e) => undefined);
+// 		data.splice(i, 1);
+// 		if (is_parent == false) {
+// 			child_ch_nr--;
+// 		}
+// 		deleted++;
+// 		i++;
+// 	}
+// 	return deleted;
+// }
 
 async function log_message_in_user_channels(message) {
 	try {
