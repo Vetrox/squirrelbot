@@ -90,7 +90,7 @@ const attributes = {
 			],
 			[
 				`${bot.api.prefix}chmgr create_area -name Mein_Bereich`,
-				`${bot.api.prefix}chmgr create_area -name Mein_Bereich -access_type userID`,
+				`${bot.api.prefix}chmgr create_area -name Mein_Bereich -access_type role`,
 			]
 		),
 		new bot.api.Command(
