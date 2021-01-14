@@ -106,38 +106,46 @@ async function onMessage(message) {
 }
 
 function onGuildMemberAdd(member) {
-  member.guild.fetchInvites().then(async (guildInvites) => {
-    try {
-      let ei = invites[member.guild.id];
-      // Look through the invites, find the one for which the uses went up.
-      const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
-      invites[member.guild.id] = guildInvites;
-      if(!invite) {
-        return;
-      }
-      log.logMessage(
-        `${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
-      );
-      let cfg = bot.api.config_load(attributes, member.guild.id).map;
-      if (!(invite.code in cfg)) {
-        console.log("no matching invite code");
-        return;
-      }
-      let role_name = cfg[invite.code];
-      let role_id = member.guild.roles.cache.find(
-        (role) =>
-          role.name.toLowerCase() == role_name.toLowerCase() ||
-          role.name.toLowerCase() == "@" + role_name.toLowerCase()
-      ).id;
-      member.roles.add(role_id);
-      log.logMessage(`Gave the user ${member.user.tag} the role ${role_name}.`);
-    } catch (error) {
-      log.logMessage(error);
-      log.logMessage(error.stack);
-    }
-  });
+	try {
+		member.guild.fetchInvites().then(async (guildInvites) => {
+			try {
+				let ei = invites[member.guild.id];
+				// Look through the invites, find the one for which the uses went up.
+				const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
+				invites[member.guild.id] = guildInvites;
+				if (!invite) {
+					return;
+				}
+				log.logMessage(
+					`${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
+				);
+				let cfg = bot.api.config_load(attributes, member.guild.id).map;
+				if (!(invite.code in cfg)) {
+					console.log("no matching invite code");
+					return;
+				}
+				let role_name = cfg[invite.code];
+				let role_id = member.guild.roles.cache.find(
+					(role) =>
+						role.name.toLowerCase() == role_name.toLowerCase() ||
+						role.name.toLowerCase() == "@" + role_name.toLowerCase()
+				).id;
+				member.roles.add(role_id);
+				log.logMessage(
+					`Gave the user ${member.user.tag} the role ${role_name}.`
+				);
+			} catch (error) {
+				log.logMessage(error);
+				log.logMessage(error.stack);
+			}
+		});
+	} catch (error) {
+		bot.api.log.logMessage(
+			"An error occured at invite_manager onGuildMemberAdd."
+		);
+		bot.api.log.logMessage(error);
+	}
 }
-
 module.exports = {
   hooks: {
     message: onMessage,
