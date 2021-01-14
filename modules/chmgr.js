@@ -349,6 +349,24 @@ async function onMessage(message) {
 			}
 			case "create_area": {
 				await check_role(message.author, message.guild, "create_area");
+
+				try {
+					const indices = bot.api.lookup_key_value(
+								databases[0].name,
+								"ownerID",
+								message.author.id
+					);
+					if(indices >= 1) {
+						await bot.api.emb(
+							"Fehler: Konnte keine Kategorie erstellen",
+							"Du hast bereits eine Kategorie für dich. :P",
+							message.channel
+						);
+						return;
+					}
+				}catch (error) {} // no problem. there is no entry in the database for that user
+
+
 				const channelMgr = message.guild.channels;
 				const permissions = bot.api.config_get(
 					attributes,
