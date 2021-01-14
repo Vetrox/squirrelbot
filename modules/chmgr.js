@@ -356,7 +356,7 @@ async function onMessage(message) {
 								"ownerID",
 								message.author.id
 					);
-					if(indices >= 1) {
+					if(indices.length >= 1) {
 						await bot.api.emb(
 							"Fehler: Konnte keine Kategorie erstellen",
 							"Du hast bereits eine Kategorie für dich. :P",
