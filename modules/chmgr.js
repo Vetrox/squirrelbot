@@ -191,6 +191,7 @@ const databases = [
 			"is_part_of_category", // true or false
 			"is_category_parent", // when it's the parent of a private user channel. false by default
 			"manage_type", // role or userID. important for deletion and change
+			"guildID",
 		],
 	},
 ];
@@ -339,6 +340,7 @@ async function onMessage(message) {
 					false, //is not part of category
 					true,
 					"role",
+					message.guild.id,
 				]);
 				await bot.api.emb(
 					"Erfolgreich",
@@ -356,12 +358,27 @@ async function onMessage(message) {
 								"ownerID",
 								message.author.id
 					);
-					if(indices.length >= 1) {
-						await bot.api.emb(
-							"Fehler: Konnte keine Kategorie erstellen",
-							"Du hast bereits eine Kategorie für dich. :P",
-							message.channel
-						);
+					try {
+						let amount = 0;
+						for(let index of indices) {
+							const guild_ID = bot.api.lookup_index(
+								databases[0].name,
+								index,
+								"guildID"
+							);
+							if(guild_ID == message.guild.id) amount++;
+						}
+						
+						if(amount >= 1) {
+							await bot.api.emb(
+								"Fehler: Konnte keine Kategorie erstellen",
+								"Du hast bereits eine Kategorie für dich. :P",
+								message.channel
+							);
+							return;
+						}
+					}catch (error) {
+						bot.api.hErr(error, message.channel);
 						return;
 					}
 				}catch (error) {} // no problem. there is no entry in the database for that user
@@ -432,6 +449,7 @@ async function onMessage(message) {
 					true, //is part of category
 					true,
 					access_type,
+					message.guild.id,
 				]);
 				bot.api.database_row_add(databases[0].name, [
 					text.id,
@@ -439,6 +457,7 @@ async function onMessage(message) {
 					true,
 					false,
 					access_type,
+					message.guild.id,
 				]);
 				bot.api.database_row_add(databases[0].name, [
 					voice.id,
@@ -446,6 +465,7 @@ async function onMessage(message) {
 					true,
 					false,
 					access_type,
+					message.guild.id,
 				]);
 				await bot.api.emb(
 					"Erfolgreich",
