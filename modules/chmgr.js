@@ -58,11 +58,11 @@ const attributes = {
 				),
 			],
 			[
-				"!chmgr create -name MeinChannel",
-				"!chmgr create -name MeinChannel -type text",
-				"!chmgr create -name MeinChannel -type voice",
-				"!chmgr create -name MeinChannel -type category",
-				"!chmgr create -name MeinUnterChannel -parentID 69696969696969",
+				`${bot.api.prefix}chmgr create -name MeinChannel`,
+				`${bot.api.prefix}chmgr create -name MeinChannel -type text`,
+				`${bot.api.prefix}chmgr create -name MeinChannel -type voice`,
+				`${bot.api.prefix}chmgr create -name MeinChannel -type category`,
+				`${bot.api.prefix}chmgr create -name MeinUnterChannel -parentID 69696969696969`,
 			]
 		),
 		new bot.api.Command(
@@ -89,8 +89,8 @@ const attributes = {
 				),
 			],
 			[
-				"!chmgr create_area -name Mein_Bereich",
-				"!chmgr create_area -name Mein_Bereich -access_type userID",
+				`${bot.api.prefix}chmgr create_area -name Mein_Bereich`,
+				`${bot.api.prefix}chmgr create_area -name Mein_Bereich -access_type userID`,
 			]
 		),
 		new bot.api.Command(
@@ -107,7 +107,7 @@ const attributes = {
 					true
 				),
 			],
-			["!chmgr delete_area", "!chmgr delete_area -here"]
+			[`${bot.api.prefix}chmgr delete_area`, `${bot.api.prefix}chmgr delete_area -here`]
 		),
 		new bot.api.Command(
 			"invite",
@@ -132,7 +132,7 @@ const attributes = {
 					true
 				),
 			],
-			["!chmgr invite -name @Max", "!chmgr invite -name @Max -remove true"]
+			[`${bot.api.prefix}chmgr invite -name @Max`, `${bot.api.prefix}chmgr invite -name @Max -remove true`]
 		),
 		new bot.api.Command(
 			"delete",
@@ -148,7 +148,7 @@ const attributes = {
 					false
 				),
 			],
-			["!chmgr delete -channelID 69696969696969"]
+			[`${bot.api.prefix}chmgr delete -channelID 69696969696969`]
 		),
 		new bot.api.Command(
 			"config",
@@ -174,9 +174,9 @@ const attributes = {
 				),
 			],
 			[
-				"!chmgr config",
-				"!chmgr config -key create_area -value Rolle1 Rolle2 Rolle3",
-				"!chmgr config -key create_area -value everyone",
+				`${bot.api.prefix}chmgr config`,
+				`${bot.api.prefix}chmgr config -key create_area -value Rolle1 Rolle2 Rolle3`,
+				`${bot.api.prefix}chmgr config -key create_area -value everyone`,
 			]
 		),
 	],

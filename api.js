@@ -842,4 +842,5 @@ module.exports = {
 	is_admin,
 	has_permission,
 	get_nickname,
+	prefix,
 };

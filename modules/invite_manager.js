@@ -32,7 +32,7 @@ const attributes = {
           false
         ),
       ],
-      ['!invite_manager config', "!invite_manager config -key map -value 7z43i2e Rolle1"]
+      [`${bot.api.prefix}invite_manager config`, `${bot.api.prefix}invite_manager config -key map -value 7z43i2e Rolle1`]
     ),
   ],
 };

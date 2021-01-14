@@ -47,9 +47,9 @@ const attributes = {
         ),
       ],
       [
-        "!reacted add -messageID 696969696969",
-        "!reacted add -messageID 696969696969 -map ✅ Verified",
-        "!reacted add -messageID 696969696969 -map ✅ Verified -wl everyone -wl_mode lower",
+        `${bot.api.prefix}reacted add -messageID 696969696969`,
+        `${bot.api.prefix}reacted add -messageID 696969696969 -map ✅ Verified`,
+        `${bot.api.prefix}reacted add -messageID 696969696969 -map ✅ Verified -wl everyone -wl_mode lower`,
       ]
     ),
     new bot.api.Command(
@@ -66,7 +66,7 @@ const attributes = {
           false
         ),
       ],
-      ["!reacted remove -messageID 696969696969"]
+      [`${bot.api.prefix}reacted remove -messageID 696969696969`]
     ),
   ],
 };

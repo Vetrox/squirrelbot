@@ -18,13 +18,13 @@ const attributes = {
           true
         ),
       ],
-      ["!help modulehelp -name chmgr"]
+      [`${bot.api.prefix}help modulehelp -name chmgr`]
     ),
     new bot.api.Command(
       "listmodules",
       "Zeigt alle verfügbaren Module an",
       [],
-      ["!help listmodules"]
+      [`${bot.api.prefix}help listmodules`]
     ),
   ],
 };
