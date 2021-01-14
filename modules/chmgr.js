@@ -202,87 +202,88 @@ function initialize() {
 	delete_unused_categories_interval();
 }
 
-async function delete_unused_categories_interval() {
+function delete_unused_categories_interval() {
 	try {
 		bot.api.log.logMessage("Deleting unused categories...");
+		bot.client.guilds.cache.each((guild, guild_ID) => {
+			try {
+				bot.api.log.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
 
-		const guilds = bot.client.guilds;
-		guilds.cache.each(async (guild, guild_ID) => {
-			bot.api.log.logMessage("Checking guild " + guild.name);
-			/* retrieve the full guild object */
-			//const guild = await guilds.fetch(g, true, true);
-
-			const inactivity_H = bot.api.config_get(
-				attributes,
-				"" + guild_ID, //needs to be converted to string
-				"category_inactivity_cap_hours"
-			)?.[0];
-
-			if (inactivity_H == undefined || inactivity_H <= 0) return;
-
-			const channels = guild.channels;
-			channels.cache.each(async (channel, channelID) => {
-				if (
-					channel.type != "text" ||
-					!channel.viewable ||
-					channel.parentID == undefined ||
-					!channel.deletable ||
-					channel.deleted
-				)
+				const inactivity_H = bot.api.config_get(
+					attributes,
+					"" + guild_ID, //needs to be converted to string
+					"category_inactivity_cap_hours"
+				)?.[0]; //can throw due to non existing key on older configs
+				if (inactivity_H == undefined || !inactivity_H || inactivity_H <= 0)
 					return;
 
-				let lastMessage;
-				try {
-					lastMessage = await channel.messages.fetch(channel.lastMessageID);
-				} catch (error) {}
+				guild.channels.cache.each(async (channel, channel_ID) => {
+					if (
+						channel.deleted ||
+						channel.type != "text" ||
+						!channel.viewable ||
+						channel.parentID == undefined ||
+						!channel.deletable
+					)
+						return;
 
-				const lastMsgDate = lastMessage?.createdAt;
-				let compTime = channel.createdAt.getTime();
-				if (lastMsgDate != undefined) compTime = lastMsgDate.getTime();
+					let lastMsgDate;
+					try {
+						lastMsgDate = (await channel.messages.fetch(channel.lastMessageID)
+							)?.createdAt;
+					} catch (error) {}
 
-				const diff_H = (Date.now() - compTime) / 1000 / 60 / 60;
-				if (diff_H < inactivity_H) return;
 
-				let index;
-				try {
-					index = bot.api.lookup_key_value(
+					let compTime = lastMsgDate?.getTime() ?? channel.createdAt.getTime();
+
+					const diff_H = (Date.now() - compTime) / 1000 / 60 / 60;
+					if (diff_H < inactivity_H) return;
+
+					let index;
+					try {
+						index = bot.api.lookup_key_value(
+							databases[0].name,
+							"channelID",
+							channel_ID
+						)[0];
+					} catch (error) {
+						return;
+					}
+
+					const is_part_of_category = bot.api.lookup_index(
 						databases[0].name,
-						"channelID",
-						channelID
-					)[0];
-				} catch (error) {
-					//bot.api.log.logMessage("Channel not found in database");
-				}
-				if (index == undefined) return;
+						index,
+						"is_part_of_category"
+					);
+					if (!is_part_of_category) return;
 
-				const is_part_of_category = bot.api.lookup_index(
-					databases[0].name,
-					index,
-					"is_part_of_category"
+					const owner_id = bot.api.lookup_index(
+						databases[0].name,
+						index,
+						"ownerID"
+					);
+
+					try {
+						bot.api.log.logMessage(
+							`Trying to delete the channel ${channel.name} of guild ${guild.name}:${guild_ID}`
+						);
+						const deleted = await deleteArea(guild, owner_id);
+						bot.api.log.logMessage(
+							`Deleted ${deleted} channels from the owner ${owner_id}.`
+						);
+					} catch (error) {
+						bot.api.log.logMessage(
+							"An error occured during deleting an inactive channel: "
+						);
+						bot.api.log.logMessage(error);
+					}
+				});
+			} catch (error) {
+				bot.api.log.logMessage(
+					"An error occured during deleting inactive channels: "
 				);
-				if (!is_part_of_category) return;
-
-				const owner_id = bot.api.lookup_index(
-					databases[0].name,
-					index,
-					"ownerID"
-				);
-
-				try {
-					bot.api.log.logMessage(
-						`Trying to delete the channel ${channel.name} of guild ${guild.name}`
-					);
-					const deleted = await deleteArea(guild, owner_id);
-					bot.api.log.logMessage(
-						`Deleted ${deleted} channels from the owner ${owner_id}.`
-					);
-				} catch (error) {
-					bot.api.log.logMessage(
-						"An error occured during deleting an inactive channel: "
-					);
-					bot.api.log.logMessage(error);
-				}
-			});
+				bot.api.log.logMessage(error);
+			}
 		});
 	} catch (error) {
 		bot.api.log.logMessage(
