@@ -395,7 +395,7 @@ async function onMessage(message) {
 					permissionOverwrites: [
 						{
 							id: message.guild.roles.everyone,
-							deny: ["VIEW_CHANNEL"],
+							deny: ["VIEW_CHANNEL", "CONNECT"], // quote: Disabling this (both) will make voice channels also private.
 						},
 						{
 							id: bot.client.user.id,
