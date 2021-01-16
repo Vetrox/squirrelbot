@@ -29,11 +29,12 @@ jobs:
         script: ~/scripts/stop.sh
       
     - name: Upload Files to FTP-Serer
-      uses: SamKirkland/FTP-Deploy-Action@3.1.1
+      uses: SamKirkland/FTP-Deploy-Action@4.0.0
       with:
-        ftp-server: ${{ secrets.FTP_ADRESS }}/githubDeploy
-        ftp-username: ${{ secrets.FTP_USER }}
-        ftp-password: ${{ secrets.FTP_PASSWORD }}
+        server: ${{ secrets.FTP_ADRESS }}/githubDeploy
+        username: ${{ secrets.FTP_USER }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        port: 22
         
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@master
