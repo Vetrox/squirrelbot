@@ -21,9 +21,9 @@ function initialize_modules() {
   let modules = [];
   /* read all modules from modules directory */
   let files = fs.readdirSync("./modules");
-  for (file of files) {
-    const mod = require("./modules/" + file);
-    for (event in mod.hooks) {
+  for (let file of files) {
+    const mod = require("./modules/" + file + "/" + file);
+    for (let event in mod.hooks) {
       client.on(event, mod.hooks[event]);
     }
     modules.push(mod);
