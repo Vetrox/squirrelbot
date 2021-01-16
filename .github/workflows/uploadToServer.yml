@@ -26,7 +26,7 @@ jobs:
         username: ${{ secrets.FTP_USER }}
         password: ${{ secrets.FTP_PASSWORD }}
         port: 22
-        script: /scripts/stop.sh
+        script: stop.sh
       
     - name: Upload Files to FTP-Serer
       uses: SamKirkland/FTP-Deploy-Action@3.1.1
@@ -42,4 +42,4 @@ jobs:
         username: ${{ secrets.FTP_USER }}
         password: ${{ secrets.FTP_PASSWORD }}
         port: 22
-        script: /scripts/start.sh
+        script: start.sh
