@@ -1,64 +1,73 @@
 #!/usr/bin/env node
 
-/*REQUIRE*/
 const Discord = require("discord.js");
 const fs = require("fs");
 const log = require("./log.js");
 const api = require("./api.js");
 const errors = require("./errors.js");
-require("dotenv").config(); // read in environment variables
-
-/*CONSTANTS*/
+require("dotenv").config();
 const client = new Discord.Client();
 
-/*GLOBAL VARIABLES*/
-global.bot = { client: client, running: true }; // the bot variable can be accessed by any module to share information across modules. constants can easily be written in the declaration.
+/**
+ * Can be accessed by any module to share information
+ * */
+global.bot = { client: client, running: true };
 
-/*CLASSES*/
 
-/*FUNCTIONS*/
-function initialize_modules() {
-  let modules = [];
-  /* read all modules from modules directory */
-  let files = fs.readdirSync("./modules");
-  for (let file of files) {
-    const mod = require("./modules/" + file + "/" + file);
-    for (let event in mod.hooks) {
-      client.on(event, mod.hooks[event]);
-    }
-    modules.push(mod);
-  }
-  bot.modules = modules;
+/**
+ * Read all modules from ./modules
+ * */
+function readModulesFromSource() {
+	let modules = [];
+	let files = fs.readdirSync("./modules");
+	for (let file of files) {
+		const mod = require("./modules/" + file + "/" + file);
+		for (let event in mod.hooks) {
+			client.on(event, mod.hooks[event]);
+		}
+		modules.push(mod);
+	}
+	bot.modules = modules;
 }
 
+/**
+ * Initialize the application
+ * */
 function initialize() {
-  log.logMessage("Initializing the bot...");
-  bot.api = api;
-  bot.err = errors;
-  bot.api.initialize();
-  initialize_modules();
-  client.once("ready", async () => {
-    await on_ready();
-  });
+	log.logMessage("Initializing the bot...");
+	bot.api = api;
+	bot.err = errors;
+	bot.api.initialize();
+	readModulesFromSource();
+	client.once("ready", async () => {
+		await on_ready();
+	});
 }
 
+/**
+ * Start the application
+ * */
 async function on_ready() {
-  log.logMessage("Discordjs ready!");
-  for (mod of bot["modules"]) {
-    try {
-      await mod.initialize();
-    } catch (error) {
-      log.logMessage(
-        `Error while initializing module ${mod.attributes.modulename}\n${error}`
-      );
-      log.logMessage(error.stack);
-      process.exit();
-    }
-  }
-  log.logMessage("Bot ready!");
+	log.logMessage("Discordjs ready!");
+	for (const mod of bot["modules"]) {
+		try {
+			await mod.initialize();
+		} catch (error) {
+			log.logMessage(
+				`Error while initializing module ${mod.attributes.modulename}\n${error}`
+			);
+			log.logMessage(error.stack);
+			process.exit();
+		}
+	}
+	log.logMessage("Bot ready!");
 }
 
-/*EXECUTION*/
+/**
+ * Execute the application
+ * */
 initialize();
 log.logMessage("Logging in");
-client.login(process.env.BOT_TOKEN); //-> triggers the event-handlers
+client.login(process.env.BOT_TOKEN).catch((error) => {
+	log.logMessage("Error while login: " + error);
+});
