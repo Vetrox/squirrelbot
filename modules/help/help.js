@@ -9,7 +9,7 @@ async function onMessage(message) {
 		if (res == false) return;
 		switch (res.name) {
 		case "modulehelp": {
-			for (mod of bot.modules) {
+			for (let mod of bot.modules) {
 				if (mod?.attributes?.modulename === res.params["-name"][0]) {
 					await bot.api.help_module(mod.attributes, message.channel);
 					return;
@@ -24,7 +24,7 @@ async function onMessage(message) {
 		}
 		case "listmodules": {
 			let desc = "";
-			for (mod of bot.modules) {
+			for (let mod of bot.modules) {
 				if (mod?.attributes?.modulename) {
 					desc += "\n→ " + mod.attributes.modulename;
 				}

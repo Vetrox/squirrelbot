@@ -37,6 +37,8 @@ async function delete_unused_categories_interval() {
 					try {
 						lastMsgDate = (await channel.messages.fetch(channel.lastMessageID)
 						)?.createdAt;
+						//TODO solve this line
+						// eslint-disable-next-line no-empty
 					} catch (error) {}
 
 
@@ -182,11 +184,13 @@ async function onMessage(message) {
 						);
 						return;
 					}
-				}catch (error) {
+				} catch (error) {
 					bot.api.hErr(error, message.channel);
 					return;
 				}
-			}catch (error) {} // no problem. there is no entry in the database for that user
+				//TODO solve this line
+				// eslint-disable-next-line no-empty
+			} catch (error) {} // no problem. there is no entry in the database for that user
 
 
 			const channelMgr = message.guild.channels;
@@ -281,7 +285,6 @@ async function onMessage(message) {
 		}
 		case "delete_area": {
 			await check_role(message.author, message.guild, "delete_area");
-			const channelMgr = message.guild.channels;
 			let owner_id = message.author.id;
 			if (res.params["-here"] == "true") {
 				await bot.api.is_admin(message.author.id, message.guild); // throws
