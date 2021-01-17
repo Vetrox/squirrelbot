@@ -31,10 +31,10 @@ jobs:
     - name: Upload Files to FTP-Serer
       uses: SamKirkland/FTP-Deploy-Action@3.1.1
       with:
-        ftp-server: ${{ secrets.FTP_ADRESS }}/githubDeploy
+        ftp-server: sftp://${{ secrets.FTP_ADRESS }}/~/githubDeploy
         ftp-username: ${{ secrets.FTP_USER }}
         ftp-password: ${{ secrets.FTP_PASSWORD }}
-        ftp-port: 22
+        git-ftp-args: --insecure
         
     - name: executing remote ssh commands using password
       uses: appleboy/ssh-action@master
