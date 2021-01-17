@@ -8,9 +8,35 @@ const { prefix } = require("./config.json");
 const wait = require("util").promisify(setTimeout); //async wait
 
 /**** CLASSES ****/
+
+/**
+ * A database is an api-managed object, which holds the contents of it's corresponding database-text-file in
+ * ./data/name.
+ *
+ * this.data: The data array has the following structure.
+ * array[array[json_object, json_object,...],array[json_object,...],...]
+ * The number of elements of each subarray equals the number of keys or columns.
+ * The number of entries in the outer array equals the number of entries in the database.
+ *
+ * this.keys: Each column is one key.
+ *
+ * this.name: Should begin with the module name.
+ *
+ * this.index: Is an index for each key which has the following structure.
+ * array[dict{value1 : index/row in this.data, ...},...]
+ */
 class Database {
+	/**
+	 * Instantiates the object and sets the data_modified and is_saving booleans to false.
+	 *
+	 * @param name the name of the database. For consistency it should begin with the module name.
+	 * @param keys the columns of the database
+	 * @param data structured as an array of an array of values for the keys (eg. [[key_1_value,
+	 * key_2_value,...],...]. Values are json objects.
+	 *
+	 * @see Database
+	 */
 	constructor(name, keys, data) {
-		//Data shold be an array: index -> [value for key1, value for key2...]; values are json objects
 		this.name = name.trim();
 		this.keys = keys;
 		this.data = data;
@@ -20,15 +46,20 @@ class Database {
 		this.indexing(); //this.index should be: index = [(key1) {value : index into data, ...}, (key2)...];
 	}
 
+	/**
+	 * This function sets the this.data_modified boolean to true and queues a write operation. This function is used
+	 * to ensure the data will be written as soon as possible without blocking regular execution.
+	 */
 	setModAndSave() {
 		this.data_modified = true;
 		this.write_data();
 	}
 
 	/**
-		throws:
-			Nothing.
-	**/
+	 * This function indexes the this.data array to have the structure mentioned in the class description.
+	 *
+	 * @see Database
+	 */
 	indexing() {
 		log.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
@@ -47,11 +78,12 @@ class Database {
 	}
 
 	/**
-		usage: val_t(1, 'number', 'hello, world!', 'string') -> returns true;
-				val_t(val1, val1_requested_type, ...);
-		throws:
-			Type-error, if one of the types of the arguments match doesn't match the requested type
-	**/
+	 * Validates the types of the arguments array. Every two arguments are compared to each other.
+	 *
+	 * @param args pairs of the following structure val_t(actual_value, js_type,...);
+	 *
+	 * @throws errors.js#Type if one of the type pairs fails the check.
+	*/
 	val_t(...args) {
 		for (let i = 0; i < args.length - 2; i += 2) {
 			if (typeof args[i] != args[i + 1]) {
@@ -60,6 +92,13 @@ class Database {
 		}
 	}
 
+	/**
+	 * Compares the given keys with the this.keys array and throws errors, when they aren't equal.
+	 *
+	 * @param param_keys the key-array to compare with.
+	 *
+	 * @throws errors.js#InvalidData when the arrays don't have equal content.
+	 */
 	validate_keys(param_keys) {
 		if (param_keys.length != this.keys.length) throw new err.InvalidData();
 		for (let i = 0; i < this.keys.length; i++) {
@@ -67,6 +106,15 @@ class Database {
 		}
 	}
 
+	/**
+	 * Validates one row of the data-array.
+	 * - Length of array must be equal to number of keys.
+	 * - Each element of the array must be a json-object.
+	 *
+	 * @param data one database entry
+	 *
+	 * @throws errors.js#InvalidData, when the check failed
+	 */
 	validate(data) {
 		let data_valid = true;
 		this.val_t(data, "object");
@@ -85,8 +133,12 @@ class Database {
 	}
 
 	/**
-		returns the index of the key in the keys array
-	**/
+	 * @param keyname the key as a string
+	 *
+	 * @returns {number} the index of the key in the this.keys array
+	 *
+	 * @throws errors.js#Find, when the key isn't in keys array of the database.
+	 */
 	key_i(keyname) {
 		let i = this.keys.indexOf(keyname);
 		if (i == -1) throw new err.Find("key", "keys of the database");
@@ -94,12 +146,22 @@ class Database {
 	}
 
 	/**
-		executes the lambda with each row as a parameter
-	**/
+	 * An async foreach loop. The lambda gets awaited in each loop.
+	 *
+	 * @param lambda the function to execute with each row of the database
+	 *
+	 * @returns {Promise<void>} nothing.
+	 */
 	async for_each(lambda) {
 		for (let d of this.data) await lambda(d);
 	}
 
+	/**
+	 * Adds a row to the database.
+	 *
+	 * @param data_new the new data row
+	 * @returns {number} the new index of the data.
+	 */
 	add_row(data_new) {
 		this.validate(data_new);
 		let new_index = this.data.length;
