@@ -14,9 +14,7 @@ async function setupCollector(data) {
 		emoji_map = data[1],
 		required_roles = data[2],
 		required_type = data[3],
-		new_msg_id = data[4],
-		guild_id = data[5],
-		channel_id = data[6];
+		new_msg_id = data[4];
 	if (orig_msgID in collectors) return; //no doublicates allowed. //TODO: decide if it should throw an error.
 	collectors[orig_msgID] = async (type, guild, user_id, emoji, message_id) => {
 		try {
@@ -106,12 +104,11 @@ async function onRaw(raw) {
 
 		let user_id = raw.d.user_id,
 			message_id = raw.d.message_id,
-			channel_id = raw.d.channel_id,
 			guild_id = raw.d.guild_id,
 			emoji = raw.d.emoji;
 		let guild = bot["client"].guilds.cache.get(guild_id);
 
-		for (orig_msgID in collectors) {
+		for (let orig_msgID in collectors) {
 			await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
 		}
 	} catch (error) {
@@ -145,7 +142,11 @@ async function onMessage(message) {
 					message.channel
 				);
 				return;
-			} catch (error) {}
+				//TODO solve this line
+				// eslint-disable-next-line no-empty
+			} catch (error) {
+
+			}
 
 			let msg;
 			try {
@@ -235,7 +236,7 @@ async function onMessage(message) {
 				}
 			}
 			let e_r_t = "";
-			for (emoji in emoji_map) {
+			for (let emoji in emoji_map) {
 				e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
 					emoji_map[emoji]
 				)}\n`;
@@ -279,7 +280,7 @@ async function onMessage(message) {
                 "Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n";
 					break;
 				}
-				for (role of required_roles) {
+				for (let role of required_roles) {
 					req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
 				}
 				embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
@@ -288,7 +289,7 @@ async function onMessage(message) {
 			let ret_msg = await message.channel.send(embed);
 
 			/*react to the message with the emoji*/
-			for (emoji in emoji_map) {
+			for (let emoji in emoji_map) {
 				ret_msg.react(emoji);
 			}
 
@@ -341,7 +342,7 @@ async function onMessage(message) {
 					cache: true,
 					force: true,
 				});
-				for (emoji in mapped) {
+				for (let emoji in mapped) {
 					let cached_role = await message.guild.roles.fetch(mapped[emoji]);
 					if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
 						await bot.api.emb(

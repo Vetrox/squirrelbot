@@ -23,7 +23,7 @@ async function fetchInvites() {
 				invites[guild.id] = guildInvites;
 				expected_responses--;
 			},
-			(reason) => {
+			() => {
 				expected_responses--;
 				bot.api.log.logMessage(
 					`Guild: ${guild.id} doesn't provide the required permission to fetch invites.`

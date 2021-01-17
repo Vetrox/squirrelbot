@@ -65,6 +65,8 @@ function getCallerFile() {
 
 			if (currentfile !== callerfile) return path.basename(callerfile);
 		}
+		//TODO solve this line
+		// eslint-disable-next-line no-empty
 	} catch (err) {}
 	return undefined;
 }

@@ -1,7 +1,6 @@
 const fs = require("fs");
 const log = require("./log.js");
 const err = require("./errors.js");
-const util = require("util");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
@@ -32,6 +31,8 @@ class Database {
 	indexing() {
 		log.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
+		//TODO solve this line
+		// eslint-disable-next-line no-unused-vars
 		for (let key of this.keys) {
 			this.index.push({}); //value -> index;
 		}
@@ -71,7 +72,7 @@ class Database {
 		let data_valid = true;
 		this.val_t(data, "object");
 		if (data.length != this.keys.length) data_valid = false;
-		data.forEach((e) => {
+		data.forEach(() => {
 			try {
 				for (let d of data) {
 					JSON.stringify(d);
@@ -202,6 +203,8 @@ class Database {
 				log.logMessage(`The database ${this.name} has been saved!`);
 				try {
 					typeof callback === "function" && callback();
+					//TODO solve this line
+					// eslint-disable-next-line no-empty
 				} catch (error) {}
 			}
 			this.is_saving = false;
@@ -411,7 +414,7 @@ function initialize() {
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
-	for (file of files) {
+	for (let file of files) {
 		possible_databases.push(file);
 	}
 	save_databases_interval();
@@ -422,7 +425,7 @@ waits for them to finish saving
 **/
 async function save_databases_wait() {
 	let n = 0;
-	for (database in databases)
+	for (let database in databases)
 		if (databases[database].data_modified === true) {
 			n++;
 			databases[database].write_data(() => n--);
@@ -437,7 +440,7 @@ async function save_databases_wait() {
 	saves the databases asynchronously, so the execution is not blocked. makes the save_databases_interval function redundant.
 **/
 function save_databases() {
-	for (database in databases)
+	for (let database in databases)
 		if (databases[database].data_modified === true)
 			databases[database].write_data();
 }
@@ -635,7 +638,7 @@ async function help_module(mod_attributes, channel) {
 		for (let par_name in cmd.par_desc_map) {
 			let c = cmd.par_desc_map[par_name];
 			desc +=
-				`\`\`\`diff\n` +
+				"```diff\n" +
 				`${par_name} [${c.type}` +
 				(c.default_construct == true
 					? `; default: ${c.default_args.toString().replace(",", " ")}]\n`
@@ -644,7 +647,7 @@ async function help_module(mod_attributes, channel) {
 				(c.dependent_params.length > 0
 					? `+ hängt von diesen Parametern ab: [${c.dependent_params}]`
 					: "") +
-				`\`\`\``;
+				"```";
 		}
 		embed.addField(`cmd: ${cmd.name}`, desc, false);
 	}
@@ -689,7 +692,7 @@ function embl(title, description, channel, logging_channel = undefined) {
 
 function channel_check(channel, req_list) {
 	if (!channel) throw new err.BotError("Channel war nicht definiert.");
-	for (req of req_list) {
+	for (let req of req_list) {
 		if (["dm", "text", "voice", "category", "news", "store"].indexOf(req) == -1)
 			throw new err.BotError(`Der gesuchte Channel-Typ ${req} ist invalide.`);
 		if (channel.type == req) return true;
@@ -726,11 +729,11 @@ function config_saveall(mod_attributes, guild_ID, config) {
 	if (!config) {
 		config = mod_attributes.default_config;
 	} else {
-		for (key in config) {
+		for (let key in config) {
 			if (!(key in mod_attributes.default_config))
 				throw new err.BotError("Falscher key.");
 		}
-		for (key in mod_attributes.default_config) {
+		for (let key in mod_attributes.default_config) {
 			if (!(key in config)) config[key] = mod_attributes.default_config[key];
 		}
 	}
@@ -745,7 +748,6 @@ function config_saveall(mod_attributes, guild_ID, config) {
 }
 
 function config_update(mod_attributes, guild_ID, key, value) {
-	const dbs = mod_attributes.modulename + "_config";
 	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	config[key] = value;
@@ -760,6 +762,8 @@ function config_load(mod_attributes, guild_ID) {
 		let i = lookup_key_value(dbs, "guild", guild_ID);
 		if (i.length > 1) throw new err.BotError("Zu viele Einträge.");
 		config = lookup_index(dbs, i[0], "key_value");
+		//TODO solve this line
+		// eslint-disable-next-line no-empty
 	} catch (e) {}
 	return config;
 }
@@ -773,7 +777,7 @@ function config_get(mod_attributes, guild_ID, key) {
 function config_toStr(mod_attributes, guild_ID) {
 	let config = config_load(mod_attributes, guild_ID);
 	let out = "";
-	for (cfg_key in config) {
+	for (let cfg_key in config) {
 		out += `${cfg_key} = ${JSON.stringify(config[cfg_key])}\n`;
 	}
 	return out.trim();
