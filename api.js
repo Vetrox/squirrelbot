@@ -380,6 +380,19 @@ class Parameter {
 	}
 }
 
+/**
+ * A Command object is used to handle user inputs and convert them to a parameter list for later use.
+ * A Command stores crucial information about:
+ * - it's name: The ONE AND ONLY alias for the command.
+ * - it's description: A short description to be shown to the user.
+ * - it's parameters: A list of Parameter objects which can be used in the context.
+ * - it's examples: Examples to be shown to the user.
+ *
+ *
+ * @see Parameter
+ *
+ * @author Felix Ludwig
+ */
 class Command {
 	constructor(
 		name,
