@@ -157,9 +157,10 @@ class Database {
 	}
 
 	/**
-	 * Adds a row to the database.
+	 * Adds a row to the database and updates the index and auto-saves the changes.
 	 *
 	 * @param data_new the new data row
+	 *
 	 * @returns {number} the new index of the data.
 	 */
 	add_row(data_new) {
@@ -177,9 +178,12 @@ class Database {
 	}
 
 	/**
-		throws:
-			Range error
-	**/
+	 * Deletes a row in the database and updates the index and auto-saves the changes.
+	 *
+	 * @param data_index the index pointing at the row to be deleted.
+	 *
+	 * @throws errors.js#Range, when the index isn't in the database.
+	 */
 	del_row(data_index) {
 		this.val_t(data_index, "number");
 		if (data_index < 0 || data_index >= this.data.length)
@@ -189,12 +193,17 @@ class Database {
 		this.setModAndSave();
 	}
 
+
 	/**
-		throws:
-			- Find-error, if the key isn't in the keys array
-			- Find-error, if the value isn't in the index of the key
-	
-	**/
+	 * Returns a list of indices in which the value for the key is satisfied.
+	 *
+	 * @param which_key the key to look for
+	 * @param value the value under the key
+	 *
+	 * @returns {*} the object specified by the key and value
+	 *
+	 * @throws errors.js#Find, if the key isn't in the keys array or the value isn't in the index of the key
+	 */
 	lookup_key_value(which_key, value) {
 		//returns a list of indices in which the value for the key is satisfied.
 		let i = this.key_i(which_key);
@@ -210,6 +219,18 @@ class Database {
 			- Range-error, when the index istn't in the required range.
 			- Find-error, when the key is not in the database.
 	**/
+	/**
+	 * Lookup a value at a row of the database.
+	 *
+	 * @param index the row index
+	 * @param key describing where to look inside the row
+	 *
+	 * @returns {*} the value at specified database[row][key]
+	 *
+	 * @throws errors.js#Type, if the index isn't a number or the key isn't a string.
+	 * errors.js#Range, if the index isn't in the required range.
+	 * errors.js#Find, if the key isn't in the database.
+	 */
 	lookup_index(index, key) {
 		this.val_t(index, "number", key, "string");
 		if (index < 0 || index >= this.data.length) throw new err.Range("index");
@@ -217,6 +238,15 @@ class Database {
 		return this.data[index][i];
 	}
 
+	/**
+	 * Updates the value at the specified location.
+	 *
+	 * @param data_index the row number
+	 * @param key the key
+	 * @param new_value the new value to be stored
+	 *
+	 * @throws errors.js#Range, if the index isn't in the required range.
+	 */
 	change_data(data_index, key, new_value) {
 		this.val_t(data_index, "number", key, "string", new_value, "string");
 		if (data_index < 0 || data_index >= this.data.length)
@@ -240,6 +270,13 @@ class Database {
 	Writes the data on disk (async)
 	(optional callback)
 **/
+	/**
+	 * Writes the data asynchronously on disc.
+	 *
+	 * @param callback the callback function, when successfully saved.
+	 *
+	 * @returns {Promise<void>} nothing.
+	 */
 	async write_data(callback) {
 		log.logMessage("Starting saving of database " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
@@ -275,6 +312,14 @@ class Database {
 		});
 	}
 
+	/**
+	 * Checks, if the data are equal.
+	 *
+	 * @param data1 the first data
+	 * @param data2 the second data
+	 * @returns {boolean} true, if they are fully equal (but not the same)
+	 * otherwise false
+	 */
 	isEqual(data1, data2) {
 		if (!data1 || !data2 || data1.length != data2.length) return false;
 		for (let i = 0; i < data1.length; i++) {
