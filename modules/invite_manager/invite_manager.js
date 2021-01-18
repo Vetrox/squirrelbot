@@ -106,7 +106,7 @@ function onGuildMemberAdd(member) {
 		},
 		(reason) => {
 			bot.api.log.logMessage(
-				`Guild: ${member.guild.id} doesn't provide the required permission to fetch invites.`
+				`Guild: ${member.guild.id} doesn't provide the required permission to fetch invites..\n ${reason}`
 			);
 		});
 	} catch (error) {
