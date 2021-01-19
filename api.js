@@ -394,6 +394,20 @@ class Parameter {
  * @author Felix Ludwig
  */
 class Command {
+
+	/**
+	 * The Constructor initializes the following:
+	 * - name, description, and examples.
+	 * - par_desc_map: A map that maps the parameter name (starting with -) to the parameter object. It also checks
+	 * for invalid data (eg. type not optional nor required, dependent parameter name is not in the given parameter
+	 * list or the arg_check_lambda is false on the default_args.
+	 *
+	 * @param name the name of the command
+	 * @param description a short description to be shown to the user
+	 * @param parameter_list an array of parameter objects
+	 * @param examples a list of examples in the following form `${bot.api.prefix} ${attributes.modulename}
+	 * <command_name> -param_1 arg_p1_1 ...`
+	 */
 	constructor(
 		name,
 		description,
@@ -423,7 +437,13 @@ class Command {
 		}
 	}
 
-	/* check dependencies for each param */
+	/**
+	 * Checks the dependencies of each Parameter and completes the given dictionary with the newly (default) generated
+	 * parameters, if possible, otherwise throws ParameterDependency error.
+	 *
+	 * @param params {map} key = Parameter name, value = Parameter Object
+	 * @returns {map} modified map
+	 */
 	checkParams(params) {
 		let changed_params = true;
 		while (changed_params == true) {
@@ -464,25 +484,20 @@ class Command {
 	}
 
 	/**
-		Checks the given parameter/arguments for matching with this command. Checking for modulename and prefix should happen before!!!
-		This gets executed at first.
-		Also autocompletes commands.
-
-		returns 'params', if input passed the test; false, if input is wrong!
-
-		throws:
-			- Find-error, if a parameter is given (starting with a minus),
-				but it's not inside the command parameter list.
-			- ParameterArguments-error, 
-				if the user has given the wrong amount of arguments to the parameter. And it couldn't be default constructed
-				This is determined by the arg_check_lambda
-			- ParameterDependency-error,
-				if the user didn't set a dependent parameter, which isn't default-initialized.
-			- ParameterRequired-error,
-				if the user didn't set a required parameter for the command.
-	**/
+	 * Checks the given parameter and their arguments for matching with this command. Checking for module name and
+	 * prefix does not happen here.
+	 *
+	 * @params arguments starting at the command name and ending with the last string of user input. All should be
+	 * split by spaces before.
+	 *
+	 * @returns {map|boolean} false, if the first argument is not the command name, otherwise a map of parameters with
+	 * their arguments.
+	 *
+	 * @throws errors.js#Find, if a parameter is given but not found inside the command parameter list.
+	 * errors.js#ParameterRequired, if the user didn't set a required parameter for the command.
+	 */
 	check() {
-		if (arguments[0] != this.name) return false;
+		if (arguments[0] != this.name) return false; //TODO: replace with an error
 		let params = {};
 		let cache_param;
 		let cache_args = [];
