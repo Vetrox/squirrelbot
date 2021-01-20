@@ -1,6 +1,6 @@
 const {attributes}  = require("./attributes.js");
 const {databases} = require("./database.js");
-const LOGGER = require("/log.js");
+const LOGGER = bot.api.log;
 
 function initialize() {
 	for (const dbs of databases)
@@ -78,25 +78,25 @@ async function delete_unused_categories_interval() {
 						);
 						const deleted = await deleteArea_1(guild, owner_id);
 						LOGGER.logMessage(
-							`Deleted ${deleted} channels from the owner ${owner_id}.`
+							`${deleted} Channels von ${owner_id} gelöscht`
 						);
 					} catch (error) {
 						LOGGER.logMessage(
-							"An error occured during deleting an inactive channel: "
+							"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 						);
 						LOGGER.logMessage(error);
 					}
 				});
 			} catch (error) {
 				LOGGER.logMessage(
-					"An error occured during deleting inactive channels: "
+					"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 				);
 				LOGGER.logMessage(error);
 			}
 		});
 	} catch (error) {
 		LOGGER.logMessage(
-			"An error occured during deleting inactive channels: "
+			"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 		);
 		LOGGER.logMessage(error);
 	}
@@ -538,7 +538,7 @@ async function deleteArea_1(guild, ownerID) {
 							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
 						).delete();
 					}catch(error) {
-						LOGGER.logMessage(`Konnte die Rolle zum channel ${channel_ID}:${channel.name} nicht löschen.`);
+						LOGGER.logMessage(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
 					}
 				}
 				try{
@@ -659,7 +659,7 @@ async function log_message_in_user_channels(message) {
 		)?.[0];
 		const channel = await message.guild.channels.cache.get(logging_channel_id);
 		if (!channel) {
-			LOGGER.logMessage("DEBUG: logging channel in chmgr was null");
+			LOGGER.logMessage("DEBUG: logging Channel in chmgr ist null");
 			return; // intuition, maybe redundant
 		}
 

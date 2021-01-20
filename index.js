@@ -60,14 +60,14 @@ async function on_ready() {
 			process.exit();
 		}
 	}
-	LOGGER.logMessage("Bot ready!");
+	LOGGER.logMessage("Bot bereit!");
 }
 
 /**
  * Execute the application
  * */
 initialize();
-LOGGER.logMessage("Logging in");
+LOGGER.logMessage("Einloggen");
 client.login(process.env.BOT_TOKEN).catch((error) => {
 	LOGGER.logMessage("Fehler beim Einloggen: " + error);
 });

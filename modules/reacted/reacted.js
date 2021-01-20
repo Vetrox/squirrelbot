@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const {attributes}  = require("./attributes.js");
 const {databases} = require("./database.js");
-const LOGGER = require("/log.js");
+const LOGGER = bot.api.log;
 
 let collectors = {}; //messageID : lambda(args)
 
@@ -85,7 +85,7 @@ async function setupCollector(data) {
 				if (orig_msgID in collectors) {
 					//should never be executed tho
 					delete collectors[orig_msgID];
-					LOGGER.logMessage("This code should be unreachable");
+					LOGGER.logMessage("Dieser Code sollte unerreichbar sein?!?!");
 					return false;
 				}
 			} else {
@@ -253,7 +253,7 @@ async function onMessage(message) {
 				.addField("Emoji 🡒 Rolle", e_r_t.trim())
 				.setTimestamp()
 				.setFooter(
-					`Original MessageID: ${messageID}`,
+					`Originale MessageID: ${messageID}`,
 					bot["client"].user.displayAvatarURL({ size: 32 })
 				);
 			if (required_roles.length > 0) {

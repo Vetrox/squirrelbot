@@ -29,7 +29,7 @@ class Database {
 			Nothing.
 	**/
 	indexing() {
-		LOGGER.logMessage(`Indexing database ${this.name}`);
+		LOGGER.logMessage(`Indexing Datenbank ${this.name}`);
 		this.index = [];
 		//TODO solve this line
 		// eslint-disable-next-line no-unused-vars
@@ -180,7 +180,7 @@ class Database {
 	(optional callback)
 **/
 	async write_data(callback) {
-		LOGGER.logMessage("Starting saving of database " + this.name);
+		LOGGER.logMessage("Starte Speichern der Datenbank " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
@@ -200,7 +200,7 @@ class Database {
 				LOGGER.logMessage(err);
 				LOGGER.logMessage(err.stack);
 			} else {
-				LOGGER.logMessage(`The database ${this.name} has been saved!`);
+				LOGGER.logMessage(`Die Datenbank ${this.name} wurde gespeichert!`);
 				try {
 					typeof callback === "function" && callback();
 					//TODO solve this line
@@ -345,7 +345,7 @@ class Command {
 			if (arg.startsWith("-") && !(arg in this.par_desc_map)) {
 				throw new err.Find(
 					arg,
-					`command parameter list for command ${this.name}`
+					`Befehlsparameterliste für Befehl ${this.name}`
 				);
 			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
 				/* check the cache_args vor validity using the lambda (length) */
@@ -384,7 +384,7 @@ class Command {
 
 async function shutdown() {
 	if (!bot.running || bot.running == false) return;
-	LOGGER.logMessage("Preparing shutdown.");
+	LOGGER.logMessage("Shutdown vorbereiten.");
 	await save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
@@ -410,7 +410,7 @@ let possible_databases = [];
 function initialize() {
 	hookexit();
 	if (!fs.existsSync("./data")) {
-		LOGGER.logMessage("Creating database folder...");
+		LOGGER.logMessage("Erstelle Datenbank-Ordner...");
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
@@ -433,7 +433,7 @@ async function save_databases_wait() {
 	while (n > 0) {
 		await wait(100);
 	}
-	LOGGER.logMessage("Saved all Databases controlled.");
+	LOGGER.logMessage("Speichere alle Datenbanken.");
 }
 
 /**
@@ -468,7 +468,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			LOGGER.logMessage("CRITICAL DATABASE ERROR!!! " + database);
+			LOGGER.logMessage("KRITISCHER DATENBANK ERROR!!! " + database);
 			process.exit();
 		}
 	}
@@ -531,7 +531,7 @@ function load_database(database) {
 	row4 (key1) = value2_for_key1;
 	...
 	*/
-	LOGGER.logMessage(`Loading database ${database}`);
+	LOGGER.logMessage(`Lade Datenbank ${database}`);
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
