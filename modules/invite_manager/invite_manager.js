@@ -1,5 +1,5 @@
 const { attributes }  = require("./attributes.js");
-const log = require("../../log.js");
+const LOGGER = require("/log.js");
 
 
 async function initialize() {
@@ -10,12 +10,12 @@ let invites = {};
 let expected_responses = 0;
 async function fetchInvites() {
 	if (bot.client.guilds.cache.keyArray().length == 0) {
-		bot.api.log.logMessage(
+		LOGGER.logMessage(
 			"Maybe this isn't that bad, but there aren't any guilds in the cache"
 		);
 		return;
 	}
-	bot.api.log.logMessage("Fetching invites...");
+	LOGGER.logMessage("Fetching invites...");
 	bot.client.guilds.cache.each((guild) => {
 		expected_responses++;
 		guild.fetchInvites().then(
@@ -25,14 +25,14 @@ async function fetchInvites() {
 			},
 			() => {
 				expected_responses--;
-				bot.api.log.logMessage(
+				LOGGER.logMessage(
 					`Guild: ${guild.id} doesn't provide the required permission to fetch invites.`
 				);
 			}
 		);
 	});
 	while (isReady() == false) await bot.api.wait(10);
-	bot.api.log.logMessage("Finished.");
+	LOGGER.logMessage("Finished.");
 }
 
 function isReady() {
@@ -81,12 +81,12 @@ function onGuildMemberAdd(member) {
 				if (!invite) {
 					return;
 				}
-				log.logMessage(
+				LOGGER.logMessage(
 					`${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
 				);
 				let cfg = bot.api.config_load(attributes, member.guild.id).map;
 				if (!(invite.code in cfg)) {
-					console.log("no matching invite code");
+					LOGGER.logMessage("no matching invite code");
 					return;
 				}
 				let role_name = cfg[invite.code];
@@ -96,24 +96,24 @@ function onGuildMemberAdd(member) {
 						role.name.toLowerCase() == "@" + role_name.toLowerCase()
 				).id;
 				member.roles.add(role_id);
-				log.logMessage(
+				LOGGER.logMessage(
 					`Gave the user ${member.user.tag} the role ${role_name}.`
 				);
 			} catch (error) {
-				log.logMessage(error);
-				log.logMessage(error.stack);
+				LOGGER.logMessage(error);
+				LOGGER.logMessage(error.stack);
 			}
 		},
 		(reason) => {
-			bot.api.log.logMessage(
+			LOGGER.logMessage(
 				`Guild: ${member.guild.id} doesn't provide the required permission to fetch invites..\n ${reason}`
 			);
 		});
 	} catch (error) {
-		bot.api.log.logMessage(
+		LOGGER.logMessage(
 			"An error occured at invite_manager onGuildMemberAdd."
 		);
-		bot.api.log.logMessage(error);
+		LOGGER.logMessage(error);
 	}
 }
 module.exports = {

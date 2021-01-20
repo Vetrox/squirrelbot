@@ -2,7 +2,7 @@
 
 const Discord = require("discord.js");
 const fs = require("fs");
-const log = require("./log.js");
+const LOGGER = require("./log.js");
 const api = require("./api.js");
 const errors = require("./errors.js");
 require("dotenv").config();
@@ -34,7 +34,7 @@ function readModulesFromSource() {
  * Initialize the application
  * */
 function initialize() {
-	log.logMessage("Initializing the bot...");
+	LOGGER.logMessage("Initialisere ...");
 	bot.api = api;
 	bot.err = errors;
 	bot.api.initialize();
@@ -48,26 +48,26 @@ function initialize() {
  * Start the application
  * */
 async function on_ready() {
-	log.logMessage("Discordjs ready!");
+	LOGGER.logMessage("Discordjs ready!");
 	for (const mod of bot["modules"]) {
 		try {
 			await mod.initialize();
 		} catch (error) {
-			log.logMessage(
-				`Error while initializing module ${mod.attributes.modulename}\n${error}`
+			LOGGER.logMessage(
+				`Error beim Initialiseren Module: ${mod.attributes.modulename}\n${error}`
 			);
-			log.logMessage(error.stack);
+			LOGGER.logMessage(error.stack);
 			process.exit();
 		}
 	}
-	log.logMessage("Bot ready!");
+	LOGGER.logMessage("Bot ready!");
 }
 
 /**
  * Execute the application
  * */
 initialize();
-log.logMessage("Logging in");
+LOGGER.logMessage("Logging in");
 client.login(process.env.BOT_TOKEN).catch((error) => {
-	log.logMessage("Error while login: " + error);
+	LOGGER.logMessage("Fehler beim Einloggen: " + error);
 });

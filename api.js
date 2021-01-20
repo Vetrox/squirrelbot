@@ -1,5 +1,5 @@
 const fs = require("fs");
-const log = require("./log.js");
+const LOGGER = require("./log.js");
 const err = require("./errors.js");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
@@ -29,7 +29,7 @@ class Database {
 			Nothing.
 	**/
 	indexing() {
-		log.logMessage(`Indexing database ${this.name}`);
+		LOGGER.logMessage(`Indexing database ${this.name}`);
 		this.index = [];
 		//TODO solve this line
 		// eslint-disable-next-line no-unused-vars
@@ -79,7 +79,7 @@ class Database {
 				}
 			} catch (error) {
 				data_valid = false;
-				log.logMessage(error.message);
+				LOGGER.logMessage(error.message);
 			}
 		});
 		if (!data_valid) throw new err.InvalidData();
@@ -180,7 +180,7 @@ class Database {
 	(optional callback)
 **/
 	async write_data(callback) {
-		log.logMessage("Starting saving of database " + this.name);
+		LOGGER.logMessage("Starting saving of database " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
@@ -197,10 +197,10 @@ class Database {
 
 		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
 			if (err) {
-				log.logMessage(err);
-				log.logMessage(err.stack);
+				LOGGER.logMessage(err);
+				LOGGER.logMessage(err.stack);
 			} else {
-				log.logMessage(`The database ${this.name} has been saved!`);
+				LOGGER.logMessage(`The database ${this.name} has been saved!`);
 				try {
 					typeof callback === "function" && callback();
 					//TODO solve this line
@@ -294,7 +294,7 @@ class Command {
 				}
 				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
-						console.log(
+						LOGGER.logMessage(
 							dep_name +
 								" " +
 								(dep_name in this.par_desc_map) +
@@ -384,11 +384,11 @@ class Command {
 
 async function shutdown() {
 	if (!bot.running || bot.running == false) return;
-	bot.api.log.logMessage("Preparing shutdown.");
+	LOGGER.logMessage("Preparing shutdown.");
 	await save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
-	bot.api.log.logMessage("Bye...");
+	LOGGER.logMessage("Bye...");
 	process.exit();
 }
 
@@ -398,8 +398,8 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		log.logMessage(error);
-		log.logMessage(error.stack);
+		LOGGER.logMessage(error);
+		LOGGER.logMessage(error.stack);
 		shutdown();
 	});
 }
@@ -410,7 +410,7 @@ let possible_databases = [];
 function initialize() {
 	hookexit();
 	if (!fs.existsSync("./data")) {
-		log.logMessage("Creating database folder...");
+		LOGGER.logMessage("Creating database folder...");
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
@@ -433,7 +433,7 @@ async function save_databases_wait() {
 	while (n > 0) {
 		await wait(100);
 	}
-	log.logMessage("Saved all Databases controlled.");
+	LOGGER.logMessage("Saved all Databases controlled.");
 }
 
 /**
@@ -468,7 +468,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			log.logMessage("CRITICAL DATABASE ERROR!!! " + database);
+			LOGGER.logMessage("CRITICAL DATABASE ERROR!!! " + database);
 			process.exit();
 		}
 	}
@@ -531,7 +531,7 @@ function load_database(database) {
 	row4 (key1) = value2_for_key1;
 	...
 	*/
-	log.logMessage(`Loading database ${database}`);
+	LOGGER.logMessage(`Loading database ${database}`);
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
@@ -551,7 +551,7 @@ function create_database(database, keys) {
 	if (database in databases) {
 		throw new err.Dublication(database);
 	} else {
-		log.logMessage("Creating database " + database);
+		LOGGER.logMessage("Creating database " + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].setModAndSave();
@@ -674,7 +674,7 @@ async function emb(title, description, channel) {
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		log.logMessage(`Error: ${error}`);
+		LOGGER.logMessage(`Error: ${error}`);
 	}
 }
 
@@ -711,11 +711,11 @@ function isGT(channel) {
 **/
 async function hErr(e, channel) {
 	try {
-		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
-		log.logMessage(e.stack);
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
+		LOGGER.logMessage(e.stack);
 		await emb("Ein Fehler ist aufgetreten", e, channel);
 	} catch (error) {
-		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
 	}
 }
 
@@ -835,7 +835,7 @@ module.exports = {
 	embl,
 	channel_check,
 	isGT,
-	log,
+	log: LOGGER,
 	wait,
 	hErr,
 	config_load,
