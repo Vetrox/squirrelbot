@@ -20,7 +20,7 @@ function logMessage(message) {
 		fs.appendFileSync("log.txt", m + "\n");
 	} catch (error) {
 		console.log(
-			`Could not log this message ${message ?? "<undefined>"}. Error: ${error}`
+			`Diese Nachricht kann nicht geloggt werden ${message ?? "<undefined>"}. Fehler: ${error}`
 		);
 	}
 }
@@ -43,7 +43,7 @@ function logC(obj) {
 		console.log(util.inspect(obj, false, null, true));
 	} catch (error) {
 		console.log(
-			`Could not log this object ${obj ?? "<undefined>"}. Error: ${error}`
+			`Dieses Objekt kann nicht geloggt werden ${obj ?? "<undefined>"}. Fehler: ${error}`
 		);
 	}
 }

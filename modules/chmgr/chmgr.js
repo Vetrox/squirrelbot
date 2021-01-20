@@ -1,5 +1,6 @@
 const {attributes}  = require("./attributes.js");
 const {databases} = require("./database.js");
+const LOGGER = bot.api.log;
 
 function initialize() {
 	for (const dbs of databases)
@@ -10,10 +11,10 @@ function initialize() {
 
 async function delete_unused_categories_interval() {
 	try {
-		bot.api.log.logMessage("Deleting unused categories...");
+		LOGGER.logMessage("Ungenutzte Kategorien löschen...");
 		bot.client.guilds.cache.each((guild, guild_ID) => {
 			try {
-				bot.api.log.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
+				LOGGER.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
 
 				const inactivity_H = bot.api.config_get(
 					attributes,
@@ -72,32 +73,32 @@ async function delete_unused_categories_interval() {
 					);
 
 					try {
-						bot.api.log.logMessage(
-							`Trying to delete the channel ${channel.name} of guild ${guild.name}:${guild_ID}`
+						LOGGER.logMessage(
+							`Probiere den Channel ${channel.name} von guild ${guild.name}:${guild_ID} zu löschen`
 						);
 						const deleted = await deleteArea_1(guild, owner_id);
-						bot.api.log.logMessage(
-							`Deleted ${deleted} channels from the owner ${owner_id}.`
+						LOGGER.logMessage(
+							`${deleted} Channels von ${owner_id} gelöscht`
 						);
 					} catch (error) {
-						bot.api.log.logMessage(
-							"An error occured during deleting an inactive channel: "
+						LOGGER.logMessage(
+							"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 						);
-						bot.api.log.logMessage(error);
+						LOGGER.logMessage(error);
 					}
 				});
 			} catch (error) {
-				bot.api.log.logMessage(
-					"An error occured during deleting inactive channels: "
+				LOGGER.logMessage(
+					"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 				);
-				bot.api.log.logMessage(error);
+				LOGGER.logMessage(error);
 			}
 		});
 	} catch (error) {
-		bot.api.log.logMessage(
-			"An error occured during deleting inactive channels: "
+		LOGGER.logMessage(
+			"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 		);
-		bot.api.log.logMessage(error);
+		LOGGER.logMessage(error);
 	}
 
 	setTimeout(delete_unused_categories_interval, 5 * 60 * 1000); // every 5 mins
@@ -507,7 +508,7 @@ async function onMessage(message) {
 }
 
 async function deleteArea_1(guild, ownerID) {
-	bot.api.log.logMessage(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
+	LOGGER.logMessage(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
 	const del_channels = [];
 	try{
 		const indices = bot.api.lookup_key_value(
@@ -527,7 +528,7 @@ async function deleteArea_1(guild, ownerID) {
 				const channel = await guild.channels.cache.get(channel_ID);
 				if(!channel || channel.deleted == true) continue;
 				if(channel.deletable == false) {
-					bot.api.log.logMessage(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
+					LOGGER.logMessage(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
 				}
 				const manage_type = bot.api.lookup_index(databases[0].name, index, "manage_type");
 
@@ -537,24 +538,24 @@ async function deleteArea_1(guild, ownerID) {
 							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
 						).delete();
 					}catch(error) {
-						bot.api.log.logMessage(`Konnte die Rolle zum channel ${channel_ID}:${channel.name} nicht löschen.`);
+						LOGGER.logMessage(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
 					}
 				}
 				try{
 					await channel.delete();
 				}catch(error) {
-					bot.api.log.logMessage(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
+					LOGGER.logMessage(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
 				}
 				del_channels.push(channel_ID);
 			}catch (error) {
-				bot.api.log.logMessage(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
-				bot.api.log.logMessage(error);
+				LOGGER.logMessage(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
+				LOGGER.logMessage(error);
 			}
 		}
 
 	}catch (error) {
-		bot.api.log.logMessage(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
-		bot.api.log.logMessage(error);
+		LOGGER.logMessage(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
+		LOGGER.logMessage(error);
 	}
 
 	for(const channel_ID of del_channels) {
@@ -566,11 +567,11 @@ async function deleteArea_1(guild, ownerID) {
 			)[0];
 			bot.api.database_row_delete(databases[0].name, index);
 		}catch(error){
-			bot.api.log.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
-			bot.api.log.logMessage(error);
+			LOGGER.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
+			LOGGER.logMessage(error);
 		}
 	}
-	bot.api.log.logMessage(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
+	LOGGER.logMessage(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
 	return del_channels.length;
 }
 
@@ -627,7 +628,7 @@ async function deleteArea_1(guild, ownerID) {
 // 		} else if (manage_type == "userID") {
 // 			//i think nothing needs to be implemented here
 // 		} else {
-// 			bot.api.log.logMessage(
+// 			log.logMessage(
 // 				"Datenbank fehler.\n Der manage_type war weder role noch userID"
 // 			);
 // 		}
@@ -658,7 +659,7 @@ async function log_message_in_user_channels(message) {
 		)?.[0];
 		const channel = await message.guild.channels.cache.get(logging_channel_id);
 		if (!channel) {
-			console.log("DEBUG: logging channel in chmgr was null");
+			LOGGER.logMessage("DEBUG: logging Channel in chmgr ist null");
 			return; // intuition, maybe redundant
 		}
 
@@ -699,7 +700,7 @@ async function log_message_in_user_channels(message) {
 			// find error. doesn't matter at all
 		}
 	} catch (e) {
-		console.log(e);
+		LOGGER.logMessage(e);
 		//supress any error here!!
 	}
 }
