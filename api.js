@@ -718,10 +718,6 @@ function database_row_add(database, data) {
 }
 
 /**
-	throws
-		Range error
-**/
-/**
  * Deletes an entire row of a database.
  *
  * @param database the name of the database
