@@ -11,10 +11,10 @@ function initialize() {
 
 async function delete_unused_categories_interval() {
 	try {
-		LOGGER.logMessage("Ungenutzte Kategorien löschen...");
+		LOGGER.info("Ungenutzte Kategorien löschen...");
 		bot.client.guilds.cache.each((guild, guild_ID) => {
 			try {
-				LOGGER.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
+				LOGGER.info(`Checking guild ${guild_ID}:${guild.name}`);
 
 				const inactivity_H = bot.api.config_get(
 					attributes,
@@ -73,32 +73,32 @@ async function delete_unused_categories_interval() {
 					);
 
 					try {
-						LOGGER.logMessage(
+						LOGGER.info(
 							`Probiere den Channel ${channel.name} von guild ${guild.name}:${guild_ID} zu löschen`
 						);
 						const deleted = await deleteArea_1(guild, owner_id);
-						LOGGER.logMessage(
+						LOGGER.info(
 							`${deleted} Channels von ${owner_id} gelöscht`
 						);
 					} catch (error) {
-						LOGGER.logMessage(
+						LOGGER.info(
 							"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 						);
-						LOGGER.logMessage(error);
+						LOGGER.info(error);
 					}
 				});
 			} catch (error) {
-				LOGGER.logMessage(
+				LOGGER.info(
 					"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 				);
-				LOGGER.logMessage(error);
+				LOGGER.info(error);
 			}
 		});
 	} catch (error) {
-		LOGGER.logMessage(
+		LOGGER.info(
 			"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 		);
-		LOGGER.logMessage(error);
+		LOGGER.info(error);
 	}
 
 	setTimeout(delete_unused_categories_interval, 5 * 60 * 1000); // every 5 mins
@@ -508,7 +508,7 @@ async function onMessage(message) {
 }
 
 async function deleteArea_1(guild, ownerID) {
-	LOGGER.logMessage(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
+	LOGGER.info(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
 	const del_channels = [];
 	try{
 		const indices = bot.api.lookup_key_value(
@@ -528,7 +528,7 @@ async function deleteArea_1(guild, ownerID) {
 				const channel = await guild.channels.cache.get(channel_ID);
 				if(!channel || channel.deleted == true) continue;
 				if(channel.deletable == false) {
-					LOGGER.logMessage(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
+					LOGGER.info(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
 				}
 				const manage_type = bot.api.lookup_index(databases[0].name, index, "manage_type");
 
@@ -538,24 +538,24 @@ async function deleteArea_1(guild, ownerID) {
 							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
 						).delete();
 					}catch(error) {
-						LOGGER.logMessage(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
+						LOGGER.info(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
 					}
 				}
 				try{
 					await channel.delete();
 				}catch(error) {
-					LOGGER.logMessage(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
+					LOGGER.info(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
 				}
 				del_channels.push(channel_ID);
 			}catch (error) {
-				LOGGER.logMessage(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
-				LOGGER.logMessage(error);
+				LOGGER.info(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
+				LOGGER.info(error);
 			}
 		}
 
 	}catch (error) {
-		LOGGER.logMessage(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
-		LOGGER.logMessage(error);
+		LOGGER.info(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
+		LOGGER.info(error);
 	}
 
 	for(const channel_ID of del_channels) {
@@ -567,11 +567,11 @@ async function deleteArea_1(guild, ownerID) {
 			)[0];
 			bot.api.database_row_delete(databases[0].name, index);
 		}catch(error){
-			LOGGER.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
-			LOGGER.logMessage(error);
+			LOGGER.info(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
+			LOGGER.info(error);
 		}
 	}
-	LOGGER.logMessage(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
+	LOGGER.info(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
 	return del_channels.length;
 }
 
@@ -628,7 +628,7 @@ async function deleteArea_1(guild, ownerID) {
 // 		} else if (manage_type == "userID") {
 // 			//i think nothing needs to be implemented here
 // 		} else {
-// 			log.logMessage(
+// 			log.info(
 // 				"Datenbank fehler.\n Der manage_type war weder role noch userID"
 // 			);
 // 		}
@@ -659,7 +659,7 @@ async function log_message_in_user_channels(message) {
 		)?.[0];
 		const channel = await message.guild.channels.cache.get(logging_channel_id);
 		if (!channel) {
-			LOGGER.logMessage("DEBUG: logging Channel in chmgr ist null");
+			LOGGER.info("DEBUG: logging Channel in chmgr ist null");
 			return; // intuition, maybe redundant
 		}
 
@@ -700,7 +700,7 @@ async function log_message_in_user_channels(message) {
 			// find error. doesn't matter at all
 		}
 	} catch (e) {
-		LOGGER.logMessage(e);
+		LOGGER.info(e);
 		//supress any error here!!
 	}
 }
