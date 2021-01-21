@@ -70,7 +70,7 @@ async function onMessage(message) {
 	}
 }
 
-function onGuildMemberAdd(member) {
+async function onGuildMemberAdd(member) {
 	try {
 		member.guild.fetchInvites().then(async (guildInvites) => {
 			try {
