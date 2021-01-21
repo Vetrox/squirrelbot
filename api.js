@@ -800,9 +800,7 @@ function cache_dbs(database) {
  * @param database the database name
  */
 function load_database(database) {
-	
-  LOGGER.logMessage(`Lade Datenbank ${database}`);
-  
+	LOGGER.logMessage(`Lade Datenbank ${database}`);
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
