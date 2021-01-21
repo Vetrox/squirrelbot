@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 const api = require("./api/api");
-const LOGGER = require("./log.js");
+const LOGGER = require("./log.js")("index");
 const Discord = require("discord.js");
 const fs = require("fs");
-const LOGGER = require("./log.js");
-const api = require("./api.js");
-const errors = require("./errors.js");
+
 require("dotenv").config();
 
 /**

@@ -1,5 +1,5 @@
-const { attributes }  = require("./attributes.js");
-const LOGGER = bot.api.log;
+const { attributes } = require("./attributes.js");
+const LOGGER = require.main.require("./log.js");
 
 
 async function initialize() {
