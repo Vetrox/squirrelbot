@@ -84,7 +84,7 @@ class Database {
 	 *
 	 * @param args pairs of the following structure val_t(actual_value, js_type,...);
 	 *
-	 * @throws errors.js#Type if one of the type pairs fails the check.
+	 * @throws {err.Type} if one of the type pairs fails the check.
 	*/
 	val_t(...args) {
 		for (let i = 0; i < args.length - 2; i += 2) {
@@ -315,6 +315,7 @@ class Database {
 	 *
 	 * @param data1 the first data
 	 * @param data2 the second data
+	 *
 	 * @returns {boolean} true, if they are fully equal (but not the same)
 	 * otherwise false
 	 */
@@ -851,7 +852,7 @@ function create_database(database, keys) {
  * 	   }
  * }
  *
- * @param message {Message} the raw discordjs message from a user. This can be literally
+ * @param message {module:"discord.js".Message} the raw discordjs message from a user. This can be literally
  * anything, but in case the user wants this
  * function to do something the string should start with the bot prefix and so on.
  * @param mod_attributes {{name: string commands : Command[]}} the attributes of a module containing the field
@@ -899,9 +900,14 @@ function parse_message(message, mod_attributes) {
 }
 
 /**
-	help for module and it's commands
-	requires: attributes.modulename, attributes.description, attributes.commands
-**/
+ * Creates an embed containing all useful information about a module.
+ *
+ * @param mod_attributes {{modulename: string, description : string, commands: Command[]}}
+ * @param channel {module:"discord.js".TextChannel} the channel to post the embed in
+ * @returns {Promise<void>} nothing.
+ *
+ * @throws may throw an error, depending on discord permissions
+ */
 async function help_module(mod_attributes, channel) {
 	const embed = new Discord.MessageEmbed()
 		.setColor("#ffaaff")
@@ -940,6 +946,13 @@ async function help_module(mod_attributes, channel) {
 	await channel.send(embed);
 }
 
+/**
+ * Creates an embed with title and description.
+ *
+ * @param title
+ * @param description
+ * @returns {module:"discord.js".MessageEmbed} the embed.
+ */
 function create_embed(title, description) {
 	return new Discord.MessageEmbed()
 		.setColor("#ff9900")
@@ -953,8 +966,15 @@ function create_embed(title, description) {
 }
 
 /**
-	shortcut for creating discordjs embeds
-**/
+ * Shortcut for creating discord.js embeds in a specific channel. This checks for the channel to exist and catches
+ * any errors.
+ *
+ * @param title {string}
+ * @param description {string}
+ * @param channel {module:"discord.js".TextChannel} the channel to send the message in.
+ *
+ * @returns {Promise<void>} nothing.
+ */
 async function emb(title, description, channel) {
 	if (!channel || channel.deleted == true) return; //maybe log to server log channel
 	try {
@@ -965,8 +985,14 @@ async function emb(title, description, channel) {
 }
 
 /**
-	can be used to create embeds with simulaniously logging it to a logging channel
-**/
+ * Creates embeds and logs them to a specified logging channel.
+ * If logging channel is not defined, it sends the embed but returns without logging.
+ *
+ * @param title {string}
+ * @param description {string}
+ * @param channel {module:"discord.js".TextChannel}
+ * @param logging_channel {module:"discord.js".TextChannel}
+ */
 function embl(title, description, channel, logging_channel = undefined) {
 	// TODO: make async
 	if (!channel || channel.deleted == true) return; //maybe log to server log channel
@@ -976,6 +1002,22 @@ function embl(title, description, channel, logging_channel = undefined) {
 	logging_channel.send(embed);
 }
 
+/**
+ * Checks a channel for matching one of the given types.
+ * Valid channel types are:
+ *
+ * "dm", "text", "voice", "category", "news", "store"
+ *
+ *
+ * @param channel {module:"discord.js".Channel}
+ * @param req_list {string[]} an array of types to be checked against
+ *
+ * @returns {boolean} true, if the channel matches one or more types given by req_list
+ * otherwise false.
+ *
+ * @throws {errors.js.BotError}, if the channel was undefined or one value in the req_list is not a valid
+ * channel type.
+ */
 function channel_check(channel, req_list) {
 	if (!channel) throw new err.BotError("Channel war nicht definiert.");
 	for (req of req_list) {
@@ -986,15 +1028,25 @@ function channel_check(channel, req_list) {
 	return false;
 }
 
-/** 
-	is Guild-Text Channel
-**/
+/**
+ * Checks, if the channel is either a category or a text channel.
+ *
+ * @param channel {module:"discord.js".Channel}
+ *
+ * @returns {boolean} true, if it matches the requirement.
+ */
 function isGT(channel) {
 	return channel_check(channel, ["text", "category"]);
 }
+
 /**
-	handle error
-**/
+ * Handles an occurring error by logging it into the channel and logs.
+ *
+ * @param e {Error}
+ * @param channel {module:"discord.js".TextChannel}
+ *
+ * @returns {Promise<void>} nothing
+ */
 async function hErr(e, channel) {
 	try {
 		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
@@ -1005,12 +1057,16 @@ async function hErr(e, channel) {
 	}
 }
 
-/** CONFIG **/
+
 /**
-	a config is a dictionary with key and value pairs
-	throws:
-		Doublication if the key ends up more than one time in the database.
-**/
+ * Saves a config to the matching database. eg <modulename>_config
+ *
+ * @param mod_attributes {{default_config: {}, modulename: string}}
+ * @param guild_ID {string}
+ * @param config {{}}
+ *
+ * @throws {errors.js.BotError}, when a key in the provided config object is not in the default config
+ */
 function config_saveall(mod_attributes, guild_ID, config) {
 	if (!config) {
 		config = mod_attributes.default_config;
@@ -1033,6 +1089,14 @@ function config_saveall(mod_attributes, guild_ID, config) {
 	}
 }
 
+/**
+ * Updates the config and saves it.
+ *
+ * @param mod_attributes {{default_config: {}, modulename: string}}
+ * @param guild_ID {string}
+ * @param key {string}
+ * @param value {*}
+ */
 function config_update(mod_attributes, guild_ID, key, value) {
 	const dbs = mod_attributes.modulename + "_config";
 	let config = config_load(mod_attributes, guild_ID);
@@ -1041,6 +1105,14 @@ function config_update(mod_attributes, guild_ID, key, value) {
 	config_saveall(mod_attributes, guild_ID, config);
 }
 
+/**
+ * Loads a config and returns the config map.
+ *
+ * @param mod_attributes {{default_config: {}, modulename: string}}
+ * @param guild_ID {string}
+ *
+ * @returns {{}}
+ */
 function config_load(mod_attributes, guild_ID) {
 	const dbs = mod_attributes.modulename + "_config";
 	let config = mod_attributes.default_config;
@@ -1053,6 +1125,17 @@ function config_load(mod_attributes, guild_ID) {
 	return config;
 }
 
+/**
+ * Gets a config key.
+ *
+ * @param mod_attributes  {{default_config: {}, modulename: string}}
+ * @param guild_ID {string}
+ * @param key {string}
+ *
+ * @returns {*} the matching json object.
+ *
+ * @throws {errors.js.BotError}, if the key was not in the config
+ */
 function config_get(mod_attributes, guild_ID, key) {
 	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
@@ -1071,10 +1154,32 @@ function config_toStr(mod_attributes, guild_ID) {
 	throws:
 		Bot-Error, if the user isn't an admin
 **/
+/**
+ * Checks, if the user has the admin permission and throws an error.
+ *
+ * @param user_ID {string}
+ * @param guild {module:"discord.js".Guild}
+ * @returns {Promise<void>} nothing.
+ *
+ * @throws {err.BotError}, if the user doesn't have the required permission. The error message can be displayed to
+ * the user.
+ */
 async function is_admin(user_ID, guild) {
 	await has_permission(user_ID, guild, "ADMINISTRATOR");
 }
 
+/**
+ * Checks, if the user has a specific permission.
+ *
+ * @param user_ID {string}
+ * @param guild {module:"discord.js".Guild}
+ * @param perm_name {typeof module:"discord.js".PermissionString}
+ *
+ * @returns {Promise<void>} nothing.
+ *
+ * @throws {err.BotError}, if the user doesn't have the required permission. The error message can be displayed to
+ * the user.
+ */
 async function has_permission(user_ID, guild, perm_name) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
@@ -1088,6 +1193,13 @@ async function has_permission(user_ID, guild, perm_name) {
 		);
 }
 
+/**
+ * Gets the nickname/display-name of a person.
+ *
+ * @param user_ID {string}
+ * @param guild {module:"discord.js".Guild}
+ * @returns {Promise<string>}
+ */
 async function get_nickname(user_ID, guild) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
