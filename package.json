@@ -28,7 +28,10 @@
     "util": "^0.12.3"
   },
   "devDependencies": {
+    "app-root-path": "^3.0.0",
     "eslint": "^7.17.0",
-    "prettier": "2.1.2"
+    "prettier": "2.1.2",
+    "winston": "^3.3.3",
+    "winston-daily-rotate-file": "^4.5.0"
   }
 }

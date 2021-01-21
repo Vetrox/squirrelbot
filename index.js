@@ -2,7 +2,7 @@
 
 const Discord = require("discord.js");
 const fs = require("fs");
-const LOGGER = require("./log.js");
+const LOGGER = require("./log.js")("index");
 const api = require("./api.js");
 const errors = require("./errors.js");
 require("dotenv").config();
@@ -34,7 +34,7 @@ function readModulesFromSource() {
  * Initialize the application
  * */
 function initialize() {
-	LOGGER.logMessage("Initialisere ...");
+	LOGGER.info("Initialisere ...");
 	bot.api = api;
 	bot.err = errors;
 	bot.api.initialize();
@@ -48,26 +48,26 @@ function initialize() {
  * Start the application
  * */
 async function on_ready() {
-	LOGGER.logMessage("Discordjs ready!");
+	LOGGER.info("Discordjs ready!");
 	for (const mod of bot["modules"]) {
 		try {
 			await mod.initialize();
 		} catch (error) {
-			LOGGER.logMessage(
+			LOGGER.info(
 				`Error beim Initialiseren Module: ${mod.attributes.modulename}\n${error}`
 			);
-			LOGGER.logMessage(error.stack);
+			LOGGER.info(error.stack);
 			process.exit();
 		}
 	}
-	LOGGER.logMessage("Bot bereit!");
+	LOGGER.info("Bot bereit!");
 }
 
 /**
  * Execute the application
  * */
 initialize();
-LOGGER.logMessage("Einloggen");
+LOGGER.info("Einloggen");
 client.login(process.env.BOT_TOKEN).catch((error) => {
-	LOGGER.logMessage("Fehler beim Einloggen: " + error);
+	LOGGER.info("Fehler beim Einloggen: " + error);
 });

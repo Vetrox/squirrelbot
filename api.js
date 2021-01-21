@@ -1,5 +1,5 @@
 const fs = require("fs");
-const LOGGER = require("./log.js");
+const LOGGER = require("./log.js")("api");
 const err = require("./errors.js");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
@@ -29,7 +29,7 @@ class Database {
 			Nothing.
 	**/
 	indexing() {
-		LOGGER.logMessage(`Indexing Datenbank ${this.name}`);
+		LOGGER.info(`Indexing Datenbank ${this.name}`);
 		this.index = [];
 		//TODO solve this line
 		// eslint-disable-next-line no-unused-vars
@@ -79,7 +79,7 @@ class Database {
 				}
 			} catch (error) {
 				data_valid = false;
-				LOGGER.logMessage(error.message);
+				LOGGER.info(error.message);
 			}
 		});
 		if (!data_valid) throw new err.InvalidData();
@@ -180,7 +180,7 @@ class Database {
 	(optional callback)
 **/
 	async write_data(callback) {
-		LOGGER.logMessage("Starte Speichern der Datenbank " + this.name);
+		LOGGER.info("Starte Speichern der Datenbank " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
@@ -197,10 +197,10 @@ class Database {
 
 		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
 			if (err) {
-				LOGGER.logMessage(err);
-				LOGGER.logMessage(err.stack);
+				LOGGER.info(err);
+				LOGGER.info(err.stack);
 			} else {
-				LOGGER.logMessage(`Die Datenbank ${this.name} wurde gespeichert!`);
+				LOGGER.info(`Die Datenbank ${this.name} wurde gespeichert!`);
 				try {
 					typeof callback === "function" && callback();
 					//TODO solve this line
@@ -294,7 +294,7 @@ class Command {
 				}
 				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
-						LOGGER.logMessage(
+						LOGGER.info(
 							dep_name +
 								" " +
 								(dep_name in this.par_desc_map) +
@@ -384,11 +384,11 @@ class Command {
 
 async function shutdown() {
 	if (!bot.running || bot.running == false) return;
-	LOGGER.logMessage("Shutdown vorbereiten.");
+	LOGGER.info("Shutdown vorbereiten.");
 	await save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
-	LOGGER.logMessage("Bye...");
+	LOGGER.info("Bye...");
 	process.exit();
 }
 
@@ -398,8 +398,8 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		LOGGER.logMessage(error);
-		LOGGER.logMessage(error.stack);
+		LOGGER.info(error);
+		LOGGER.info(error.stack);
 		shutdown();
 	});
 }
@@ -410,7 +410,7 @@ let possible_databases = [];
 function initialize() {
 	hookexit();
 	if (!fs.existsSync("./data")) {
-		LOGGER.logMessage("Erstelle Datenbank-Ordner...");
+		LOGGER.info("Erstelle Datenbank-Ordner...");
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
@@ -433,7 +433,7 @@ async function save_databases_wait() {
 	while (n > 0) {
 		await wait(100);
 	}
-	LOGGER.logMessage("Speichere alle Datenbanken.");
+	LOGGER.info("Speichere alle Datenbanken.");
 }
 
 /**
@@ -468,7 +468,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			LOGGER.logMessage("KRITISCHER DATENBANK ERROR!!! " + database);
+			LOGGER.info("KRITISCHER DATENBANK ERROR!!! " + database);
 			process.exit();
 		}
 	}
@@ -531,7 +531,7 @@ function load_database(database) {
 	row4 (key1) = value2_for_key1;
 	...
 	*/
-	LOGGER.logMessage(`Lade Datenbank ${database}`);
+	LOGGER.info(`Lade Datenbank ${database}`);
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
@@ -551,7 +551,7 @@ function create_database(database, keys) {
 	if (database in databases) {
 		throw new err.Dublication(database);
 	} else {
-		LOGGER.logMessage("Creating database " + database);
+		LOGGER.info("Creating database " + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].setModAndSave();
@@ -674,7 +674,7 @@ async function emb(title, description, channel) {
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		LOGGER.logMessage(`Error: ${error}`);
+		LOGGER.info(`Error: ${error}`);
 	}
 }
 
@@ -711,11 +711,11 @@ function isGT(channel) {
 **/
 async function hErr(e, channel) {
 	try {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
-		LOGGER.logMessage(e.stack);
+		LOGGER.info(`Ein Fehler ist aufgetreten ${e}`);
+		LOGGER.info(e.stack);
 		await emb("Ein Fehler ist aufgetreten", e, channel);
 	} catch (error) {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.info(`Ein Fehler ist aufgetreten ${error}`);
 	}
 }
 
