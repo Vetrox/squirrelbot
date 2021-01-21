@@ -1,0 +1,9 @@
+.gitignore
+.git-ftp-ignore
+README.md
+documentation.md
+LICENSE
+.github/*
+.eslintrc.js
+.prettierrc.json
+.prettierignore

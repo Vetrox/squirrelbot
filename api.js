@@ -1,7 +1,6 @@
 const fs = require("fs");
-const log = require("./log.js");
+const LOGGER = require("./log.js");
 const err = require("./errors.js");
-const util = require("util");
 const Discord = require("discord.js");
 const { prefix } = require("./config.json");
 
@@ -63,8 +62,10 @@ class Database {
 	 * @see Database
 	 */
 	indexing() {
-		log.logMessage(`Indexing database ${this.name}`);
+		LOGGER.logMessage(`Indexing Datenbank ${this.name}`);
 		this.index = [];
+		//TODO solve this line
+		// eslint-disable-next-line no-unused-vars
 		for (let key of this.keys) {
 			this.index.push({}); //value -> index;
 		}
@@ -121,14 +122,14 @@ class Database {
 		let data_valid = true;
 		this.val_t(data, "object");
 		if (data.length != this.keys.length) data_valid = false;
-		data.forEach((e) => {
+		data.forEach(() => {
 			try {
 				for (let d of data) {
 					JSON.stringify(d);
 				}
 			} catch (error) {
 				data_valid = false;
-				log.logMessage(error.message);
+				LOGGER.logMessage(error.message);
 			}
 		});
 		if (!data_valid) throw new err.InvalidData();
@@ -271,7 +272,7 @@ class Database {
 	 * @returns {Promise<void>} nothing.
 	 */
 	async write_data(callback) {
-		log.logMessage("Starting saving of database " + this.name);
+		LOGGER.logMessage("Starte Speichern der Datenbank " + this.name);
 		while (this.is_saving == true) await wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
@@ -288,12 +289,14 @@ class Database {
 
 		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
 			if (err) {
-				log.logMessage(err);
-				log.logMessage(err.stack);
+				LOGGER.logMessage(err);
+				LOGGER.logMessage(err.stack);
 			} else {
-				log.logMessage(`The database ${this.name} has been saved!`);
+				LOGGER.logMessage(`Die Datenbank ${this.name} wurde gespeichert!`);
 				try {
 					typeof callback === "function" && callback();
+					//TODO solve this line
+					// eslint-disable-next-line no-empty
 				} catch (error) {}
 			}
 			this.is_saving = false;
@@ -457,7 +460,7 @@ class Command {
 				}
 				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
-						console.log(
+						LOGGER.logMessage(
 							dep_name +
 								" " +
 								(dep_name in this.par_desc_map) +
@@ -503,7 +506,7 @@ class Command {
 			if (arg.startsWith("-") && !(arg in this.par_desc_map)) {
 				throw new err.Find(
 					arg,
-					`command parameter list for command ${this.name}`
+					`Befehlsparameterliste für Befehl ${this.name}`
 				);
 			} else if (arg.startsWith("-") && arg in this.par_desc_map) {
 				/* check the cache_args vor validity using the lambda (length) */
@@ -549,11 +552,11 @@ class Command {
  */
 async function shutdown() {
 	if (!bot.running || bot.running == false) return;
-	bot.api.log.logMessage("Preparing shutdown.");
+	LOGGER.logMessage("Shutdown vorbereiten.");
 	await save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
-	bot.api.log.logMessage("Bye...");
+	LOGGER.logMessage("Bye...");
 	process.exit();
 }
 
@@ -566,8 +569,8 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		log.logMessage(error);
-		log.logMessage(error.stack);
+		LOGGER.logMessage(error);
+		LOGGER.logMessage(error.stack);
 		shutdown();
 	});
 }
@@ -597,11 +600,11 @@ let possible_databases = [];
 function initialize() {
 	hookexit();
 	if (!fs.existsSync("./data")) {
-		log.logMessage("Creating database folder...");
+		LOGGER.logMessage("Erstelle Datenbank-Ordner...");
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
-	for (file of files) {
+	for (let file of files) {
 		possible_databases.push(file);
 	}
 	save_databases_interval();
@@ -615,7 +618,7 @@ function initialize() {
  */
 async function save_databases_wait() {
 	let n = 0;
-	for (database in databases)
+	for (let database in databases)
 		if (databases[database].data_modified === true) {
 			n++;
 			databases[database].write_data(() => n--);
@@ -623,7 +626,7 @@ async function save_databases_wait() {
 	while (n > 0) {
 		await wait(100);
 	}
-	log.logMessage("Saved all Databases controlled.");
+	LOGGER.logMessage("Speichere alle Datenbanken.");
 }
 
 /**
@@ -631,7 +634,7 @@ async function save_databases_wait() {
  * redundant.
  */
 function save_databases() {
-	for (database in databases)
+	for (let database in databases)
 		if (databases[database].data_modified === true)
 			databases[database].write_data();
 }
@@ -682,7 +685,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			log.logMessage("CRITICAL DATABASE ERROR!!! " + database);
+			LOGGER.logMessage("KRITISCHER DATENBANK ERROR!!! " + database);
 			process.exit();
 		}
 	}
@@ -797,7 +800,9 @@ function cache_dbs(database) {
  * @param database the database name
  */
 function load_database(database) {
-	log.logMessage(`Loading database ${database}`);
+	
+  LOGGER.logMessage(`Lade Datenbank ${database}`);
+  
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
@@ -823,7 +828,7 @@ function create_database(database, keys) {
 	if (database in databases) {
 		throw new err.Dublication(database);
 	} else {
-		log.logMessage("Creating database " + database);
+		LOGGER.logMessage("Creating database " + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].setModAndSave();
@@ -921,7 +926,7 @@ async function help_module(mod_attributes, channel) {
 		for (let par_name in cmd.par_desc_map) {
 			let c = cmd.par_desc_map[par_name];
 			desc +=
-				`\`\`\`diff\n` +
+				"```diff\n" +
 				`${par_name} [${c.type}` +
 				(c.default_construct == true
 					? `; default: ${c.default_args.toString().replace(",", " ")}]\n`
@@ -930,7 +935,7 @@ async function help_module(mod_attributes, channel) {
 				(c.dependent_params.length > 0
 					? `+ hängt von diesen Parametern ab: [${c.dependent_params}]`
 					: "") +
-				`\`\`\``;
+				"```";
 		}
 		embed.addField(`cmd: ${cmd.name}`, desc, false);
 	}
@@ -971,7 +976,7 @@ async function emb(title, description, channel) {
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		log.logMessage(`Error: ${error}`);
+		LOGGER.logMessage(`Error: ${error}`);
 	}
 }
 
@@ -1011,7 +1016,7 @@ function embl(title, description, channel, logging_channel = undefined) {
  */
 function channel_check(channel, req_list) {
 	if (!channel) throw new err.BotError("Channel war nicht definiert.");
-	for (req of req_list) {
+	for (let req of req_list) {
 		if (["dm", "text", "voice", "category", "news", "store"].indexOf(req) == -1)
 			throw new err.BotError(`Der gesuchte Channel-Typ ${req} ist invalide.`);
 		if (channel.type == req) return true;
@@ -1040,11 +1045,11 @@ function isGT(channel) {
  */
 async function hErr(e, channel) {
 	try {
-		log.logMessage(`Ein Fehler ist aufgetreten ${e}`);
-		log.logMessage(e.stack);
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
+		LOGGER.logMessage(e.stack);
 		await emb("Ein Fehler ist aufgetreten", e, channel);
 	} catch (error) {
-		log.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
 	}
 }
 
@@ -1062,11 +1067,11 @@ function config_saveall(mod_attributes, guild_ID, config) {
 	if (!config) {
 		config = mod_attributes.default_config;
 	} else {
-		for (key in config) {
+		for (let key in config) {
 			if (!(key in mod_attributes.default_config))
 				throw new err.BotError("Falscher key.");
 		}
-		for (key in mod_attributes.default_config) {
+		for (let key in mod_attributes.default_config) {
 			if (!(key in config)) config[key] = mod_attributes.default_config[key];
 		}
 	}
@@ -1089,7 +1094,6 @@ function config_saveall(mod_attributes, guild_ID, config) {
  * @param value {*}
  */
 function config_update(mod_attributes, guild_ID, key, value) {
-	const dbs = mod_attributes.modulename + "_config";
 	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	config[key] = value;
@@ -1112,6 +1116,8 @@ function config_load(mod_attributes, guild_ID) {
 		let i = lookup_key_value(dbs, "guild", guild_ID);
 		if (i.length > 1) throw new err.BotError("Zu viele Einträge.");
 		config = lookup_index(dbs, i[0], "key_value");
+		//TODO solve this line
+		// eslint-disable-next-line no-empty
 	} catch (e) {}
 	return config;
 }
@@ -1136,7 +1142,7 @@ function config_get(mod_attributes, guild_ID, key) {
 function config_toStr(mod_attributes, guild_ID) {
 	let config = config_load(mod_attributes, guild_ID);
 	let out = "";
-	for (cfg_key in config) {
+	for (let cfg_key in config) {
 		out += `${cfg_key} = ${JSON.stringify(config[cfg_key])}\n`;
 	}
 	return out.trim();
@@ -1220,7 +1226,7 @@ module.exports = {
 	embl,
 	channel_check,
 	isGT,
-	log,
+	log: LOGGER,
 	wait,
 	hErr,
 	config_load,

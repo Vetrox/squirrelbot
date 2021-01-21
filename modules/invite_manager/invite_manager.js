@@ -1,5 +1,5 @@
 const { attributes }  = require("./attributes.js");
-const log = require("../../log.js");
+const LOGGER = bot.api.log;
 
 
 async function initialize() {
@@ -10,12 +10,12 @@ let invites = {};
 let expected_responses = 0;
 async function fetchInvites() {
 	if (bot.client.guilds.cache.keyArray().length == 0) {
-		bot.api.log.logMessage(
-			"Maybe this isn't that bad, but there aren't any guilds in the cache"
+		LOGGER.logMessage(
+			"Vielleicht ist das nicht so schlimm, aber es gibt keine guilds im Cache"
 		);
 		return;
 	}
-	bot.api.log.logMessage("Fetching invites...");
+	LOGGER.logMessage("Einladungen abrufen...");
 	bot.client.guilds.cache.each((guild) => {
 		expected_responses++;
 		guild.fetchInvites().then(
@@ -23,16 +23,16 @@ async function fetchInvites() {
 				invites[guild.id] = guildInvites;
 				expected_responses--;
 			},
-			(reason) => {
+			() => {
 				expected_responses--;
-				bot.api.log.logMessage(
-					`Guild: ${guild.id} doesn't provide the required permission to fetch invites.`
+				LOGGER.logMessage(
+					`Guild: ${guild.id} bietet nicht die erforderliche Berechtigung zum Abrufen von Einladungen.`
 				);
 			}
 		);
 	});
 	while (isReady() == false) await bot.api.wait(10);
-	bot.api.log.logMessage("Finished.");
+	LOGGER.logMessage("Fertig.");
 }
 
 function isReady() {
@@ -81,12 +81,12 @@ function onGuildMemberAdd(member) {
 				if (!invite) {
 					return;
 				}
-				log.logMessage(
-					`${member.user.tag} joined using invite code ${invite.code} from ${invite.inviter.tag}. Invite was used ${invite.uses} times since its creation.`
+				LOGGER.logMessage(
+					`${member.user.tag} joined dem Server und nutzt den Invite-Code ${invite.code} von ${invite.inviter.tag}. Invite-Code wurde bereits ${invite.uses} genutzt.`
 				);
 				let cfg = bot.api.config_load(attributes, member.guild.id).map;
 				if (!(invite.code in cfg)) {
-					console.log("no matching invite code");
+					LOGGER.logMessage("Kein passender Einladungscode");
 					return;
 				}
 				let role_name = cfg[invite.code];
@@ -96,19 +96,24 @@ function onGuildMemberAdd(member) {
 						role.name.toLowerCase() == "@" + role_name.toLowerCase()
 				).id;
 				member.roles.add(role_id);
-				log.logMessage(
-					`Gave the user ${member.user.tag} the role ${role_name}.`
+				LOGGER.logMessage(
+					`Gab dem Benutzer ${member.user.tag} die Rolle ${role_name}.`
 				);
 			} catch (error) {
-				log.logMessage(error);
-				log.logMessage(error.stack);
+				LOGGER.logMessage(error);
+				LOGGER.logMessage(error.stack);
 			}
+		},
+		(reason) => {
+			LOGGER.logMessage(
+				`Guild: ${member.guild.id} bietet nicht die erforderliche Berechtigung zum Abrufen von Einladungen..\n ${reason}`
+			);
 		});
 	} catch (error) {
-		bot.api.log.logMessage(
-			"An error occured at invite_manager onGuildMemberAdd."
+		LOGGER.logMessage(
+			"Es ist ein Fehler im invite_manager onGuildMemberAdd aufgetreten."
 		);
-		bot.api.log.logMessage(error);
+		LOGGER.logMessage(error);
 	}
 }
 module.exports = {
