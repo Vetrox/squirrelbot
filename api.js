@@ -215,12 +215,7 @@ class Database {
 		return data_indices;
 	}
 
-	/**
-		throws:
-			- Type-error, when the index isn't a string or the key isn't a string.
-			- Range-error, when the index istn't in the required range.
-			- Find-error, when the key is not in the database.
-	**/
+
 	/**
 	 * Lookup a value at a row of the database.
 	 *
@@ -1146,10 +1141,7 @@ function config_toStr(mod_attributes, guild_ID) {
 	}
 	return out.trim();
 }
-/**
-	throws:
-		Bot-Error, if the user isn't an admin
-**/
+
 /**
  * Checks, if the user has the admin permission and throws an error.
  *
