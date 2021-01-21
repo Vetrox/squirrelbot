@@ -96,10 +96,8 @@ async function on_ready() {
 		try {
 			await mod.initialize();
 		} catch (error) {
-			LOGGER.info(
-				`Error beim Initialiseren Module: ${mod.attributes.modulename}\n${error}`
-			);
-			LOGGER.info(error.stack);
+			LOGGER.error(
+				`Error beim Initialiseren Module: ${mod.attributes.modulename}`, error.stack);
 			process.exit();
 		}
 	}
@@ -112,5 +110,5 @@ async function on_ready() {
 initialize();
 LOGGER.info("Einloggen");
 bot.client.login(process.env.BOT_TOKEN).catch((error) => {
-	LOGGER.info("Fehler beim Einloggen: " + error);
+	LOGGER.error("Fehler beim Einloggen:", error);
 });

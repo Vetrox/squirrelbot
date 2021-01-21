@@ -61,7 +61,7 @@ async function setupCollector(data) {
 			}
 			if (required_roles.length > 0 && !role_check) {
 				//if there are required roles and the user has failed the check
-				LOGGER.info(`${guildMember} has not passed the test.`);
+				LOGGER.warn(`${guildMember} has not passed the test.`);
 				return false;
 			}
 			let assigned_role_id;
@@ -87,13 +87,13 @@ async function setupCollector(data) {
 				if (orig_msgID in collectors) {
 					//should never be executed tho
 					delete collectors[orig_msgID];
-					LOGGER.info("Dieser Code sollte unerreichbar sein?!?!");
+					LOGGER.error("Dieser Code sollte unerreichbar sein?!?!");
 					return false;
 				}
 			} else {
-				LOGGER.info(error.name);
-				LOGGER.info(error.message);
-				LOGGER.info(error.toString());
+				LOGGER.error(error.name);
+				LOGGER.error(error.message);
+				LOGGER.error(error.toString());
 				throw error;
 			}
 		}
@@ -115,7 +115,7 @@ async function onRaw(raw) {
 			await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
 		}
 	} catch (error) {
-		LOGGER.info(`Error: ${error}`);
+		LOGGER.err(`Error: ${error}`);
 	}
 }
 

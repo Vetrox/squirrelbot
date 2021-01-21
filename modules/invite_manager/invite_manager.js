@@ -10,7 +10,7 @@ let invites = {};
 let expected_responses = 0;
 async function fetchInvites() {
 	if (bot.client.guilds.cache.keyArray().length === 0) {
-		LOGGER.info(
+		LOGGER.warn(
 			"Vielleicht ist das nicht so schlimm, aber es gibt keine guilds im Cache"
 		);
 		return;
@@ -25,7 +25,7 @@ async function fetchInvites() {
 			},
 			() => {
 				expected_responses--;
-				LOGGER.info(
+				LOGGER.warn(
 					`Guild: ${guild.id} bietet nicht die erforderliche Berechtigung zum Abrufen von Einladungen.`
 				);
 			}
@@ -90,7 +90,7 @@ async function onGuildMemberAdd(member) {
 				);
 				let cfg = bot.api.configs.functions.config_load(attributes, member.guild.id).map;
 				if (!(invite.code in cfg)) {
-					LOGGER.info("Kein passender Einladungscode");
+					LOGGER.warn("Kein passender Einladungscode");
 					return;
 				}
 				let role_name = cfg[invite.code];
@@ -104,20 +104,20 @@ async function onGuildMemberAdd(member) {
 					`Gab dem Benutzer ${member.user.tag} die Rolle ${role_name}.`
 				);
 			} catch (error) {
-				LOGGER.info(error);
-				LOGGER.info(error.stack);
+				LOGGER.error(error);
+				LOGGER.error(error.stack);
 			}
 		},
 		(reason) => {
-			LOGGER.info(
+			LOGGER.warn(
 				`Guild: ${member.guild.id} bietet nicht die erforderliche Berechtigung zum Abrufen von Einladungen..\n ${reason}`
 			);
 		});
 	} catch (error) {
-		LOGGER.info(
+		LOGGER.error(
 			"Es ist ein Fehler im invite_manager onGuildMemberAdd aufgetreten."
 		);
-		LOGGER.info(error);
+		LOGGER.error(error);
 	}
 }
 module.exports = {

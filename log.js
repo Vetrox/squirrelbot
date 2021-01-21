@@ -7,8 +7,9 @@ const logger = function(filename) {
 		transports: [
 			new transports.Console({
 				level: "info",
-				colorize: true,
 				format: format.combine(
+					format.colorize(),
+					format.errors({ stack: true }),
 					format.timestamp({
 						format: "YYYY-MM-DD HH:mm:ss",
 					}),
