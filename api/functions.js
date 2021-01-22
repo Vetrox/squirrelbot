@@ -1,0 +1,68 @@
+import api from "./summary.js";
+
+const LOGGER = bot.LOGGER;
+
+
+/**
+ * Initializes the whole api complex. It does the following:
+ * - prepares the structured and controlled shutdown process
+ * - creates the data folder, if it doesn't exists
+ * - stores all possible databases in the possible_databases array
+ * - initializes the auto-save of the databases (this is redundant, because each database gets saved asap, if changes
+ * are made to it and the shutdown also saves the databases controlled)
+ */
+export function initialize() {
+	hookexit();
+	api.databases.functions.initialize();
+}
+
+/**
+ * Shuts down the whole process.
+ * Saves the databases and waits for finishing.
+ * Destroys the discord client
+ *
+ * @returns nothing.
+ */
+async function shutdown() {
+	if (!bot.running || bot.running === false) return;
+	LOGGER.logMessage("Shutdown vorbereiten.");
+
+	await api.databases.functions.save_databases_wait();
+	bot.client.destroy();
+	bot.running = false; //not used at this time but hey
+	LOGGER.logMessage("Bye...");
+	process.exit();
+}
+
+/**
+ * Sets up the controlled exit of the application. Logs exception on error.
+ */
+function hookexit() {
+	process.on("exit", shutdown);
+	process.on("SIGINT", shutdown);
+	process.on("SIGUSR1", shutdown);
+	process.on("SIGUSR2", shutdown);
+	process.on("uncaughtException", (error) => {
+		LOGGER.logMessage(error);
+		LOGGER.logMessage(error.stack);
+		shutdown();
+	});
+}
+
+/**
+ * Handles an occurring error by logging it into the channel and logs.
+ *
+ * @param e {Error}
+ * @param channel {module:"discord.js".TextChannel}
+ *
+ * @returns {Promise<void>} nothing
+ */
+export async function hErr(e, channel) {
+	try {
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
+		LOGGER.logMessage(e.stack);
+		await api.utility.embeds.functions.emb("Ein Fehler ist aufgetreten", e.toString(), channel);
+	} catch (error) {
+		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+	}
+}

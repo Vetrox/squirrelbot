@@ -1,10 +1,13 @@
-const {attributes}  = require("./attributes.js");
-const {databases} = require("./database.js");
-const LOGGER = bot.api.log;
+import { attributes } from "./attributes.js";
+import { databases } from "./database.js";
+const LOGGER = bot.LOGGER;
+const dbf = bot.api.databases.functions; // dbf = database functions
+const aConf = bot.api.configs.functions; // aConf = api-configs
 
 function initialize() {
 	for (const dbs of databases)
-		bot.api.database_create_if_not_exists(dbs.name, dbs.keys);
+		dbf.database_create_if_not_exists(dbs.name, dbs.keys);
+
 
 	delete_unused_categories_interval();
 }
@@ -16,7 +19,7 @@ async function delete_unused_categories_interval() {
 			try {
 				LOGGER.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
 
-				const inactivity_H = bot.api.config_get(
+				const inactivity_H = aConf.config_get(
 					attributes,
 					"" + guild_ID, //needs to be converted to string
 					"category_inactivity_cap_hours"
@@ -107,7 +110,7 @@ async function delete_unused_categories_interval() {
 async function check_role(user, guild, cmd) {
 	if (user.bot == true)
 		throw new bot.err.BotError("Der User darf kein Bot sein.");
-	const required_roles = bot.api.config_get(attributes, guild.id, cmd);
+	const required_roles = aConf.config_get(attributes, guild.id, cmd);
 	const guildMember = await guild.members.fetch({
 		user: user.id,
 		cache: true,
@@ -142,7 +145,7 @@ async function onMessage(message) {
 			opt.type = res.params["-type"][0];
 			if (parentID) opt.parent = parentID;
 			const channel = await channelMgr.create(res.params["-name"][0], opt);
-			bot.api.database_row_add(databases[0].name, [
+			dbf.database_row_add(databases[0].name, [
 				channel.id,
 				message.author.id,
 				false, //is not part of category
@@ -195,7 +198,7 @@ async function onMessage(message) {
 
 
 			const channelMgr = message.guild.channels;
-			const permissions = bot.api.config_get(
+			const permissions = aConf.config_get(
 				attributes,
 				message.guild.id,
 				"area_role_attributes"
@@ -253,7 +256,7 @@ async function onMessage(message) {
 				);
 			}
 
-			bot.api.database_row_add(databases[0].name, [
+			dbf.database_row_add(databases[0].name, [
 				category.id,
 				message.author.id,
 				true, //is part of category
@@ -261,7 +264,7 @@ async function onMessage(message) {
 				access_type,
 				message.guild.id,
 			]);
-			bot.api.database_row_add(databases[0].name, [
+			dbf.database_row_add(databases[0].name, [
 				text.id,
 				message.author.id,
 				true,
@@ -269,7 +272,7 @@ async function onMessage(message) {
 				access_type,
 				message.guild.id,
 			]);
-			bot.api.database_row_add(databases[0].name, [
+			dbf.database_row_add(databases[0].name, [
 				voice.id,
 				message.author.id,
 				true,
@@ -402,7 +405,7 @@ async function onMessage(message) {
 				});
 			} else {
 				if (remove == "false") {
-					const permissions = bot.api.config_get(
+					const permissions = aConf.config_get(
 						attributes,
 						message.guild.id,
 						"area_role_attributes"
@@ -439,7 +442,7 @@ async function onMessage(message) {
 					channel.id
 				);
 				if (
-					bot.api.lookup_index(
+					dbf.lookup_index(
 						databases[0].name,
 						i[0],
 						"is_part_of_category"
@@ -452,7 +455,7 @@ async function onMessage(message) {
 					);
 					return;
 				}
-				bot.api.database_row_delete(databases[0].name, i[0]);
+				dbf.database_row_delete(databases[0].name, i[0]);
 				channel.delete();
 				await bot.api.emb(
 					"Erfolg!",
@@ -484,19 +487,19 @@ async function onMessage(message) {
 					for (const perm of role.permissions.toArray()) {
 						permissions[perm] = true;
 					}
-					bot.api.config_update(
+					aConf.config_update(
 						attributes,
 						message.guild.id,
 						key,
 						permissions
 					);
 				} else {
-					bot.api.config_update(attributes, message.guild.id, key, values);
+					aConf.config_update(attributes, message.guild.id, key, values);
 				}
 			}
 			await bot.api.emb(
 				"Konfiguration",
-				bot.api.config_toStr(attributes, message.guild.id),
+				aConf.config_toStr(attributes, message.guild.id),
 				message.channel
 			);
 			break;
@@ -565,7 +568,7 @@ async function deleteArea_1(guild, ownerID) {
 				"channelID",
 				channel_ID,
 			)[0];
-			bot.api.database_row_delete(databases[0].name, index);
+			dbf.database_row_delete(databases[0].name, index);
 		}catch(error){
 			LOGGER.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
 			LOGGER.logMessage(error);
@@ -575,84 +578,9 @@ async function deleteArea_1(guild, ownerID) {
 	return del_channels.length;
 }
 
-// async function deleteArea(guild, owner_id) { //TODO: rework
-// 	const data = [];
-// 	let child_ch_nr = 0;
-// 	for (const ind of bot.api.lookup_key_value(
-// 		databases[0].name,
-// 		"ownerID",
-// 		owner_id
-// 	)) {
-// 		const c = [];
-// 		let skip = false;
-// 		for (const key of databases[0].keys) {
-// 			const value = bot.api.lookup_index(databases[0].name, ind, key);
-// 			if (key == "is_part_of_category" && value == false) {
-// 				skip = true;
-// 				break;
-// 			}
-// 			if (key == "is_category_parent" && value == false) {
-// 				child_ch_nr++;
-// 			}
-// 			c.push(value);
-// 		}
-// 		if (skip == true) continue;
-// 		data.push(c);
-// 	}
-
-// 	let i = 0;
-// 	let deleted = 0;
-// 	while (data.length > 0) {
-// 		i = i >= data.length ? 0 : i;
-// 		const is_parent = data[i][3];
-// 		if (child_ch_nr > 0 && is_parent == true) {
-// 			i++;
-// 			continue;
-// 		}
-// 		const channel = await guild.channels.cache.get(data[i][0]);
-// 		if (!channel || channel.deleted == true) {
-// 			i++;
-// 			continue;
-// 		}
-// 		const manage_type = data[i][4];
-// 		if (manage_type == "role") {
-// 			let role_id;
-// 			channel.permissionOverwrites.each((r) => {
-// 				if (r.type == "role" && r.id != guild.roles.everyone.id) role_id = r.id;
-// 			});
-// 			guild.roles
-// 				.fetch(role_id)
-// 				.then((role) => role.delete())
-// 				.catch((w) => undefined);
-// 			//message.member.roles.remove(role_id).catch((w) => undefined); // TODO the role is deleted, why whould we remove it still???
-// 		} else if (manage_type == "userID") {
-// 			//i think nothing needs to be implemented here
-// 		} else {
-// 			log.logMessage(
-// 				"Datenbank fehler.\n Der manage_type war weder role noch userID"
-// 			);
-// 		}
-// 		/*get the row of this channel in the database */
-// 		const row = bot.api.lookup_key_value(
-// 			databases[0].name,
-// 			"channelID",
-// 			channel.id
-// 		);
-// 		bot.api.database_row_delete(databases[0].name, row);
-// 		await channel.delete().catch((e) => undefined);
-// 		data.splice(i, 1);
-// 		if (is_parent == false) {
-// 			child_ch_nr--;
-// 		}
-// 		deleted++;
-// 		i++;
-// 	}
-// 	return deleted;
-// }
-
 async function log_message_in_user_channels(message) {
 	try {
-		const logging_channel_id = bot.api.config_get(
+		const logging_channel_id = aConf.config_get(
 			attributes,
 			message.guild.id,
 			"category_logging_channel"
