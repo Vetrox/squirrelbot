@@ -15,7 +15,7 @@ global.bot = { client: client, running: true };
 
 /**
  * Maps a discord event to a map containing the modulename and the assigned event function of that module.
- * @type {{in Discord.Constants.Event: {modulename : string, eventFunc : Promise | Function}[]}}
+ * @type {{in Discord.Constants.Event: {modulename : string, eventFunc : Promise}[]}}
  */
 let hooks = {};
 
@@ -28,13 +28,12 @@ function readModulesFromSource() {
 	for (let file of files) {
 		const mod = require("./modules/" + file + "/" + file);
 		const modname = mod.attributes.modulename;
-		for (let e in mod.hooks) {
+		for (const e in mod.hooks) {
 			if(mod.hooks[e].constructor.name !== "AsyncFunction") {
 				LOGGER.logMessage(`Das Event ${e}/${mod.hooks[e].name} vom Modul ${modname} ist keine asynchrone
 				 Funktion und wird nicht ausgeführt werden.`);
 			}
 			if(!hooks[e] || hooks[e]?.length === 0) hooks[e] = [];
-
 			hooks[e].push({modulename: modname, eventFunc: mod.hooks[e]});
 		}
 		modules.push(mod);
@@ -55,9 +54,7 @@ function initializeDiscordEventCaptures() {
  */
 function handleEvent(eventName, ...args) {
 	if(!(eventName in hooks)) return;
-	LOGGER.logC(hooks[eventName]);
 	for(const { modulename, eventFunc } of hooks[eventName]) {
-		console.log("Going to call " + modulename + " " + eventName);
 		if (eventFunc.constructor.name === "AsyncFunction") { // when it's an async function setup .then and
 			// .catch in case something happens.
 			eventFunc(...args).then(result => {
