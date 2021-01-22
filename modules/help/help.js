@@ -33,11 +33,11 @@ async function onMessage(message) {
 		if (res == false) return;
 		switch (res.name) {
 		case "modulehelp": {
-			handleModulehelp(message, res);
+			await handleModulehelp(message, res);
 			break;
 		}
 		case "listmodules": {
-			handleListmodules(message, res);
+			await handleListmodules(message, res);
 			break;
 		}
 		}
