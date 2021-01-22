@@ -1,6 +1,6 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class Type extends BotError {
+module.exports = class Type extends BotError {
 	constructor() {
 		switch (arguments.length) {
 		case 1:
@@ -15,4 +15,4 @@ export default class Type extends BotError {
 			super("Wert mit falschen Typ erhalten");
 		}
 	}
-}
+};

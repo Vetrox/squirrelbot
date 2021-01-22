@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-import api from "./api/summary.js";
-import LOGGER from "./log.js";
-import Discord from "discord.js";
-import fs from "fs";
+const api = require("./api/summary");
+const LOGGER = require("./log.js");
+const Discord = require("discord.js");
+const fs = require("fs");
 
 require("dotenv").config();
 
 /**
  * Can be accessed by any module to share information
  * */
-global.bot = { client: new Discord.Client(), running: true , api : api, err : api.errors, LOGGER: LOGGER};
+global.bot = { client: new Discord.Client(), running: true};
 
 /**
  * Read all modules from ./modules
@@ -32,6 +32,7 @@ function readModulesFromSource() {
  * */
 function initialize() {
 	LOGGER.logMessage("Initialisere ...");
+	bot.api = api;
 	bot.api.functions.initialize();
 	readModulesFromSource();
 	bot.client.once("ready", async () => {

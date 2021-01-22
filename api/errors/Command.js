@@ -1,7 +1,7 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class Command extends BotError {
+module.exports = class Command extends BotError {
 	constructor(message) {
 		super(message);
 	}
-}
+};

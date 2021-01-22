@@ -1,6 +1,4 @@
-const prefix = bot.api.prefix;
-const err = bot.err;
-
+const err = require.main.require("./api/errors/summary");
 
 /**
  * Parses a raw string to a map containing the name {string} of the command and a params map mapping the param names
@@ -29,8 +27,8 @@ const err = bot.err;
  * errors.js#Command, if the user input fails a check inside the specified command, it returns a Command-error,
 		which contains a useful error message to log in the channel. (error.message)
  */
-export function parse_message(message, mod_attributes) {
-	if (message.content[0] !== prefix || message.author.bot === true) return false;
+function parse_message(message, mod_attributes) {
+	if (message.content[0] !== bot.api.constants.prefix || message.author.bot === true) return false;
 	let split = message.content.substring(1).split(/\s+/);
 	if (!split[0] || split[0] !== mod_attributes.modulename) return false;
 	let param_args = split.slice(1); //cut the modulename from the array
@@ -61,3 +59,7 @@ export function parse_message(message, mod_attributes) {
 	}
 	throw new err.CommandNameNotFound(param_args[0], mod_attributes.modulename);
 }
+
+module.exports = {
+	parse_message,
+};

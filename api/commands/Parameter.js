@@ -1,4 +1,4 @@
-const err = bot.err;
+const err = require.main.require("./api/errors/summary");
 
 /**
  * A Parameter object is used to store information about one single parameter of a command.
@@ -20,7 +20,7 @@ const err = bot.err;
  *
  * @author Felix Ludwig
  */
-export default class Parameter {
+module.exports = class Parameter {
 	/**
 	 * Constructor of the Parameter-class.
 	 *
@@ -51,4 +51,4 @@ export default class Parameter {
 		this.default_args = default_args;
 		this.default_construct = default_construct; /*this is just constucted, when 'required' is set. This gets not checked, if it's the dependent_param of another param and it has requested to default construct this*/
 	}
-}
+};

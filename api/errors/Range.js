@@ -1,7 +1,7 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class Range extends BotError {
+module.exports = class Range extends BotError {
 	constructor(variable) {
 		super(`Der Wert von ${variable} war nicht im erforderlichen Bereich`);
 	}
-}
+};

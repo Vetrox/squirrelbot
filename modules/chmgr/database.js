@@ -1,6 +1,6 @@
-import { attributes } from "./attributes.js";
+const { attributes } = require("./attributes.js");
 
-export const databases = [
+module.exports.databases = [
 	{
 		name: attributes.modulename + "_userchannels",
 		keys: [

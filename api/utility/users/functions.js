@@ -1,4 +1,4 @@
-const err = bot.err;
+const err = require.main.require("./api/errors/summary");
 
 /**
  * Checks, if the user has the admin permission and throws an error.
@@ -10,7 +10,7 @@ const err = bot.err;
  * @throws {err.BotError}, if the user doesn't have the required permission. The error message can be displayed to
  * the user.
  */
-export async function is_admin(user_ID, guild) {
+async function is_admin(user_ID, guild) {
 	await has_permission(user_ID, guild, "ADMINISTRATOR");
 }
 
@@ -26,7 +26,7 @@ export async function is_admin(user_ID, guild) {
  * @throws {err.BotError}, if the user doesn't have the required permission. The error message can be displayed to
  * the user.
  */
-export async function has_permission(user_ID, guild, perm_name) {
+async function has_permission(user_ID, guild, perm_name) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
 		cache: true,
@@ -46,7 +46,7 @@ export async function has_permission(user_ID, guild, perm_name) {
  * @param guild {module:"discord.js".Guild}
  * @returns {Promise<string>}
  */
-export async function get_nickname(user_ID, guild) {
+async function get_nickname(user_ID, guild) {
 	let guildMember = await guild.members.fetch({
 		user: user_ID,
 		cache: true,
@@ -54,3 +54,9 @@ export async function get_nickname(user_ID, guild) {
 	});
 	return guildMember.displayName;
 }
+
+module.exports = {
+	is_admin,
+	has_permission,
+	get_nickname,
+};

@@ -1,7 +1,7 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class Dublication extends BotError {
+module.exports = class Dublication extends BotError {
 	constructor(variable) {
 		super(`${variable} existiert bereits`);
 	}
-}
+};

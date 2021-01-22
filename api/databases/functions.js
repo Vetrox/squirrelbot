@@ -1,9 +1,8 @@
-import Database from "./Database";
-import fs from "fs";
+const Database = require("./Database");
+const fs = require("fs");
 
-const err = bot.err;
-const LOGGER = bot.LOGGER;
-const wait = bot.api.wait;
+const err = require.main.require("./api/errors/summary");
+const LOGGER = require.main.require("./log.js");
 
 /**
  * Maps database names to database objects
@@ -20,7 +19,7 @@ let databases = {}; //highly inefficient lookup for each database could result i
 let possible_databases = [];
 
 
-export function initialize() {
+function initialize() {
 	if (!fs.existsSync("./data")) {
 		LOGGER.logMessage("Erstelle Datenbank-Ordner...");
 		fs.mkdirSync("./data");
@@ -37,7 +36,7 @@ export function initialize() {
  *
  * @returns nothing.
  */
-export async function save_databases_wait() {
+async function save_databases_wait() {
 	let n = 0;
 	for (let database in databases)
 		if (databases[database].data_modified === true) {
@@ -45,7 +44,7 @@ export async function save_databases_wait() {
 			databases[database].write_data(() => n--);
 		}
 	while (n > 0) {
-		await wait(100);
+		await bot.api.constants.wait(100);
 	}
 	LOGGER.logMessage("Speichere alle Datenbanken.");
 }
@@ -97,7 +96,7 @@ function prepare_request(database) {
  *
  * @throws nothing, but exits the application, when the programmer of a module made a huge mistake with the keys.
  */
-export function database_create_if_not_exists(database, keys) {
+function database_create_if_not_exists(database, keys) {
 	if (!exists(database)) {
 		create_database(database, keys);
 	} else {
@@ -118,7 +117,7 @@ export function database_create_if_not_exists(database, keys) {
  * @param lambda gets an entire row as a parameter
  * @returns {Promise<void>} nothing.
  */
-export async function database_for_each(database, lambda) {
+async function database_for_each(database, lambda) {
 	prepare_request(database);
 	return await databases[database].for_each(lambda);
 }
@@ -130,7 +129,7 @@ export async function database_for_each(database, lambda) {
  * @param data an array with matching values to the keys
  * @returns {number} the index of the new row
  */
-export function database_row_add(database, data) {
+function database_row_add(database, data) {
 	prepare_request(database);
 	return databases[database].add_row(data);
 }
@@ -141,7 +140,7 @@ export function database_row_add(database, data) {
  * @param database the name of the database
  * @param index the row number
  */
-export function database_row_delete(database, index) {
+function database_row_delete(database, index) {
 	prepare_request(database);
 	return databases[database].del_row(index);
 }
@@ -154,7 +153,7 @@ export function database_row_delete(database, index) {
  * @param key a string
  * @param new_value the new json object
  */
-export function database_row_change(database, data_index, key, new_value) {
+function database_row_change(database, data_index, key, new_value) {
 	prepare_request(database);
 	return databases[database].change_data(data_index, key, new_value);
 }
@@ -170,7 +169,7 @@ export function database_row_change(database, data_index, key, new_value) {
  *
  * @returns {number[]} an array of the matching row numbers
  */
-export function lookup_key_value(database, key, value) {
+function lookup_key_value(database, key, value) {
 	//what happens, when multiple modules acess the same database at the same time?!?!?
 	prepare_request(database);
 	return databases[database].lookup_key_value(key, value);
@@ -184,7 +183,7 @@ export function lookup_key_value(database, key, value) {
  * @param key a string
  * @returns {*} the json object at databases[database][index][key]
  */
-export function lookup_index(database, index, key) {
+function lookup_index(database, index, key) {
 	prepare_request(database);
 	return databases[database].lookup_index(index, key);
 }
@@ -252,3 +251,15 @@ function create_database(database, keys) {
 		databases[database].setModAndSave();
 	}
 }
+
+module.exports = {
+	initialize,
+	save_databases_wait,
+	database_create_if_not_exists,
+	database_for_each,
+	database_row_add,
+	database_row_delete,
+	database_row_change,
+	lookup_key_value,
+	lookup_index,
+};

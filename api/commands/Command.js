@@ -1,5 +1,5 @@
-const LOGGER = bot.LOGGER;
-const err = bot.err;
+const LOGGER = require.main.require("./log.js");
+const err = require.main.require("./api/errors/summary");
 
 /**
  * A Command object is used to handle user inputs and convert them to a parameter list for later use.
@@ -14,7 +14,7 @@ const err = bot.err;
  *
  * @author Felix Ludwig
  */
-export default class Command {
+module.exports = class Command {
 
 	/**
 	 * The Constructor initializes the following:
@@ -160,4 +160,4 @@ export default class Command {
 		}
 		return params;
 	}
-}
+};

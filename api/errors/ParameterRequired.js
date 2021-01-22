@@ -1,9 +1,9 @@
-import Command from "./Command";
+const Command = require("./Command");
 
-export default class ParameterRequired extends Command {
+module.exports = class ParameterRequired extends Command {
 	constructor(cmd, param) {
 		super(
 			`Der Benutzer hat den wesentlichen Parameter ${param} für den Befehl ${cmd} nicht angegeben`
 		);
 	}
-}
+};

@@ -1,9 +1,9 @@
-import Command from "./Command";
+const Command = require("./Command");
 
-export default class ParameterDependency extends Command {
+module.exports = class ParameterDependency extends Command {
 	constructor(param, depends) {
 		super(
 			`Der Parameter ${param} hängt vom Parameter ${depends} ab, der so konfiguriert ist, dass er nicht standardmäßig initialisiert wird`
 		);
 	}
-}
+};

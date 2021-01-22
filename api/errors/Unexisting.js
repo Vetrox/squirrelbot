@@ -1,7 +1,7 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class Unexisting extends BotError {
+module.exports = class Unexisting extends BotError {
 	constructor(variable) {
 		super(`${variable} existiert nicht`);
 	}
-}
+};

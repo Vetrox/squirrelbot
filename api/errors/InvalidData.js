@@ -1,7 +1,7 @@
-import BotError from "./BotError";
+const BotError = require("./BotError");
 
-export default class InvalidData extends BotError {
+module.exports = class InvalidData extends BotError {
 	constructor() {
 		super("Die Daten waren ungültig");
 	}
-}
+};

@@ -1,31 +1,35 @@
-const attributes = {
+const Command = bot.api.commands.Command;
+const Parameter = bot.api.commands.Parameter;
+const prefix = bot.api.constants.prefix;
+
+module.exports.attributes = {
 	modulename: "reacted",
 	description:
 		"Das Modul zum managen von Reactions auf Nachrichten und der dazugehörigen Vergabe von Rollen.",
 	commands: [
-		new bot.api.Command(
+		new Command(
 			"add",
 			"Kreiert eine Nachricht mit den angegebenen Funktionen.",
 			[
-				new bot.api.Parameter(
+				new Parameter(
 					"-messageID",
 					"required",
 					[],
 					"Die Nachricht muss sich im gleichen Channel befinden. Danach kannst du sie löschen.",
-					(nr) => nr == 1,
+					(nr) => nr === 1,
 					[],
 					false
 				),
-				new bot.api.Parameter(
+				new Parameter(
 					"-map",
 					"required",
 					[],
 					"Argumente: Immer ein Emoji gefolgt von einer Rolle. Das @ vor Rollen kann/sollte weggelassen werden.",
-					(nr) => nr >= 2 && nr % 2 == 0,
+					(nr) => nr >= 2 && nr % 2 === 0,
 					["✅", "Verified"],
 					true
 				),
-				new bot.api.Parameter(
+				new Parameter(
 					"-wl",
 					"required",
 					[],
@@ -34,41 +38,37 @@ const attributes = {
 					["everyone"],
 					true
 				),
-				new bot.api.Parameter(
+				new Parameter(
 					"-wl_mode",
 					"required",
 					["-wl"],
 					"Der Modus der Whitelist. Zugelassen sind: lower, equal, not_equal (blacklisting), higher.",
-					(nr) => nr == 1,
+					(nr) => nr === 1,
 					["equal"],
 					true
 				),
 			],
 			[
-				`${bot.api.prefix}reacted add -messageID 696969696969`,
-				`${bot.api.prefix}reacted add -messageID 696969696969 -map ✅ Verified`,
-				`${bot.api.prefix}reacted add -messageID 696969696969 -map ✅ Verified -wl everyone -wl_mode lower`,
+				`${prefix}reacted add -messageID 696969696969`,
+				`${prefix}reacted add -messageID 696969696969 -map ✅ Verified`,
+				`${prefix}reacted add -messageID 696969696969 -map ✅ Verified -wl everyone -wl_mode lower`,
 			]
 		),
-		new bot.api.Command(
+		new Command(
 			"remove",
 			"Löscht eine Nachricht anhand der Originalen MessageID",
 			[
-				new bot.api.Parameter(
+				new Parameter(
 					"-messageID",
 					"required",
 					[],
 					"Die originale MessageID steht unten in der Bot-Nachricht",
-					(nr) => nr == 1,
+					(nr) => nr === 1,
 					[],
 					false
 				),
 			],
-			[`${bot.api.prefix}reacted remove -messageID 696969696969`]
+			[`${prefix}reacted remove -messageID 696969696969`]
 		),
 	],
-};
-
-module.exports = {
-	attributes
 };

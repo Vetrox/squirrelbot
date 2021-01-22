@@ -2,7 +2,7 @@ const Command = bot.api.commands.Command;
 const Parameter = bot.api.commands.Parameter;
 const prefix = bot.api.constants.prefix;
 
-const attributes = {
+module.exports.attributes = {
 	modulename: "help",
 	description:
 		"Das Help-Modul. Hier kannst Du vieles über Commands und andere Module erfahren.",
@@ -30,8 +30,4 @@ const attributes = {
 			[`${prefix}help listmodules`]
 		),
 	],
-};
-
-module.exports = {
-	attributes
 };

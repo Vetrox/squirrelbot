@@ -1,5 +1,3 @@
-import * as functions from "./functions.js";
-
 module.exports = {
-	functions,
+	functions : require("./functions"),
 };

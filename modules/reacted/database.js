@@ -1,6 +1,6 @@
-const {attributes}  = require("./attributes.js");
+const { attributes } = require("./attributes.js");
 
-const databases = [
+module.exports.databases = [
 	{
 		name: attributes.modulename,
 		keys: [
@@ -14,7 +14,3 @@ const databases = [
 		],
 	},
 ];
-
-module.exports = {
-	databases
-};

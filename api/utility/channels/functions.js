@@ -1,4 +1,4 @@
-const err = bot.err;
+const err = require.main.require("./api/errors/summary");
 
 /**
  * Checks a channel for matching one of the given types.
@@ -16,7 +16,7 @@ const err = bot.err;
  * @throws {errors.js.BotError}, if the channel was undefined or one value in the req_list is not a valid
  * channel type.
  */
-export function channel_check(channel, req_list) {
+function channel_check(channel, req_list) {
 	if (!channel) throw new err.BotError("Channel war nicht definiert.");
 	for (let req of req_list) {
 		if (["dm", "text", "voice", "category", "news", "store"].indexOf(req) === -1)
@@ -33,6 +33,11 @@ export function channel_check(channel, req_list) {
  *
  * @returns {boolean} true, if it matches the requirement.
  */
-export function isGT(channel) {
+function isGT(channel) {
 	return channel_check(channel, ["text", "category"]);
 }
+
+module.exports = {
+	channel_check,
+	isGT,
+};

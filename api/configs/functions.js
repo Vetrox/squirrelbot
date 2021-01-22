@@ -1,5 +1,4 @@
-const databases = bot.api.databases.functions;
-const err = bot.err;
+const err = require.main.require("./api/errors/summary");
 
 /**
  * Saves a config to the matching database. eg <modulename>_config
@@ -23,12 +22,12 @@ function config_saveall(mod_attributes, guild_ID, config) {
 		}
 	}
 	const dbs = mod_attributes.modulename + "_config";
-	databases.database_create_if_not_exists(dbs, ["guild", "key_value"]);
+	bot.api.databases.functions.database_create_if_not_exists(dbs, ["guild", "key_value"]);
 	try {
-		let i = databases.lookup_key_value(dbs, "guild", guild_ID);
-		databases.database_row_change(dbs, i[0], "key_value", config);
+		let i = bot.api.databases.functions.lookup_key_value(dbs, "guild", guild_ID);
+		bot.api.databases.functions.database_row_change(dbs, i[0], "key_value", config);
 	} catch (e) {
-		databases.database_row_add(dbs, [guild_ID, config]);
+		bot.api.databases.functions.database_row_add(dbs, [guild_ID, config]);
 	}
 }
 
@@ -40,7 +39,7 @@ function config_saveall(mod_attributes, guild_ID, config) {
  * @param key {string}
  * @param value {*}
  */
-export function config_update(mod_attributes, guild_ID, key, value) {
+function config_update(mod_attributes, guild_ID, key, value) {
 	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	config[key] = value;
@@ -58,11 +57,11 @@ export function config_update(mod_attributes, guild_ID, key, value) {
 function config_load(mod_attributes, guild_ID) {
 	const dbs = mod_attributes.modulename + "_config";
 	let config = mod_attributes.default_config;
-	databases.database_create_if_not_exists(dbs, ["guild", "key_value"]);
+	bot.api.databases.functions.database_create_if_not_exists(dbs, ["guild", "key_value"]);
 	try {
-		let i = databases.lookup_key_value(dbs, "guild", guild_ID);
+		let i = bot.api.databases.functions.lookup_key_value(dbs, "guild", guild_ID);
 		if (i.length > 1) throw new err.BotError("Zu viele Einträge.");
-		config = databases.lookup_index(dbs, i[0], "key_value");
+		config = bot.api.databases.functions.lookup_index(dbs, i[0], "key_value");
 		//TODO solve this line
 		// eslint-disable-next-line no-empty
 	} catch (e) {
@@ -83,13 +82,13 @@ function config_load(mod_attributes, guild_ID) {
  *
  * @throws {errors.js.BotError}, if the key was not in the config
  */
-export function config_get(mod_attributes, guild_ID, key) {
+function config_get(mod_attributes, guild_ID, key) {
 	let config = config_load(mod_attributes, guild_ID);
 	if (!(key in config)) throw new err.BotError("Kein valider Key.");
 	return config[key];
 }
 
-export function config_toStr(mod_attributes, guild_ID) {
+function config_toStr(mod_attributes, guild_ID) {
 	let config = config_load(mod_attributes, guild_ID);
 	let out = "";
 	for (let cfg_key in config) {
@@ -97,3 +96,10 @@ export function config_toStr(mod_attributes, guild_ID) {
 	}
 	return out.trim();
 }
+
+module.exports = {
+	config_get,
+	config_update,
+	config_toStr,
+	config_load,
+};

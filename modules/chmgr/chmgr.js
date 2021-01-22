@@ -1,13 +1,11 @@
-import { attributes } from "./attributes.js";
-import { databases } from "./database.js";
-const LOGGER = bot.LOGGER;
-const dbf = bot.api.databases.functions; // dbf = database functions
-const aConf = bot.api.configs.functions; // aConf = api-configs
+const { attributes } = require("./attributes.js");
+const { databases } = require("./database.js");
+const LOGGER = require.main.require("./log.js");
+
 
 function initialize() {
 	for (const dbs of databases)
-		dbf.database_create_if_not_exists(dbs.name, dbs.keys);
-
+		bot.api.databases.functions.database_create_if_not_exists(dbs.name, dbs.keys);
 
 	delete_unused_categories_interval();
 }
@@ -19,12 +17,12 @@ async function delete_unused_categories_interval() {
 			try {
 				LOGGER.logMessage(`Checking guild ${guild_ID}:${guild.name}`);
 
-				const inactivity_H = aConf.config_get(
+				const inactivity_H = bot.api.configs.functions.config_get(
 					attributes,
 					"" + guild_ID, //needs to be converted to string
 					"category_inactivity_cap_hours"
 				)?.[0]; //can throw due to non existing key on older configs
-				if (inactivity_H == undefined || !inactivity_H || inactivity_H <= 0)
+				if (inactivity_H === undefined || !inactivity_H || inactivity_H <= 0)
 					return;
 
 				guild.channels.cache.each(async (channel, channel_ID) => {
@@ -53,7 +51,7 @@ async function delete_unused_categories_interval() {
 
 					let index;
 					try {
-						index = bot.api.lookup_key_value(
+						index = bot.api.databases.functions.lookup_key_value(
 							databases[0].name,
 							"channelID",
 							channel_ID
@@ -62,14 +60,14 @@ async function delete_unused_categories_interval() {
 						return;
 					}
 
-					const is_part_of_category = bot.api.lookup_index(
+					const is_part_of_category = bot.api.databases.functions.lookup_index(
 						databases[0].name,
 						index,
 						"is_part_of_category"
 					);
 					if (!is_part_of_category) return;
 
-					const owner_id = bot.api.lookup_index(
+					const owner_id = bot.api.databases.functions.lookup_index(
 						databases[0].name,
 						index,
 						"ownerID"
@@ -110,7 +108,7 @@ async function delete_unused_categories_interval() {
 async function check_role(user, guild, cmd) {
 	if (user.bot == true)
 		throw new bot.err.BotError("Der User darf kein Bot sein.");
-	const required_roles = aConf.config_get(attributes, guild.id, cmd);
+	const required_roles = bot.api.configs.functions.config_get(attributes, guild.id, cmd);
 	const guildMember = await guild.members.fetch({
 		user: user.id,
 		cache: true,
@@ -133,7 +131,7 @@ async function onMessage(message) {
 	try {
 		await log_message_in_user_channels(message);
 
-		const res = bot.api.parse_message(message, attributes);
+		const res = bot.api.commands.functions.parse_message(message, attributes);
 		if (res == false) return;
 
 		switch (res.name) {
@@ -145,7 +143,7 @@ async function onMessage(message) {
 			opt.type = res.params["-type"][0];
 			if (parentID) opt.parent = parentID;
 			const channel = await channelMgr.create(res.params["-name"][0], opt);
-			dbf.database_row_add(databases[0].name, [
+			bot.api.databases.functions.database_row_add(databases[0].name, [
 				channel.id,
 				message.author.id,
 				false, //is not part of category
@@ -153,7 +151,7 @@ async function onMessage(message) {
 				"role",
 				message.guild.id,
 			]);
-			await bot.api.emb(
+			await bot.api.utility.embeds.functions.emb(
 				"Erfolgreich",
 				"Channel erfolgreich kreiert.",
 				message.channel
@@ -164,7 +162,7 @@ async function onMessage(message) {
 			await check_role(message.author, message.guild, "create_area");
 
 			try {
-				const indices = bot.api.lookup_key_value(
+				const indices = bot.api.databases.functions.lookup_key_value(
 					databases[0].name,
 					"ownerID",
 					message.author.id
@@ -172,7 +170,7 @@ async function onMessage(message) {
 				try {
 					let amount = 0;
 					for(let index of indices) {
-						const guild_ID = bot.api.lookup_index(
+						const guild_ID = bot.api.databases.functions.lookup_index(
 							databases[0].name,
 							index,
 							"guildID"
@@ -181,7 +179,7 @@ async function onMessage(message) {
 					}
 						
 					if(amount >= 1) {
-						await bot.api.emb(
+						await bot.api.utility.embeds.functions.emb(
 							"Fehler: Konnte keine Kategorie erstellen",
 							"Du hast bereits eine Kategorie für dich. :P",
 							message.channel
@@ -189,7 +187,7 @@ async function onMessage(message) {
 						return;
 					}
 				} catch (error) {
-					bot.api.hErr(error, message.channel);
+					bot.api.functions.hErr(error, message.channel);
 					return;
 				}
 				//TODO solve this line
@@ -198,7 +196,7 @@ async function onMessage(message) {
 
 
 			const channelMgr = message.guild.channels;
-			const permissions = aConf.config_get(
+			const permissions = bot.api.configs.functions.config_get(
 				attributes,
 				message.guild.id,
 				"area_role_attributes"
@@ -249,14 +247,14 @@ async function onMessage(message) {
 			} else if (access_type == "userID") {
 				category.createOverwrite(message.author, permissions);
 			} else {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Falscher Zugriffs-Typ",
 					`${access_type} ist weder 'role' noch 'userID'`,
 					message.channel
 				);
 			}
 
-			dbf.database_row_add(databases[0].name, [
+			bot.api.databases.functions.database_row_add(databases[0].name, [
 				category.id,
 				message.author.id,
 				true, //is part of category
@@ -264,7 +262,7 @@ async function onMessage(message) {
 				access_type,
 				message.guild.id,
 			]);
-			dbf.database_row_add(databases[0].name, [
+			bot.api.databases.functions.database_row_add(databases[0].name, [
 				text.id,
 				message.author.id,
 				true,
@@ -272,7 +270,7 @@ async function onMessage(message) {
 				access_type,
 				message.guild.id,
 			]);
-			dbf.database_row_add(databases[0].name, [
+			bot.api.databases.functions.database_row_add(databases[0].name, [
 				voice.id,
 				message.author.id,
 				true,
@@ -280,7 +278,7 @@ async function onMessage(message) {
 				access_type,
 				message.guild.id,
 			]);
-			await bot.api.emb(
+			await bot.api.utility.embeds.functions.emb(
 				"Erfolgreich",
 				"Alle Channel wurden kreiert!",
 				message.channel
@@ -291,11 +289,11 @@ async function onMessage(message) {
 			await check_role(message.author, message.guild, "delete_area");
 			let owner_id = message.author.id;
 			if (res.params["-here"] == "true") {
-				await bot.api.is_admin(message.author.id, message.guild); // throws
+				await bot.api.utility.users.functions.is_admin(message.author.id, message.guild); // throws
 				try {
-					owner_id = bot.api.lookup_index(
+					owner_id = bot.api.databases.functions.lookup_index(
 						databases[0].name,
-						bot.api.lookup_key_value(
+						bot.api.databases.functions.lookup_key_value(
 							databases[0].name,
 							"channelID",
 							message.channel.id
@@ -308,13 +306,13 @@ async function onMessage(message) {
 			}
 			try {
 				const deleted = await deleteArea_1(message.guild, owner_id);
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Erfolgreich gelöscht",
 					`${deleted} Channel wurden erfolgreich gelöscht.`,
 					message.channel
 				);
 			} catch (error) {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Nicht gefunden",
 					"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
 					message.channel
@@ -329,25 +327,25 @@ async function onMessage(message) {
 			const thischannel = await message.channel.fetch(true); //get the full version of this channel
 			/*check, if user is owner of this channel and get the parent category of it, if its a child*/
 			try {
-				index = bot.api.lookup_key_value(
+				index = bot.api.databases.functions.lookup_key_value(
 					databases[0].name,
 					"channelID",
 					message.channel.id
 				)[0];
-				const owner = bot.api.lookup_index(
+				const owner = bot.api.databases.functions.lookup_index(
 					databases[0].name,
 					index,
 					"ownerID"
 				);
-				if (owner != message.author.id) throw new Error();
-				if (thischannel.type != "category") {
+				if (owner !== message.author.id) throw new Error();
+				if (thischannel.type !== "category") {
 					//could be replaced by channel.type == 'category' because there are only top level categories.
 					category = thischannel.parent;
 				} else {
 					category = thischannel;
 				}
 			} catch (error) {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Berechtigungsfehler",
 					"Du bist nicht der Owner des Channels."
 				);
@@ -362,12 +360,12 @@ async function onMessage(message) {
 					user_str.substring(3, user_str.length - 1)
 				);
 			} catch (error) {
-				await bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
+				await bot.api.utility.embeds.functions.emb("Falscher User", "Der User ist mir nicht bekannt.");
 				return;
 			}
 
 			if (
-				bot.api.lookup_index(databases[0].name, index, "manage_type") ==
+				bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type") ==
 					"role"
 			) {
 				category.permissionOverwrites.each(async (r) => {
@@ -377,7 +375,7 @@ async function onMessage(message) {
 								guildMember.roles.cache.has(r.id) == false
 						) {
 							guildMember.roles.add(r.id);
-							await bot.api.emb(
+							await bot.api.utility.embeds.functions.emb(
 								"Erfolgreich",
 								`${guildMember.toString()} ist jetzt per Rolle eingeladen.`,
 								message.channel
@@ -388,14 +386,14 @@ async function onMessage(message) {
 								guildMember.roles.cache.has(r.id) == true
 						) {
 							guildMember.roles.remove(r.id);
-							await bot.api.emb(
+							await bot.api.utility.embeds.functions.emb(
 								"Erfolgreich",
 								`${guildMember.toString()} ist jetzt per Rolle ausgeladen.`,
 								message.channel
 							);
 							return;
 						} else {
-							await bot.api.emb(
+							await bot.api.utility.embeds.functions.emb(
 								"Fehler",
 								`${guildMember.toString()} wurde entweder schon entfernt oder hinzugefügt.`,
 								message.channel
@@ -405,13 +403,13 @@ async function onMessage(message) {
 				});
 			} else {
 				if (remove == "false") {
-					const permissions = aConf.config_get(
+					const permissions = bot.api.configs.functions.config_get(
 						attributes,
 						message.guild.id,
 						"area_role_attributes"
 					);
 					category.updateOverwrite(guildMember, permissions);
-					await bot.api.emb(
+					await bot.api.utility.embeds.functions.emb(
 						"Erfolgreich",
 						`${guildMember.toString()} ist jetzt per userID eingeladen.`,
 						message.channel
@@ -420,7 +418,7 @@ async function onMessage(message) {
 				} else if (remove == "true") {
 					/* theoretically we could re-set all permissions to hide blacklisted users*/
 					category.updateOverwrite(guildMember, { VIEW_CHANNEL: false });
-					await bot.api.emb(
+					await bot.api.utility.embeds.functions.emb(
 						"Erfolgreich",
 						`${guildMember.toString()} ist jetzt per userID ausgeladen.`,
 						message.channel
@@ -436,34 +434,34 @@ async function onMessage(message) {
 			const chID = res.params["-channelID"]?.[0];
 			try {
 				const channel = await channelMgr.cache.get(chID);
-				const i = bot.api.lookup_key_value(
+				const i = bot.api.databases.functions.lookup_key_value(
 					databases[0].name,
 					"channelID",
 					channel.id
 				);
 				if (
-					dbf.lookup_index(
+					bot.api.databases.functions.lookup_index(
 						databases[0].name,
 						i[0],
 						"is_part_of_category"
 					) == true
 				) {
-					await bot.api.emb(
+					await bot.api.utility.embeds.functions.emb(
 						"Kann nicht gelöscht werden",
 						"Der angegebene Channel gehört zu einer Kategorie und kann somit nicht mit diesem Command gelöscht werden.",
 						message.channel
 					);
 					return;
 				}
-				dbf.database_row_delete(databases[0].name, i[0]);
+				bot.api.databases.functions.database_row_delete(databases[0].name, i[0]);
 				channel.delete();
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Erfolg!",
 					"Channel erfolgreich gelöscht.",
 					message.channel
 				);
 			} catch (error) {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Lösch Fehler",
 					`Beim löschen des Channels mit der ID ${chID} ist ein Fehler aufgetreten. Prüfe bitte auch die Permissions. Error: ${error.message}`,
 					message.channel
@@ -472,7 +470,7 @@ async function onMessage(message) {
 			break;
 		}
 		case "config": {
-			await bot.api.is_admin(message.author.id, message.guild);
+			await bot.api.utility.users.functions.is_admin(message.author.id, message.guild);
 			if ("-key" in res.params) {
 				const key = res.params["-key"][0];
 				const values = res.params["-value"];
@@ -487,26 +485,26 @@ async function onMessage(message) {
 					for (const perm of role.permissions.toArray()) {
 						permissions[perm] = true;
 					}
-					aConf.config_update(
+					bot.api.configs.functions.config_update(
 						attributes,
 						message.guild.id,
 						key,
 						permissions
 					);
 				} else {
-					aConf.config_update(attributes, message.guild.id, key, values);
+					bot.api.configs.functions.config_update(attributes, message.guild.id, key, values);
 				}
 			}
-			await bot.api.emb(
+			await bot.api.utility.embeds.functions.emb(
 				"Konfiguration",
-				aConf.config_toStr(attributes, message.guild.id),
+				bot.api.configs.functions.config_toStr(attributes, message.guild.id),
 				message.channel
 			);
 			break;
 		}
 		}
 	} catch (error) {
-		bot.api.hErr(error, message.channel);
+		bot.api.functions.hErr(error, message.channel);
 	}
 }
 
@@ -514,26 +512,26 @@ async function deleteArea_1(guild, ownerID) {
 	LOGGER.logMessage(`Versuche alle channel von ${ownerID} auf Guild ${guild.id}:${guild.name} zu löschen.`);
 	const del_channels = [];
 	try{
-		const indices = bot.api.lookup_key_value(
+		const indices = bot.api.databases.functions.lookup_key_value(
 			databases[0].name,
 			"ownerID",
 			ownerID
 		);
 		for(const index of indices) {
 			try{
-				const is_part_of_category = bot.api.lookup_index(databases[0].name, index, "is_part_of_category");
+				const is_part_of_category = bot.api.databases.functions.lookup_index(databases[0].name, index, "is_part_of_category");
 				if(is_part_of_category == false) continue;
-				const guild_ID = bot.api.lookup_index(databases[0].name, index, "guildID");
+				const guild_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "guildID");
 				if(guild_ID != guild.id) continue;
-				const owner_ID = bot.api.lookup_index(databases[0].name, index, "ownerID");
+				const owner_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "ownerID");
 				if(owner_ID != ownerID) continue;
-				const channel_ID = bot.api.lookup_index(databases[0].name, index, "channelID");
+				const channel_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "channelID");
 				const channel = await guild.channels.cache.get(channel_ID);
 				if(!channel || channel.deleted == true) continue;
 				if(channel.deletable == false) {
 					LOGGER.logMessage(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
 				}
-				const manage_type = bot.api.lookup_index(databases[0].name, index, "manage_type");
+				const manage_type = bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type");
 
 				if(manage_type == "role") {
 					try{
@@ -563,12 +561,12 @@ async function deleteArea_1(guild, ownerID) {
 
 	for(const channel_ID of del_channels) {
 		try{
-			const index = bot.api.lookup_key_value(
+			const index = bot.api.databases.functions.lookup_key_value(
 				databases[0].name,
 				"channelID",
 				channel_ID,
 			)[0];
-			dbf.database_row_delete(databases[0].name, index);
+			bot.api.databases.functions.database_row_delete(databases[0].name, index);
 		}catch(error){
 			LOGGER.logMessage(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
 			LOGGER.logMessage(error);
@@ -580,7 +578,7 @@ async function deleteArea_1(guild, ownerID) {
 
 async function log_message_in_user_channels(message) {
 	try {
-		const logging_channel_id = aConf.config_get(
+		const logging_channel_id = bot.api.configs.functions.config_get(
 			attributes,
 			message.guild.id,
 			"category_logging_channel"
@@ -593,18 +591,18 @@ async function log_message_in_user_channels(message) {
 
 		// check, if the message came from a dedicated area channel
 		try {
-			const indices = bot.api.lookup_key_value(
+			const indices = bot.api.databases.functions.lookup_key_value(
 				databases[0].name,
 				"channelID",
 				message.channel.id
 			);
 			if (indices.length != 1) return; // intuition, maybe redundant
-			const is_part_of_category = bot.api.lookup_index(
+			const is_part_of_category = bot.api.databases.functions.lookup_index(
 				databases[0].name,
 				indices[0],
 				"is_part_of_category"
 			);
-			const owner_id = bot.api.lookup_index(
+			const owner_id = bot.api.databases.functions.lookup_index(
 				databases[0].name,
 				indices[0],
 				"ownerID"
@@ -613,11 +611,11 @@ async function log_message_in_user_channels(message) {
 			const category = message_channel.parent;
 
 			if (is_part_of_category && is_part_of_category == true) {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					`Channel: ${message_channel.name}, Kategorie: ${
 						category.name
-					}, Besitzer: ${await bot.api.get_nickname(owner_id, message.guild)}`,
-					`Nachricht von: ${await bot.api.get_nickname(
+					}, Besitzer: ${await bot.api.utility.users.functions.get_nickname(owner_id, message.guild)}`,
+					`Nachricht von: ${await bot.api.utility.users.functions.get_nickname(
 						message.author.id,
 						message.guild
 					)}\n${message.cleanContent}`,

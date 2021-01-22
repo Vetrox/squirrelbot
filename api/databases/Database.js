@@ -1,8 +1,7 @@
-import fs from "fs";
+const fs = require("fs");
 
-const LOGGER = bot.LOGGER;
-const err = bot.err;
-const wait = bot.api.constants.wait;
+const LOGGER = require.main.require("./log.js");
+const err = require.main.require("./api/errors/summary");
 
 /**
  * A database is an api-managed object, which holds the contents of it's corresponding database-text-file in
@@ -22,7 +21,7 @@ const wait = bot.api.constants.wait;
  *
  * @author Felix Ludwig
  */
-export default class Database {
+module.exports = class Database {
 	/**
 	 * Instantiates the object and sets the data_modified and is_saving booleans to false.
 	 *
@@ -265,7 +264,7 @@ export default class Database {
 	 */
 	async write_data(callback) {
 		LOGGER.logMessage("Starte Speichern der Datenbank " + this.name);
-		while (this.is_saving === true) await wait(10); //wait for other async task
+		while (this.is_saving === true) await bot.api.constants.wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
 		let write_data = "";
@@ -316,4 +315,4 @@ export default class Database {
 		}
 		return true;
 	}
-}
+};

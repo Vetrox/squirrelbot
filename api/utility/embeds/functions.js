@@ -1,6 +1,4 @@
-import Discord from "discord.js";
-
-const LOGGER = bot.LOGGER;
+const Discord = require("discord.js");
 
 /**
  * Creates an embed with title and description.
@@ -9,7 +7,7 @@ const LOGGER = bot.LOGGER;
  * @param description
  * @returns {module:"discord.js".MessageEmbed} the embed.
  */
-export function create_embed(title, description) {
+function create_embed(title, description) {
 	return new Discord.MessageEmbed()
 		.setColor("#ff9900")
 		.setTitle(title)
@@ -31,12 +29,12 @@ export function create_embed(title, description) {
  *
  * @returns {Promise<void>} nothing.
  */
-export async function emb(title, description, channel) {
+async function emb(title, description, channel) {
 	if (!channel || channel.deleted === true) return; //maybe log to server log channel
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		LOGGER.logMessage(`Error: ${error}`);
+		bot.LOGGER.logMessage(`Error: ${error}`);
 	}
 }
 
@@ -49,7 +47,7 @@ export async function emb(title, description, channel) {
  * @param channel {module:"discord.js".TextChannel}
  * @param logging_channel {module:"discord.js".TextChannel}
  */
-export function embl(title, description, channel, logging_channel = undefined) {
+function embl(title, description, channel, logging_channel = undefined) {
 	// TODO: make async
 	if (!channel || channel.deleted === true) return; //maybe log to server log channel
 	let embed = create_embed(title, description);
@@ -67,7 +65,7 @@ export function embl(title, description, channel, logging_channel = undefined) {
  *
  * @throws may throw an error, depending on discord permissions
  */
-export async function help_module(mod_attributes, channel) {
+async function help_module(mod_attributes, channel) {
 	const embed = new Discord.MessageEmbed()
 		.setColor("#ffaaff")
 		.setAuthor("Hilfeseite")
@@ -104,3 +102,10 @@ export async function help_module(mod_attributes, channel) {
 	}
 	await channel.send(embed);
 }
+
+module.exports =  {
+	create_embed,
+	emb,
+	embl,
+	help_module,
+};

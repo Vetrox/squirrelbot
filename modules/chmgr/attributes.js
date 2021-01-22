@@ -2,7 +2,7 @@ const Command = bot.api.commands.Command;
 const Parameter = bot.api.commands.Parameter;
 const prefix = bot.api.constants.prefix;
 
-export const attributes = {
+module.exports.attributes = {
 	modulename: "chmgr",
 	description:
 		"Der Channel-Manager. Hier kannst Du Channels kreieren und löschen. Auch ganze Bereiche, die nur Du und deine Freunde betreten können, kannst du hier erschaffen. Die Administratoren können mithilfe des setup Commands Rollen für jeden Command angeben, die diesen Ausführen dürfen.",
