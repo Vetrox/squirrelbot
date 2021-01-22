@@ -39,6 +39,25 @@ function isReady() {
 	return expected_responses == 0;
 }
 
+async function handleConfig(message, res) {
+	let key = res.params["-key"]?.[0];
+	if (key && key == "map") {
+		let value = {};
+		for (let i = 0; i < res.params["-value"].length - 1; i += 2) {
+			value[res.params["-value"][i]] = res.params["-value"][i + 1];
+		}
+		bot.api.config_update(attributes, message.guild.id, key, value);
+	}
+	await bot.api.emb(
+		"Konfiguration",
+		`Die Werte sind\n${bot.api.config_toStr(
+			attributes,
+			message.guild.id
+		)}`,
+		message.channel
+	);
+}
+
 async function onMessage(message) {
 	try {
 		if (bot.api.isGT(message.channel) == false) return;
@@ -46,22 +65,7 @@ async function onMessage(message) {
 		if (res == false) return;
 		switch (res.name) {
 		case "config": {
-			let key = res.params["-key"]?.[0];
-			if (key && key == "map") {
-				let value = {};
-				for (let i = 0; i < res.params["-value"].length - 1; i += 2) {
-					value[res.params["-value"][i]] = res.params["-value"][i + 1];
-				}
-				bot.api.config_update(attributes, message.guild.id, key, value);
-			}
-			await bot.api.emb(
-				"Konfiguation",
-				`Die Werte sind\n${bot.api.config_toStr(
-					attributes,
-					message.guild.id
-				)}`,
-				message.channel
-			);
+			await handleConfig(message, res);
 			break;
 		}
 		}
@@ -93,7 +97,7 @@ function onGuildMemberAdd(member) {
 				let role_id = member.guild.roles.cache.find(
 					(role) =>
 						role.name.toLowerCase() == role_name.toLowerCase() ||
-						role.name.toLowerCase() == "@" + role_name.toLowerCase()
+                    role.name.toLowerCase() == "@" + role_name.toLowerCase()
 				).id;
 				member.roles.add(role_id);
 				LOGGER.info(
