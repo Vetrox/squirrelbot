@@ -23,33 +23,35 @@ async function setupCollector(data) {
 			if (
 				bot.api.databases.functions.lookup_key_value(attributes.modulename, "messageID", orig_msgID)
 					.length > 1
-			)
+			) {
 				throw Error; //this error should be thrown somewhere else (here it is too late)
+			}
 
-			if (message_id != new_msg_id) return; //then it isn't for us
+			if (message_id != new_msg_id) { return; } //then it isn't for us
 
-			//check, if user has the required role
+			//check if user has the required role
 			let guildMember = await guild.members.fetch({
 				user: user_id,
 				cache: true,
 				force: true,
 			}); //we have to force the new request over the api. the cache may have the old user state
 
-			if (guildMember.user.bot == true) return; //a bot cannot get the role this way
+			// https://discord.js.org/#/docs/main/stable/class/User?scrollTo=bot
+			if (guildMember.user.bot) { return; } //a bot cannot get the role this way
 			let role_check = false;
 			if (required_roles.length > 0) {
 				for (let role_id of required_roles) {
 					let required_role = await guild.roles.fetch(role_id); //throws an error, if role couldn't be found
 					if (
 						(required_type == "equal" &&
-              guildMember.roles.cache.has(required_role.id)) ||
-            (required_type == "not_equal" &&
-              !guildMember.roles.cache.has(required_role.id)) ||
-            (required_type == "higher" &&
-              guildMember.roles.highest.comparePositionTo(required_role) >=
-                0) ||
-            (required_type == "lower" &&
-              guildMember.roles.highest.comparePositionTo(required_role) <= 0)
+                            guildMember.roles.cache.has(required_role.id)) ||
+                        (required_type == "not_equal" &&
+                            !guildMember.roles.cache.has(required_role.id)) ||
+                        (required_type == "higher" &&
+                            guildMember.roles.highest.comparePositionTo(required_role) >=
+                            0) ||
+                        (required_type == "lower" &&
+                            guildMember.roles.highest.comparePositionTo(required_role) <= 0)
 					) {
 						//-1 = guildmember has lower role 0 == they are the same 1 = guildmember is higher
 						role_check = true;
@@ -57,7 +59,7 @@ async function setupCollector(data) {
 					}
 				}
 			}
-			if (required_roles.length > 0 && role_check === false) {
+			if (required_roles.length > 0 && !role_check) {
 				//if there are required roles and the user has failed the check
 				LOGGER.logMessage(`${guildMember} has not passed the test.`);
 				return false;
@@ -117,37 +119,31 @@ async function onRaw(raw) {
 	}
 }
 
-async function onMessage(message) {
+async function handleAdd(message, res) {
+	await bot.api.utility.users.functions.has_permission(
+		message.author.id,
+		message.guild,
+		"MANAGE_ROLES"
+	);
+	let messageID = res.params["-messageID"][0];
 	try {
-		let res = bot.api.commands.functions.parse_message(message, attributes);
-		if (res === false) return;
+		bot.api.databases.functions.lookup_key_value(
+			attributes.modulename,
+			"messageID",
+			messageID
+		);
+		//if no error is thrown -> the message is in the database.
+		await bot.api.utility.embeds.functions.emb(
+			"Fehler",
+			"Die Datenbank beinhaltet diese Nachricht schon.",
+			message.channel
+		);
+		return;
+		//TODO solve this line
+		// eslint-disable-next-line no-empty
+	} catch (error) {
 
-		switch (res.name) {
-		case "add": {
-			await bot.api.utility.users.functions.has_permission(
-				message.author.id,
-				message.guild,
-				"MANAGE_ROLES"
-			);
-			let messageID = res.params["-messageID"][0];
-			try {
-				bot.api.databases.functions.lookup_key_value(
-					attributes.modulename,
-					"messageID",
-					messageID
-				);
-				//if no error is thrown -> the message is in the database.
-				await bot.api.utility.embeds.functions.emb(
-					"Fehler",
-					"Die Datenbank beinhaltet diese Nachricht schon.",
-					message.channel
-				);
-				return;
-				//TODO solve this line
-				// eslint-disable-next-line no-empty
-			} catch (error) {
-
-			}
+	}
 
 			let msg;
 			try {
@@ -196,27 +192,27 @@ async function onMessage(message) {
 			)
 				throw new bot.err.BotError(`Falscher wl_mode. ${required_type}`);
 
-			let guildMember = await message.guild.members.fetch({
-				user: message.author.id,
-				cache: true,
-				force: true,
-			});
-			let emoji_map = {};
-			for (let i = 0; i <= assigns_list.length - 2; i += 2) {
-				try {
-					let cached_role = message.guild.roles.cache.get(
-						assigns_list[i + 1]
-					);
-					if (!cached_role || !cached_role?.id) {
-						cached_role = message.guild.roles.cache.find(
-							(role) =>
-								role.name.toLowerCase() ==
+	let guildMember = await message.guild.members.fetch({
+		user: message.author.id,
+		cache: true,
+		force: true,
+	});
+	let emoji_map = {};
+	for (let i = 0; i <= assigns_list.length - 2; i += 2) {
+		try {
+			let cached_role = message.guild.roles.cache.get(
+				assigns_list[i + 1]
+			);
+			if (!cached_role || !cached_role?.id) {
+				cached_role = message.guild.roles.cache.find(
+					(role) =>
+						role.name.toLowerCase() ==
                     assigns_list[i + 1].toLowerCase() ||
-                  role.name.toLowerCase() ==
+                    role.name.toLowerCase() ==
                     "@" + assigns_list[i + 1].toLowerCase()
-						);
-					}
-					if (!cached_role || !cached_role?.id) throw new Error();
+				);
+			}
+			if (!cached_role || !cached_role?.id) throw new Error();
 
 					if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
 						await bot.api.utility.embeds.functions.emb(
@@ -287,99 +283,115 @@ async function onMessage(message) {
 				embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
 			}
 
-			let ret_msg = await message.channel.send(embed);
+	let ret_msg = await message.channel.send(embed);
 
-			/*react to the message with the emoji*/
-			for (let emoji in emoji_map) {
-				ret_msg.react(emoji);
-			}
+	/*react to the message with the emoji*/
+	for (let emoji in emoji_map) {
+		ret_msg.react(emoji);
+	}
 
-			let data = [
-				messageID,
-				emoji_map,
-				required_roles,
-				required_type,
-				ret_msg.id,
-				message.guild.id,
-				message.channel.id,
-			];
-			try {
-				bot.api.databases.functions.database_row_add(attributes.modulename, data);
-				setupCollector(data);
+	let data = [
+		messageID,
+		emoji_map,
+		required_roles,
+		required_type,
+		ret_msg.id,
+		message.guild.id,
+		message.channel.id,
+	];
+	try {
+		bot.api.databases.functions.database_row_add(attributes.modulename, data);
+		setupCollector(data);
+		await bot.api.utility.embeds.functions.emb(
+			"Erfolgreich",
+			"Nachricht in Datenbank gespeichert. Erwarte Reaktionen.",
+			message.channel
+		);
+	} catch (error) {
+		await bot.api.utility.embeds.functions.emb(
+			"Etwas ist schief gelaufen",
+			error,
+			message.channel
+		);
+	}
+}
+
+async function handleRemove(message, res) {
+	//remove message
+	let messageID = res.params["-messageID"][0];
+	try {
+		let i = bot.api.databases.functions.lookup_key_value(
+			attributes.modulename,
+			databases[0].keys[0],
+			messageID
+		);
+
+		if (i.length > 1) throw new Error();
+
+		//check the permission of this user. He has to have a higher role than all of the roles specified.
+		let mapped = bot.api.databases.functions.lookup_index(
+			attributes.modulename,
+			i[0],
+			databases[0].keys[1]
+		);
+		let guildMember = await message.guild.members.fetch({
+			user: message.author.id,
+			cache: true,
+			force: true,
+		});
+		for (let emoji in mapped) {
+			let cached_role = await message.guild.roles.fetch(mapped[emoji]);
+			if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
 				await bot.api.utility.embeds.functions.emb(
-					"Erfolgreich",
-					"Nachricht in Datenbank gespeichert. Erwarte Reaktionen.",
+					"Fehler",
+					"Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
 					message.channel
 				);
-			} catch (error) {
-				await bot.api.utility.embeds.functions.emb(
-					"Etwas ist schief gelaufen",
-					error,
-					message.channel
-				);
+				return;
 			}
+		}
+
+		let new_msg_id = bot.api.databases.functions.lookup_index(
+			attributes.modulename,
+			i[0],
+			databases[0].keys[4]
+		);
+		message.channel.messages
+			.fetch(new_msg_id)
+			.then((msg) => msg.delete());
+		bot.api.databases.functions.database_row_delete(attributes.modulename, i[0]);
+		await bot.api.utility.embeds.functions.emb(
+			"Erfolgreich",
+			"Nachricht erfolgreich aus der Datenbank gelöscht.",
+			message.channel
+		);
+	} catch (error) {
+		if (error instanceof bot.err.Find) {
+			await bot.api.utility.embeds.functions.emb(
+				"Fehler",
+				"Konnte die Nachricht in der Datenbank nicht finden.",
+				message.channel
+			);
+		} else {
+			throw error;
+		}
+	}
+}
+
+async function onMessage(message) {
+	try {
+		let res = bot.api.parse_message(message, attributes);
+		if (!res) {
+			return;
+		}
+
+		switch (res.name) {
+		case "add": {
+			await handleAdd(message, res);
 			break;
 		}
 		case "remove": {
-			//remove message
-			let messageID = res.params["-messageID"][0];
-			try {
-				let i = bot.api.databases.functions.lookup_key_value(
-					attributes.modulename,
-					databases[0].keys[0],
-					messageID
-				);
-
-				if (i.length > 1) throw new Error();
-
-				//check the permission of this user. He has to have a higher role than all of the roles specified.
-				let mapped = bot.api.databases.functions.lookup_index(
-					attributes.modulename,
-					i[0],
-					databases[0].keys[1]
-				);
-				let guildMember = await message.guild.members.fetch({
-					user: message.author.id,
-					cache: true,
-					force: true,
-				});
-				for (let emoji in mapped) {
-					let cached_role = await message.guild.roles.fetch(mapped[emoji]);
-					if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
-						await bot.api.utility.embeds.functions.emb(
-							"Fehler",
-							"Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
-							message.channel
-						);
-						return;
-					}
-				}
-
-				let new_msg_id = bot.api.databases.functions.lookup_index(
-					attributes.modulename,
-					i[0],
-					databases[0].keys[4]
-				);
-				message.channel.messages
-					.fetch(new_msg_id)
-					.then((msg) => msg.delete());
-				bot.api.databases.functions.database_row_delete(attributes.modulename, i[0]);
-				await bot.api.utility.embeds.functions.emb(
-					"Erfolgreich",
-					"Nachricht erfolgreich aus der Datenbank gelöscht.",
-					message.channel
-				);
-			} catch (error) {
-				if (error instanceof bot.err.Find) {
-					await bot.api.utility.embeds.functions.emb(
-						"Fehler",
-						"Konnte die Nachricht in der Datenbank nicht finden.",
-						message.channel
-					);
-				} else {
-					throw error;
-				}
-			}
+			await handleRemove(message, res);
 			break;
 		}
 		}
