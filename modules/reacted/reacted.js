@@ -83,7 +83,7 @@ async function setupCollector(data) {
 			}
 		} catch (error) {
 			//delete collector
-			if (error instanceof bot.err.BotError) {
+			if (error instanceof bot.api.errors.BotError) {
 				if (orig_msgID in collectors) {
 					//should never be executed tho
 					delete collectors[orig_msgID];
@@ -145,52 +145,52 @@ async function handleAdd(message, res) {
 
 	}
 
-			let msg;
-			try {
-				msg = await message.channel.messages.fetch(messageID);
-			} catch (error) {
-				await bot.api.utility.embeds.functions.emb(
-					"Fehler",
-					`Konnte die Nachricht mit der id ${messageID} nicht finden.`,
-					message.channel
-				);
-				return; //ensures msg has a value;
-			}
+	let msg;
+	try {
+		msg = await message.channel.messages.fetch(messageID);
+	} catch (error) {
+		await bot.api.utility.embeds.functions.emb(
+			"Fehler",
+			`Konnte die Nachricht mit der id ${messageID} nicht finden.`,
+			message.channel
+		);
+		return; //ensures msg has a value;
+	}
 
-			let assigns_list = res.params["-map"];
-			let required_roles = [];
-			for (let i in res.params["-wl"]) {
-				let rl = res.params["-wl"][i];
-				try {
-					let rl_id = message.guild.roles.cache.get(rl)?.id; //try getting it by id in case it has whitespaces.
-					if (!rl_id) {
-						rl_id = message.guild.roles.cache.find(
-							(role) =>
-								role.name.toLowerCase() == rl.toLowerCase() ||
+	let assigns_list = res.params["-map"];
+	let required_roles = [];
+	for (let i in res.params["-wl"]) {
+		let rl = res.params["-wl"][i];
+		try {
+			let rl_id = message.guild.roles.cache.get(rl)?.id; //try getting it by id in case it has whitespaces.
+			if (!rl_id) {
+				rl_id = message.guild.roles.cache.find(
+					(role) =>
+						role.name.toLowerCase() == rl.toLowerCase() ||
                   role.name.toLowerCase() == "@" + rl.toLowerCase()
-						)?.id;
-					}
-					if (!rl_id) {
-						throw new Error();
-					}
-					required_roles.push(rl_id);
-				} catch (error) {
-					await bot.api.utility.embeds.functions.emb(
-						"Fehler",
-						"Konnte die Rolle " + rl + " nicht finden.",
-						message.channel
-					);
-					return;
-				}
+				)?.id;
 			}
-			let required_type = res.params["-wl_mode"]?.[0];
-			if (
-				required_type != "equal" &&
+			if (!rl_id) {
+				throw new Error();
+			}
+			required_roles.push(rl_id);
+		} catch (error) {
+			await bot.api.utility.embeds.functions.emb(
+				"Fehler",
+				"Konnte die Rolle " + rl + " nicht finden.",
+				message.channel
+			);
+			return;
+		}
+	}
+	let required_type = res.params["-wl_mode"]?.[0];
+	if (
+		required_type != "equal" &&
           required_type != "not_equal" &&
           required_type != "lower" &&
           required_type != "higher"
-			)
-				throw new bot.err.BotError(`Falscher wl_mode. ${required_type}`);
+	)
+		throw new bot.api.errors.BotError(`Falscher wl_mode. ${required_type}`);
 
 	let guildMember = await message.guild.members.fetch({
 		user: message.author.id,
@@ -214,74 +214,74 @@ async function handleAdd(message, res) {
 			}
 			if (!cached_role || !cached_role?.id) throw new Error();
 
-					if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
-						await bot.api.utility.embeds.functions.emb(
-							"Fehler",
-							"Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
-							message.channel
-						);
-						return;
-					}
-					emoji_map[assigns_list[i]] = cached_role.id;
-				} catch (error) {
-					await bot.api.utility.embeds.functions.emb(
-						"Fehler",
-						"Konnte die Rolle " + assigns_list[i + 1] + " nicht finden.",
-						message.channel
-					);
-					return;
-				}
-			}
-			let e_r_t = "";
-			for (let emoji in emoji_map) {
-				e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
-					emoji_map[emoji]
-				)}\n`;
-			}
-			let embed = new Discord.MessageEmbed()
-				.setColor("#99ff00")
-				.setTitle("Rollenvergabe")
-				.setAuthor(
-					msg.author.username,
-					msg.author.displayAvatarURL({ size: 256 })
-				)
-				.setDescription(msg.content)
-				.addField("Emoji 🡒 Rolle", e_r_t.trim())
-				.setTimestamp()
-				.setFooter(
-					`Originale MessageID: ${messageID}`,
-					bot["client"].user.displayAvatarURL({ size: 32 })
+			if (guildMember.roles.highest.comparePositionTo(cached_role) <= 0) {
+				await bot.api.utility.embeds.functions.emb(
+					"Fehler",
+					"Du hast eine zu niedrige Rolle. Wende dich an einen Admin.",
+					message.channel
 				);
-			if (required_roles.length > 0) {
-				let req_roles_text_head = "";
-				let req_roles_text = "";
-				switch (required_type) {
-				case "equal":
-					req_roles_text_head += "Benötigte Rollen";
-					req_roles_text +=
-                "Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
-					break;
-				case "higher":
-					req_roles_text_head += "Mindest-Voraussetzung Rollen";
-					req_roles_text +=
-                "Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
-					break;
-				case "lower":
-					req_roles_text_head += "Höchst-Voraussetzung Rollen";
-					req_roles_text +=
-                "Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
-					break;
-				case "not_equal":
-					req_roles_text_head += "Ausgeschlossene Rollen";
-					req_roles_text +=
-                "Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n";
-					break;
-				}
-				for (let role of required_roles) {
-					req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
-				}
-				embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
+				return;
 			}
+			emoji_map[assigns_list[i]] = cached_role.id;
+		} catch (error) {
+			await bot.api.utility.embeds.functions.emb(
+				"Fehler",
+				"Konnte die Rolle " + assigns_list[i + 1] + " nicht finden.",
+				message.channel
+			);
+			return;
+		}
+	}
+	let e_r_t = "";
+	for (let emoji in emoji_map) {
+		e_r_t += `${emoji} 🡒 ${message.guild.roles.cache.get(
+			emoji_map[emoji]
+		)}\n`;
+	}
+	let embed = new Discord.MessageEmbed()
+		.setColor("#99ff00")
+		.setTitle("Rollenvergabe")
+		.setAuthor(
+			msg.author.username,
+			msg.author.displayAvatarURL({ size: 256 })
+		)
+		.setDescription(msg.content)
+		.addField("Emoji 🡒 Rolle", e_r_t.trim())
+		.setTimestamp()
+		.setFooter(
+			`Originale MessageID: ${messageID}`,
+			bot["client"].user.displayAvatarURL({ size: 32 })
+		);
+	if (required_roles.length > 0) {
+		let req_roles_text_head = "";
+		let req_roles_text = "";
+		switch (required_type) {
+		case "equal":
+			req_roles_text_head += "Benötigte Rollen";
+			req_roles_text +=
+                "Du brauchst mindestens eine dieser Rollen, um abstimmen zu können:\n";
+			break;
+		case "higher":
+			req_roles_text_head += "Mindest-Voraussetzung Rollen";
+			req_roles_text +=
+                "Deine höchste Rolle muss mindestens eine dieser Rollen (oder eine höhere) sein, um abstimmen zu können:\n";
+			break;
+		case "lower":
+			req_roles_text_head += "Höchst-Voraussetzung Rollen";
+			req_roles_text +=
+                "Deine höchste Rolle muss mindestens eine dieser Rollen sein (oder darunter liegen) um abstimmen zu können:\n";
+			break;
+		case "not_equal":
+			req_roles_text_head += "Ausgeschlossene Rollen";
+			req_roles_text +=
+                "Du darfst keine dieser Rollen besitzen, um abstimmen zu können:\n";
+			break;
+		}
+		for (let role of required_roles) {
+			req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
+		}
+		embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
+	}
 
 	let ret_msg = await message.channel.send(embed);
 
@@ -366,7 +366,7 @@ async function handleRemove(message, res) {
 			message.channel
 		);
 	} catch (error) {
-		if (error instanceof bot.err.Find) {
+		if (error instanceof bot.api.errors.Find) {
 			await bot.api.utility.embeds.functions.emb(
 				"Fehler",
 				"Konnte die Nachricht in der Datenbank nicht finden.",
@@ -380,7 +380,7 @@ async function handleRemove(message, res) {
 
 async function onMessage(message) {
 	try {
-		let res = bot.api.parse_message(message, attributes);
+		let res = bot.api.commands.functions.parse_message(message, attributes);
 		if (!res) {
 			return;
 		}

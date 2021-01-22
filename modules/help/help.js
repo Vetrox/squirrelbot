@@ -42,7 +42,7 @@ async function onMessage(message) {
 		}
 		}
 	} catch (error) {
-		if (error instanceof bot.err.CommandNameNotFound) {
+		if (error instanceof bot.api.errors.CommandNameNotFound) {
 			try {
 				await bot.api.utility.embeds.functions.help_module(attributes, message.channel);
 			} catch (err) {

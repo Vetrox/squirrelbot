@@ -108,7 +108,7 @@ async function delete_unused_categories_interval() {
 
 async function check_role(user, guild, cmd) {
 	if (user.bot) {
-		throw new bot.err.BotError("Der User darf kein Bot sein.");
+		throw new bot.api.errors.BotError("Der User darf kein Bot sein.");
 	}
 
 	const required_roles = bot.api.configs.functions.config_get(attributes, guild.id, cmd);
@@ -127,7 +127,7 @@ async function check_role(user, guild, cmd) {
 			return true;
 		}
 	}
-	throw new bot.err.BotError("Der User hat keine der benötigten Rollen.");
+	throw new bot.api.errors.BotError("Der User hat keine der benötigten Rollen.");
 }
 
 async function handleCreate(message, res) {
@@ -297,7 +297,7 @@ async function handleDeleteArea(message, res) {
 				"ownerID"
 			);
 		} catch (error) {
-			throw new bot.err.Find("Owner von diesem Channel", "Datenbank");
+			throw new bot.api.errors.Find("Owner von diesem Channel", "Datenbank");
 		}
 	}
 	try {
@@ -502,7 +502,7 @@ async function onMessage(message) {
 		await log_message_in_user_channels(message);
 
 		const res = bot.api.commands.functions.parse_message(message, attributes);
-		if (res == false) return;
+		if (res === false) return;
 
 		switch (res.name) {
 		case "create": {
