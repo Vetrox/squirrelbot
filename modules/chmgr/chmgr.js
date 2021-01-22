@@ -56,6 +56,7 @@ async function delete_unused_categories_interval() {
 							channel_ID
 						)[0];
 					} catch (error) {
+						// add error logging
 						return;
 					}
 
@@ -105,8 +106,10 @@ async function delete_unused_categories_interval() {
 }
 
 async function check_role(user, guild, cmd) {
-	if (user.bot == true)
+	if (user.bot) {
 		throw new bot.err.BotError("Der User darf kein Bot sein.");
+	}
+
 	const required_roles = bot.api.config_get(attributes, guild.id, cmd);
 	const guildMember = await guild.members.fetch({
 		user: user.id,
@@ -178,6 +181,7 @@ async function handleCreateArea(message, res) {
 				return;
 			}
 		} catch (error) {
+			// add error logging
 			bot.api.hErr(error, message.channel);
 			return;
 		}
@@ -350,6 +354,7 @@ async function handleInvite(message, res) {
 		const user_str = res.params["-name"][0].replace( /^\D+/g, "").slice(0, -1);
 		guildMember = await message.guild.members.fetch(user_str);
 	} catch (error) {
+		// add error logging
 		await bot.api.emb("Falscher User", "Der User ist mir nicht bekannt.");
 		return;
 	}
@@ -468,7 +473,7 @@ async function handleConfig(message, res) {
 			const role = message.guild.roles.cache.find(
 				(r) =>
 					r.name.toLowerCase() == role_name.toLowerCase() ||
-                            r.name.toLowerCase() == "@" + role_name.toLowerCase()
+                r.name.toLowerCase() == "@" + role_name.toLowerCase()
 			);
 			const permissions = { VIEW_CHANNEL: true };
 			for (const perm of role.permissions.toArray()) {
@@ -500,27 +505,27 @@ async function onMessage(message) {
 
 		switch (res.name) {
 		case "create": {
-			handleCreate(message, res);
+			await handleCreate(message, res);
 			break;
 		}
 		case "create_area": {
-			handleCreateArea(message, res);
+			await handleCreateArea(message, res);
 			break;
 		}
 		case "delete_area": {
-			handleDeleteArea(message, res);
+			await handleDeleteArea(message, res);
 			break;
 		}
 		case "invite": {
-			handleInvite(message, res);
+			await handleInvite(message, res);
 			break;
 		}
 		case "delete": {
-			handleDelete(message, res);
+			await handleDelete(message, res);
 			break;
 		}
 		case "config": {
-			handleConfig(message, res);
+			await handleConfig(message, res);
 			break;
 		}
 		}
@@ -723,7 +728,7 @@ async function log_message_in_user_channels(message) {
 		}
 	} catch (e) {
 		LOGGER.logMessage(e);
-		//supress any error here!!
+		//suppress any error here!!
 	}
 }
 
