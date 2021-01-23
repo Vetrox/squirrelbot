@@ -1,4 +1,4 @@
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * Saves a config to the matching database. eg <modulename>_config

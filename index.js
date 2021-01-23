@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const api = require("./api/summary");
+const api = require("./api/api");
 const LOGGER = require("./log.js");
 const Discord = require("discord.js");
 const fs = require("fs");

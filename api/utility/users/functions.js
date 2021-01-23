@@ -1,4 +1,4 @@
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * Checks, if the user has the admin permission and throws an error.

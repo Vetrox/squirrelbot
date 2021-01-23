@@ -1,4 +1,4 @@
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * Parses a raw string to a map containing the name {string} of the command and a params map mapping the param names

@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 const LOGGER = require.main.require("./log.js");
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * A database is an api-managed object, which holds the contents of it's corresponding database-text-file in

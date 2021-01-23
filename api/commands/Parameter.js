@@ -1,4 +1,4 @@
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * A Parameter object is used to store information about one single parameter of a command.

@@ -1,4 +1,4 @@
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * Checks a channel for matching one of the given types.

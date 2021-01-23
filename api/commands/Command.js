@@ -1,5 +1,5 @@
 const LOGGER = require.main.require("./log.js");
-const err = require.main.require("./api/errors/summary");
+const err = require.main.require("./api/errors/errors");
 
 /**
  * A Command object is used to handle user inputs and convert them to a parameter list for later use.
