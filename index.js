@@ -39,6 +39,9 @@ function readModulesFromSource() {
 	bot.modules = modules;
 }
 
+/**
+ * Hooks up all discord events with the handleEvent function.
+ */
 function initializeDiscordEventCaptures() {
 	const events = Discord.Constants.Events;
 	for(const event in events) {
@@ -53,18 +56,17 @@ function initializeDiscordEventCaptures() {
 function handleEvent(eventName, ...args) {
 	if(!(eventName in hooks)) return;
 	for(const { modulename, eventFunc } of hooks[eventName]) {
-		if (eventFunc.constructor.name === "AsyncFunction") { // when it's an async function setup .then and
-			// .catch in case something happens.
-			eventFunc(...args).then(result => {
-				if(result) { // in case modules want to use return for information sharing
+		if (eventFunc.constructor.name === "AsyncFunction") {
+			eventFunc(...args).then(resultOfEventHook => {
+				if(resultOfEventHook) {
 					LOGGER.logMessage(`Finished execution of hook ${eventName} in module ${modulename}. The result was:`);
-					LOGGER.logMessage(result);
+					LOGGER.logMessage(resultOfEventHook);
 				}
 			}).catch(error => {
 				LOGGER.logMessage(`An error occured during execution of hook ${eventName} in module ${modulename}`);
 				LOGGER.logMessage(error);
 			});
-		} else { // all module functions should be async to make function calls easier
+		} else {
 			LOGGER.logMessage(`The event-hook ${eventName} of module ${modulename} is not async and won't be called.`);
 		}
 	}
