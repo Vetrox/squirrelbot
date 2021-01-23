@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-
+const api = require("./api/api");
+const LOGGER = require("./log.js");
 const Discord = require("discord.js");
 const fs = require("fs");
-const LOGGER = require("./log.js");
-const api = require("./api.js");
-const errors = require("./errors.js");
+
 require("dotenv").config();
-const client = new Discord.Client();
 
 /**
  * Can be accessed by any module to share information
  * */
-global.bot = { client: client, running: true };
+global.bot = { client: new Discord.Client(), running: true};
 
 /**
  * Maps a discord event to a map containing the modulename and the assigned event function of that module.
@@ -45,7 +43,7 @@ function initializeDiscordEventCaptures() {
 	const events = Discord.Constants.Events;
 	for(const event in events) {
 		const eventname = events[event];
-		client.on(eventname, (...args) => handleEvent(eventname, ...args));
+		bot.client.on(eventname, (...args) => handleEvent(eventname, ...args));
 	}
 }
 
@@ -79,11 +77,10 @@ function handleEvent(eventName, ...args) {
 function initialize() {
 	LOGGER.logMessage("Initialisere ...");
 	bot.api = api;
-	bot.err = errors;
-	bot.api.initialize();
+	bot.api.functions.initialize();
 	initializeDiscordEventCaptures();
 	readModulesFromSource();
-	client.once("ready", async () => {
+	bot.client.once("ready", async () => {
 		await on_ready();
 	});
 }
@@ -112,6 +109,6 @@ async function on_ready() {
  * */
 initialize();
 LOGGER.logMessage("Einloggen");
-client.login(process.env.BOT_TOKEN).catch((error) => {
+bot.client.login(process.env.BOT_TOKEN).catch((error) => {
 	LOGGER.logMessage("Fehler beim Einloggen: " + error);
 });

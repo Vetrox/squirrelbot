@@ -1,3 +1,7 @@
+const Command = bot.api.commands.Command;
+const Parameter = bot.api.commands.Parameter;
+const prefix = bot.api.constants.prefix;
+
 const attributes = {
 	modulename: "invite_manager",
 	description:
@@ -6,30 +10,30 @@ const attributes = {
 		map: {},
 	},
 	commands: [
-		new bot.api.Command(
+		new Command(
 			"config",
 			"Lässt dich Werte Konfigurieren. Zum anzeigen der jetzigen und möglichen Schlüssel keine Parameter angeben.",
 			[
-				new bot.api.Parameter(
+				new Parameter(
 					"-key",
 					"optional",
 					["-value"],
 					"Der Schlüssel. (momentan nur 'map'",
-					(nr) => nr == 1,
+					(nr) => nr === 1,
 					[],
 					false
 				),
-				new bot.api.Parameter(
+				new Parameter(
 					"-value",
 					"optional",
 					["-key"],
 					"Rollen-Link-Paare. Beispiel: -value 7z43i2e Rolle1",
-					(nr) => nr >= 2 && nr % 2 == 0,
+					(nr) => nr >= 2 && nr % 2 === 0,
 					[],
 					false
 				),
 			],
-			[`${bot.api.prefix}invite_manager config`, `${bot.api.prefix}invite_manager config -key map -value 7z43i2e Rolle1`]
+			[`${prefix}invite_manager config`, `${prefix}invite_manager config -key map -value 7z43i2e Rolle1`]
 		),
 	],
 };
