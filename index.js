@@ -1,18 +1,15 @@
 #!/usr/bin/env node
-
+const api = require("./api/api");
+const LOGGER = require("./log.js");
 const Discord = require("discord.js");
 const fs = require("fs");
-const LOGGER = require("./log.js");
-const api = require("./api.js");
-const errors = require("./errors.js");
+
 require("dotenv").config();
-const client = new Discord.Client();
 
 /**
  * Can be accessed by any module to share information
  * */
-global.bot = { client: client, running: true };
-
+global.bot = { client: new Discord.Client(), running: true};
 
 /**
  * Read all modules from ./modules
@@ -23,7 +20,7 @@ function readModulesFromSource() {
 	for (let file of files) {
 		const mod = require("./modules/" + file + "/" + file);
 		for (let event in mod.hooks) {
-			client.on(event, mod.hooks[event]);
+			bot.client.on(event, mod.hooks[event]);
 		}
 		modules.push(mod);
 	}
@@ -36,10 +33,9 @@ function readModulesFromSource() {
 function initialize() {
 	LOGGER.logMessage("Initialisere ...");
 	bot.api = api;
-	bot.err = errors;
-	bot.api.initialize();
+	bot.api.functions.initialize();
 	readModulesFromSource();
-	client.once("ready", async () => {
+	bot.client.once("ready", async () => {
 		await on_ready();
 	});
 }
@@ -68,6 +64,6 @@ async function on_ready() {
  * */
 initialize();
 LOGGER.logMessage("Einloggen");
-client.login(process.env.BOT_TOKEN).catch((error) => {
+bot.client.login(process.env.BOT_TOKEN).catch((error) => {
 	LOGGER.logMessage("Fehler beim Einloggen: " + error);
 });

@@ -1,5 +1,5 @@
-const { attributes }  = require("./attributes.js");
-const LOGGER = bot.api.log;
+const { attributes } = require("./attributes.js");
+const LOGGER = require.main.require("./log.js");
 
 
 async function initialize() {
@@ -9,7 +9,7 @@ async function initialize() {
 let invites = {};
 let expected_responses = 0;
 async function fetchInvites() {
-	if (bot.client.guilds.cache.keyArray().length == 0) {
+	if (bot.client.guilds.cache.keyArray().length === 0) {
 		LOGGER.logMessage(
 			"Vielleicht ist das nicht so schlimm, aber es gibt keine guilds im Cache"
 		);
@@ -31,26 +31,26 @@ async function fetchInvites() {
 			}
 		);
 	});
-	while (isReady() == false) await bot.api.wait(10);
+	while (isReady() === false) await bot.api.constants.wait(10);
 	LOGGER.logMessage("Fertig.");
 }
 
 function isReady() {
-	return expected_responses == 0;
+	return expected_responses === 0;
 }
 
 async function handleConfig(message, res) {
 	let key = res.params["-key"]?.[0];
-	if (key && key == "map") {
+	if (key && key === "map") {
 		let value = {};
 		for (let i = 0; i < res.params["-value"].length - 1; i += 2) {
 			value[res.params["-value"][i]] = res.params["-value"][i + 1];
 		}
-		bot.api.config_update(attributes, message.guild.id, key, value);
+		bot.api.configs.functions.config_update(attributes, message.guild.id, key, value);
 	}
-	await bot.api.emb(
+	await bot.api.utility.embeds.functions.emb(
 		"Konfiguration",
-		`Die Werte sind\n${bot.api.config_toStr(
+		`Die Werte sind\n${bot.api.configs.functions.config_toStr(
 			attributes,
 			message.guild.id
 		)}`,
@@ -60,9 +60,9 @@ async function handleConfig(message, res) {
 
 async function onMessage(message) {
 	try {
-		if (bot.api.isGT(message.channel) == false) return;
-		let res = bot.api.parse_message(message, attributes);
-		if (res == false) return;
+		if (bot.api.utility.channels.functions.isGT(message.channel) === false) return;
+		let res = bot.api.commands.functions.parse_message(message, attributes);
+		if (res === false) return;
 		switch (res.name) {
 		case "config": {
 			await handleConfig(message, res);
@@ -70,7 +70,7 @@ async function onMessage(message) {
 		}
 		}
 	} catch (error) {
-		bot.api.hErr(error, message.channel);
+		bot.api.functions.hErr(error, message.channel);
 	}
 }
 
@@ -88,7 +88,7 @@ function onGuildMemberAdd(member) {
 				LOGGER.logMessage(
 					`${member.user.tag} joined dem Server und nutzt den Invite-Code ${invite.code} von ${invite.inviter.tag}. Invite-Code wurde bereits ${invite.uses} genutzt.`
 				);
-				let cfg = bot.api.config_load(attributes, member.guild.id).map;
+				let cfg = bot.api.configs.functions.config_load(attributes, member.guild.id).map;
 				if (!(invite.code in cfg)) {
 					LOGGER.logMessage("Kein passender Einladungscode");
 					return;
@@ -96,8 +96,8 @@ function onGuildMemberAdd(member) {
 				let role_name = cfg[invite.code];
 				let role_id = member.guild.roles.cache.find(
 					(role) =>
-						role.name.toLowerCase() == role_name.toLowerCase() ||
-                    role.name.toLowerCase() == "@" + role_name.toLowerCase()
+						role.name.toLowerCase() === role_name.toLowerCase() ||
+						role.name.toLowerCase() === "@" + role_name.toLowerCase()
 				).id;
 				member.roles.add(role_id);
 				LOGGER.logMessage(
