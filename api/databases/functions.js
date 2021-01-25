@@ -2,7 +2,7 @@ const Database = require("./Database");
 const fs = require("fs");
 
 const err = require.main.require("./api/errors/errors");
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("database");
 
 /**
  * Maps database names to database objects
@@ -21,7 +21,7 @@ let possible_databases = [];
 
 function initialize() {
 	if (!fs.existsSync("./data")) {
-		LOGGER.logMessage("Erstelle Datenbank-Ordner...");
+		LOGGER.info("Erstelle Datenbank-Ordner...");
 		fs.mkdirSync("./data");
 	}
 	let files = fs.readdirSync("./data");
@@ -46,7 +46,7 @@ async function save_databases_wait() {
 	while (n > 0) {
 		await bot.api.constants.wait(100);
 	}
-	LOGGER.logMessage("Speichere alle Datenbanken.");
+	LOGGER.info("Speichere alle Datenbanken.");
 }
 
 /**
@@ -104,7 +104,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			LOGGER.logMessage("KRITISCHER DATENBANK ERROR!!! " + database);
+			LOGGER.error("KRITISCHER DATENBANK ERROR!!! " + database);
 			process.exit();
 		}
 	}
@@ -219,7 +219,7 @@ function cache_dbs(database) {
  * @param database the database name
  */
 function load_database(database) {
-	LOGGER.logMessage(`Lade Datenbank ${database}`);
+	LOGGER.info(`Lade Datenbank ${database}`);
 	let fi = fs.readFileSync("./data/" + database, "utf8");
 	let rows = fi.trim().split("\n");
 	let keys = rows[0].trim().split(" ");
@@ -245,7 +245,7 @@ function create_database(database, keys) {
 	if (database in databases) {
 		throw new err.Dublication(database);
 	} else {
-		LOGGER.logMessage("Creating database " + database);
+		LOGGER.info("Creating database " + database);
 		possible_databases.push(database);
 		databases[database] = new Database(database, keys, []);
 		databases[database].setModAndSave();
