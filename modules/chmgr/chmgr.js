@@ -1,6 +1,6 @@
 const { attributes } = require("./attributes.js");
 const { databases } = require("./database.js");
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("chmgr");
 
 
 function initialize() {

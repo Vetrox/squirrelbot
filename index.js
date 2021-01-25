@@ -28,7 +28,7 @@ function readModulesFromSource() {
 		const modname = mod.attributes.modulename;
 		for (const e in mod.hooks) {
 			if(mod.hooks[e].constructor.name !== "AsyncFunction") {
-				LOGGER.logMessage(`Das Event ${e}/${mod.hooks[e].name} vom Modul ${modname} ist keine asynchrone
+				LOGGER.info(`Das Event ${e}/${mod.hooks[e].name} vom Modul ${modname} ist keine asynchrone
 				 Funktion und wird nicht ausgeführt werden.`);
 			}
 			if(!hooks[e] || hooks[e]?.length === 0) hooks[e] = [];
@@ -59,15 +59,15 @@ function handleEvent(eventName, ...args) {
 		if (eventFunc.constructor.name === "AsyncFunction") {
 			eventFunc(...args).then(resultOfEventHook => {
 				if(resultOfEventHook) {
-					LOGGER.logMessage(`Finished execution of hook ${eventName} in module ${modulename}. The result was:`);
-					LOGGER.logMessage(resultOfEventHook);
+					LOGGER.info(`Finished execution of hook ${eventName} in module ${modulename}. The result was:`);
+					LOGGER.info(resultOfEventHook);
 				}
 			}).catch(error => {
-				LOGGER.logMessage(`An error occured during execution of hook ${eventName} in module ${modulename}`);
-				LOGGER.logMessage(error);
+				LOGGER.info(`An error occured during execution of hook ${eventName} in module ${modulename}`);
+				LOGGER.info(error);
 			});
 		} else {
-			LOGGER.logMessage(`The event-hook ${eventName} of module ${modulename} is not async and won't be called.`);
+			LOGGER.info(`The event-hook ${eventName} of module ${modulename} is not async and won't be called.`);
 		}
 	}
 }

@@ -1,4 +1,4 @@
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("api");
 
 /**
  * Initializes the whole api complex. It does the following:
@@ -22,12 +22,12 @@ function initialize() {
  */
 async function shutdown() {
 	if (!bot.running || bot.running === false) return;
-	LOGGER.logMessage("Shutdown vorbereiten.");
+	LOGGER.info("Shutdown vorbereiten.");
 
 	await bot.api.databases.functions.save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
-	LOGGER.logMessage("Bye...");
+	LOGGER.info("Bye...");
 	process.exit();
 }
 
@@ -40,8 +40,8 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		LOGGER.logMessage(error);
-		LOGGER.logMessage(error.stack);
+		LOGGER.info(error);
+		LOGGER.info(error.stack);
 		shutdown();
 	});
 }
@@ -56,11 +56,11 @@ function hookexit() {
  */
 async function hErr(e, channel) {
 	try {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
-		LOGGER.logMessage(e.stack);
+		LOGGER.info(`Ein Fehler ist aufgetreten ${e}`);
+		LOGGER.info(e.stack);
 		await bot.api.utility.embeds.functions.emb("Ein Fehler ist aufgetreten", e.toString(), channel);
 	} catch (error) {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.info(`Ein Fehler ist aufgetreten ${error}`);
 	}
 }
 

@@ -1,5 +1,5 @@
 const { attributes } = require("./attributes.js");
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("invite_manager");
 
 
 async function initialize() {

@@ -1,4 +1,4 @@
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("api");
 const err = require.main.require("./api/errors/errors");
 
 /**
@@ -82,7 +82,7 @@ module.exports = class Command {
 				}
 				for (let dep_name of param.dependent_params) {
 					if (!(dep_name in params)) {
-						LOGGER.logMessage(
+						LOGGER.info(
 							dep_name +
 							" " +
 							(dep_name in this.par_desc_map) +
