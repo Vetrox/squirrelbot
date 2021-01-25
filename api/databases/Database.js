@@ -120,7 +120,7 @@ module.exports = class Database {
 				}
 			} catch (error) {
 				data_valid = false;
-				LOGGER.error(error.message);
+				LOGGER.error(error.stack);
 			}
 		});
 		if (!data_valid) throw new err.InvalidData();
@@ -278,10 +278,9 @@ module.exports = class Database {
 			}
 		}
 
-		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
-			if (err) {
-				LOGGER.error(err);
-				LOGGER.error(err.stack);
+		fs.writeFile("./data/" + this.name, write_data, "utf8", (error) => {
+			if (error) {
+				LOGGER.error(error.stack);
 			} else {
 				LOGGER.info(`Die Datenbank ${this.name} wurde gespeichert!`);
 				try {

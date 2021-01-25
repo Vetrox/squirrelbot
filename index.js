@@ -64,7 +64,7 @@ function handleEvent(eventName, ...args) {
 				}
 			}).catch(error => {
 				LOGGER.error(`Während des Ausführens vom Hook ${eventName} im Module ${modulename} ist ein Fehler aufgetreten`);
-				LOGGER.error(error);
+				LOGGER.error(error.stack);
 			});
 		} else {
 			LOGGER.warn(`Der event-hook ${eventName} vom Module ${modulename} ist nicht async und wird nicht aufgerufen`);
@@ -97,9 +97,8 @@ async function on_ready() {
 			await mod.initialize();
 		} catch (error) {
 			LOGGER.error(
-				`Error beim Initialiseren Module: ${mod.attributes.modulename}\n${error}`
-			);
-			LOGGER.info(error.stack);
+				`Error beim Initialiseren Module: ${mod.attributes.modulename}`);
+			LOGGER.error(error.stack);
 			process.exit();
 		}
 	}
@@ -112,5 +111,6 @@ async function on_ready() {
 initialize();
 LOGGER.info("Einloggen");
 bot.client.login(process.env.BOT_TOKEN).catch((error) => {
-	LOGGER.error("Fehler beim Einloggen: " + error);
+	LOGGER.error("Fehler beim Einloggen!");
+	LOGGER.error(error.stack);
 });

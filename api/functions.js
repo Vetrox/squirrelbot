@@ -40,7 +40,6 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		LOGGER.error(error);
 		LOGGER.error(error.stack);
 		shutdown();
 	});
@@ -49,18 +48,17 @@ function hookexit() {
 /**
  * Handles an occurring error by logging it into the channel and logs.
  *
- * @param e {Error}
+ * @param error {Error}
  * @param channel {module:"discord.js".TextChannel}
  *
  * @returns {Promise<void>} nothing
  */
-async function hErr(e, channel) {
+async function hErr(error, channel) {
 	try {
-		LOGGER.error(`Ein Fehler ist aufgetreten ${e}`);
-		LOGGER.error(e.stack);
-		await bot.api.utility.embeds.functions.emb("Ein Fehler ist aufgetreten", e.toString(), channel);
+		LOGGER.error(error.stack);
+		await bot.api.utility.embeds.funsctions.emb("Ein Fehler ist aufgetreten", error.toString(), channel);
 	} catch (error) {
-		LOGGER.error(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.error(error.stack);
 	}
 }
 

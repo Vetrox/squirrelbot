@@ -41,7 +41,8 @@ async function delete_unused_categories_interval() {
 						)?.createdAt;
 						//TODO solve this line
 						// eslint-disable-next-line no-empty
-					} catch (error) {}
+					} catch (e) {
+					}
 
 
 					let compTime = lastMsgDate?.getTime() ?? channel.createdAt.getTime();
@@ -57,7 +58,7 @@ async function delete_unused_categories_interval() {
 							channel_ID
 						)[0];
 					} catch (error) {
-						LOGGER.error(error);
+						LOGGER.error(error.stack);
 						return;
 					}
 
@@ -84,20 +85,23 @@ async function delete_unused_categories_interval() {
 						);
 					} catch (error) {
 						LOGGER.error(
-							"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: " + error
+							"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten!"
 						);
+						LOGGER.error(error.stack);
 					}
 				});
 			} catch (error) {
 				LOGGER.error(
 					"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: " + error
 				);
+				LOGGER.error(error.stack);
 			}
 		});
 	} catch (error) {
 		LOGGER.error(
-			"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: " + error
+			"Es ist ein Fehler beim Löschen von inaktiven Channels aufgetreten: "
 		);
+		LOGGER.error(error.stack);
 	}
 
 	setTimeout(delete_unused_categories_interval, 5 * 60 * 1000); // every 5 mins
@@ -558,42 +562,44 @@ async function deleteArea_1(guild, ownerID) {
 				const manage_type = bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type");
 
 				if(manage_type == "role") {
-					try{
+					try {
 						await channel.permissionOverwrites.find(
 							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
 						).delete();
-					}catch(error) {
+					} catch(error) {
 						LOGGER.error(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
+						LOGGER.error(error.stack);
 					}
 				}
-				try{
+				try {
 					await channel.delete();
-				}catch(error) {
+				} catch(error) {
 					LOGGER.error(`Konnte den channel ${channel_ID}:${channel.name} nicht löschen.`);
+					LOGGER.error(error.stack);
 				}
 				del_channels.push(channel_ID);
-			}catch (error) {
+			} catch (error) {
 				LOGGER.error(`Fehler beim Löschen von channels von ${ownerID} auf Guild ${guild.id}:${guild.name}:`);
-				LOGGER.error(error);
+				LOGGER.error(error.stack);
 			}
 		}
 
-	}catch (error) {
+	} catch (error) {
 		LOGGER.error(`Konnte keinen Datenbank Eintrag zu ${ownerID} finden. Oder ein anderer Fehler ist aufgetreten`);
-		LOGGER.error(error);
+		LOGGER.error(error.stack);
 	}
 
 	for(const channel_ID of del_channels) {
-		try{
+		try {
 			const index = bot.api.databases.functions.lookup_key_value(
 				databases[0].name,
 				"channelID",
 				channel_ID,
 			)[0];
 			bot.api.databases.functions.database_row_delete(databases[0].name, index);
-		}catch(error){
+		} catch(error) {
 			LOGGER.error(`Fehler beim Auffinden von ${channel_ID} in der Datenbank.`);
-			LOGGER.error(error);
+			LOGGER.error(error.stack);
 		}
 	}
 	LOGGER.info(`${del_channels.length} channel wurden von ${ownerID} gelöscht.`);
@@ -646,12 +652,15 @@ async function log_message_in_user_channels(message) {
 					channel
 				); // cleanContent gets the message without mentions
 			}
-		} catch (e) {
+		} catch (error) {
+			//TODO
 			// find error. doesn't matter at all
+			LOGGER.warn(error.stack);
 		}
-	} catch (e) {
-		LOGGER.error(e);
-		//suppress any error here!!
+	} catch (error) {
+		//TODO
+		// suppress any error here!!
+		LOGGER.warn(error.stack);
 	}
 }
 

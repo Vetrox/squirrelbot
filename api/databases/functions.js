@@ -104,7 +104,7 @@ function database_create_if_not_exists(database, keys) {
 		try {
 			databases[database].validate_keys(keys);
 		} catch {
-			LOGGER.error("KRITISCHER DATENBANK ERROR!!! " + database);
+			LOGGER.error("Kritischer Datenbankfehler! Datenbankfehler in " + database);
 			process.exit();
 		}
 	}

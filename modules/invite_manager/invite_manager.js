@@ -104,7 +104,6 @@ async function onGuildMemberAdd(member) {
 					`Gab dem Benutzer ${member.user.tag} die Rolle ${role_name}.`
 				);
 			} catch (error) {
-				LOGGER.error(error);
 				LOGGER.error(error.stack);
 			}
 		},
@@ -117,7 +116,7 @@ async function onGuildMemberAdd(member) {
 		LOGGER.error(
 			"Es ist ein Fehler im invite_manager onGuildMemberAdd aufgetreten."
 		);
-		LOGGER.error(error);
+		LOGGER.error(error.stack);
 	}
 }
 module.exports = {
