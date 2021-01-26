@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const { attributes } = require("./attributes.js");
 const { databases } = require("./database.js");
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("reacted");
 
 let collectors = {}; //messageID : lambda(args)
 
@@ -61,7 +61,7 @@ async function setupCollector(data) {
 			}
 			if (required_roles.length > 0 && !role_check) {
 				//if there are required roles and the user has failed the check
-				LOGGER.logMessage(`${guildMember} has not passed the test.`);
+				LOGGER.warn(`${guildMember} has not passed the test.`);
 				return false;
 			}
 			let assigned_role_id;
@@ -85,15 +85,14 @@ async function setupCollector(data) {
 			//delete collector
 			if (error instanceof bot.api.errors.BotError) {
 				if (orig_msgID in collectors) {
+					//TODO When the code should never be executed? Why it exists?
 					//should never be executed tho
 					delete collectors[orig_msgID];
-					LOGGER.logMessage("Dieser Code sollte unerreichbar sein?!?!");
+					LOGGER.error("Dieser Code sollte unerreichbar sein?!?!");
 					return false;
 				}
 			} else {
-				LOGGER.logMessage(error.name);
-				LOGGER.logMessage(error.message);
-				LOGGER.logMessage(error.toString());
+				LOGGER.error(error.stack);
 				throw error;
 			}
 		}
@@ -115,7 +114,7 @@ async function onRaw(raw) {
 			await collectors[orig_msgID](raw.t, guild, user_id, emoji, message_id);
 		}
 	} catch (error) {
-		LOGGER.logMessage(`Error: ${error}`);
+		LOGGER.error(error.stack);
 	}
 }
 

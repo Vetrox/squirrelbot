@@ -34,7 +34,7 @@ async function emb(title, description, channel) {
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		bot.LOGGER.logMessage(`Error: ${error}`);
+		bot.LOGGER.info(`Error: ${error}`);
 	}
 }
 

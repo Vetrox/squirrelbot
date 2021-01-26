@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const api = require("./api/api");
-const LOGGER = require("./log.js");
+const LOGGER = require("./log.js")("index");
 const Discord = require("discord.js");
 const fs = require("fs");
 
@@ -28,7 +28,7 @@ function readModulesFromSource() {
 		const modname = mod.attributes.modulename;
 		for (const e in mod.hooks) {
 			if(mod.hooks[e].constructor.name !== "AsyncFunction") {
-				LOGGER.logMessage(`Das Event ${e}/${mod.hooks[e].name} vom Modul ${modname} ist keine asynchrone
+				LOGGER.error(`Das Event ${e}/${mod.hooks[e].name} vom Modul ${modname} ist keine asynchrone
 				 Funktion und wird nicht ausgeführt werden.`);
 			}
 			if(!hooks[e] || hooks[e]?.length === 0) hooks[e] = [];
@@ -59,15 +59,15 @@ function handleEvent(eventName, ...args) {
 		if (eventFunc.constructor.name === "AsyncFunction") {
 			eventFunc(...args).then(resultOfEventHook => {
 				if(resultOfEventHook) {
-					LOGGER.logMessage(`Finished execution of hook ${eventName} in module ${modulename}. The result was:`);
-					LOGGER.logMessage(resultOfEventHook);
+					LOGGER.info(`Abrufen von HOOK ${eventName} in module ${modulename}:`);
+					LOGGER.info(resultOfEventHook);
 				}
 			}).catch(error => {
-				LOGGER.logMessage(`An error occured during execution of hook ${eventName} in module ${modulename}`);
-				LOGGER.logMessage(error);
+				LOGGER.error(`Während des Ausführens vom Hook ${eventName} im Module ${modulename} ist ein Fehler aufgetreten`);
+				LOGGER.error(error.stack);
 			});
 		} else {
-			LOGGER.logMessage(`The event-hook ${eventName} of module ${modulename} is not async and won't be called.`);
+			LOGGER.warn(`Der event-hook ${eventName} vom Module ${modulename} ist nicht async und wird nicht aufgerufen`);
 		}
 	}
 }
@@ -77,7 +77,7 @@ function handleEvent(eventName, ...args) {
  * Initialize the application
  * */
 function initialize() {
-	LOGGER.logMessage("Initialisere ...");
+	LOGGER.info("Initialisere ...");
 	bot.api = api;
 	bot.api.functions.initialize();
 	initializeDiscordEventCaptures();
@@ -91,26 +91,26 @@ function initialize() {
  * Start the application
  * */
 async function on_ready() {
-	LOGGER.logMessage("Discordjs ready!");
+	LOGGER.info("Discordjs ready!");
 	for (const mod of bot["modules"]) {
 		try {
 			await mod.initialize();
 		} catch (error) {
-			LOGGER.logMessage(
-				`Error beim Initialiseren Module: ${mod.attributes.modulename}\n${error}`
-			);
-			LOGGER.logMessage(error.stack);
+			LOGGER.error(
+				`Error beim Initialiseren Module: ${mod.attributes.modulename}`);
+			LOGGER.error(error.stack);
 			process.exit();
 		}
 	}
-	LOGGER.logMessage("Bot bereit!");
+	LOGGER.info("Bot bereit!");
 }
 
 /**
  * Execute the application
  * */
 initialize();
-LOGGER.logMessage("Einloggen");
+LOGGER.info("Einloggen");
 bot.client.login(process.env.BOT_TOKEN).catch((error) => {
-	LOGGER.logMessage("Fehler beim Einloggen: " + error);
+	LOGGER.error("Fehler beim Einloggen!");
+	LOGGER.error(error.stack);
 });

@@ -1,4 +1,4 @@
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("api");
 
 /**
  * Initializes the whole api complex. It does the following:
@@ -22,12 +22,12 @@ function initialize() {
  */
 async function shutdown() {
 	if (!bot.running || bot.running === false) return;
-	LOGGER.logMessage("Shutdown vorbereiten.");
+	LOGGER.info("Shutdown vorbereiten.");
 
 	await bot.api.databases.functions.save_databases_wait();
 	bot.client.destroy();
 	bot.running = false; //not used at this time but hey
-	LOGGER.logMessage("Bye...");
+	LOGGER.info("Bye...");
 	process.exit();
 }
 
@@ -40,8 +40,7 @@ function hookexit() {
 	process.on("SIGUSR1", shutdown);
 	process.on("SIGUSR2", shutdown);
 	process.on("uncaughtException", (error) => {
-		LOGGER.logMessage(error);
-		LOGGER.logMessage(error.stack);
+		LOGGER.error(error.stack);
 		shutdown();
 	});
 }
@@ -49,18 +48,17 @@ function hookexit() {
 /**
  * Handles an occurring error by logging it into the channel and logs.
  *
- * @param e {Error}
+ * @param error {Error}
  * @param channel {module:"discord.js".TextChannel}
  *
  * @returns {Promise<void>} nothing
  */
-async function hErr(e, channel) {
+async function hErr(error, channel) {
 	try {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${e}`);
-		LOGGER.logMessage(e.stack);
-		await bot.api.utility.embeds.functions.emb("Ein Fehler ist aufgetreten", e.toString(), channel);
+		LOGGER.error(error.stack);
+		await bot.api.utility.embeds.funsctions.emb("Ein Fehler ist aufgetreten", error.toString(), channel);
 	} catch (error) {
-		LOGGER.logMessage(`Ein Fehler ist aufgetreten ${error}`);
+		LOGGER.error(error.stack);
 	}
 }
 

@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const LOGGER = require.main.require("./log.js");
+const LOGGER = require.main.require("./log.js")("database");
 const err = require.main.require("./api/errors/errors");
 
 /**
@@ -57,7 +57,7 @@ module.exports = class Database {
 	 * @see Database
 	 */
 	indexing() {
-		LOGGER.logMessage(`Indexing Datenbank ${this.name}`);
+		LOGGER.info(`Indexing Datenbank ${this.name}`);
 		this.index = new Array(this.keys.length);
 		this.index.fill({});
 		for (let ind = 0; ind < this.data.length; ind++) {
@@ -120,7 +120,7 @@ module.exports = class Database {
 				}
 			} catch (error) {
 				data_valid = false;
-				LOGGER.logMessage(error.message);
+				LOGGER.error(error.stack);
 			}
 		});
 		if (!data_valid) throw new err.InvalidData();
@@ -263,7 +263,7 @@ module.exports = class Database {
 	 * @returns {Promise<void>} nothing.
 	 */
 	async write_data(callback) {
-		LOGGER.logMessage("Starte Speichern der Datenbank " + this.name);
+		LOGGER.info("Starte Speichern der Datenbank " + this.name);
 		while (this.is_saving === true) await bot.api.constants.wait(10); //wait for other async task
 		this.is_saving = true;
 		let cached_data = this.data;
@@ -278,12 +278,11 @@ module.exports = class Database {
 			}
 		}
 
-		fs.writeFile("./data/" + this.name, write_data, "utf8", (err) => {
-			if (err) {
-				LOGGER.logMessage(err);
-				LOGGER.logMessage(err.stack);
+		fs.writeFile("./data/" + this.name, write_data, "utf8", (error) => {
+			if (error) {
+				LOGGER.error(error.stack);
 			} else {
-				LOGGER.logMessage(`Die Datenbank ${this.name} wurde gespeichert!`);
+				LOGGER.info(`Die Datenbank ${this.name} wurde gespeichert!`);
 				try {
 					typeof callback === "function" && callback();
 					//TODO solve this line
