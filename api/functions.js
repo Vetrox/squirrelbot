@@ -56,7 +56,7 @@ function hookexit() {
 async function hErr(error, channel) {
 	try {
 		LOGGER.error(error.stack);
-		await bot.api.utility.embeds.funsctions.emb("Ein Fehler ist aufgetreten", error.toString(), channel);
+		await bot.api.utility.embeds.functions.emb("Ein Fehler ist aufgetreten", error.toString(), channel);
 	} catch (error) {
 		LOGGER.error(error.stack);
 	}
