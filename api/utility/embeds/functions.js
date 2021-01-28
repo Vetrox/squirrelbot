@@ -1,5 +1,5 @@
 const Discord = require("discord.js");
-
+const LOGGER = require.main.require("./log.js")("embeds");
 /**
  * Creates an embed with title and description.
  *
@@ -34,7 +34,7 @@ async function emb(title, description, channel) {
 	try {
 		await channel.send(create_embed(title, description));
 	} catch (error) {
-		bot.LOGGER.info(`Error: ${error}`);
+		LOGGER.error(`Error: ${error}`);
 	}
 }
 

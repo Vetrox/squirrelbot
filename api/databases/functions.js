@@ -170,7 +170,9 @@ function database_row_change(database, data_index, key, new_value) {
  * @returns {number[]} an array of the matching row numbers
  */
 function lookup_key_value(database, key, value) {
-	//what happens, when multiple modules acess the same database at the same time?!?!?
+	//what happens, when multiple modules access the same database at the same time?!?!?
+	//-> it's undefined behaviour. Each module should only keep track of it's own database.
+	// but just for clearance: Is it even possible to access this at the same time? JS works on one thread only...
 	prepare_request(database);
 	return databases[database].lookup_key_value(key, value);
 }
@@ -227,7 +229,7 @@ function load_database(database) {
 	for (let i = 1; i <= rows.length - keys.length; i += keys.length) {
 		let cache = [];
 		for (let i_k = 0; i_k < keys.length; i_k++) {
-			let row_index = i + i_k;
+			const row_index = i + i_k;
 			cache.push(JSON.parse(rows[row_index]));
 		}
 		data.push(cache);

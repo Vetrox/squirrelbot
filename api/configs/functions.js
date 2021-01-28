@@ -1,4 +1,5 @@
 const err = require.main.require("./api/errors/errors");
+const LOGGER = require.main.require("./log.js")("configs");
 
 /**
  * Saves a config to the matching database. eg <modulename>_config
@@ -49,24 +50,25 @@ function config_update(mod_attributes, guild_ID, key, value) {
 /**
  * Loads a config and returns the config map.
  *
- * @param mod_attributes {{default_config: {}, modulename: string}}
- * @param guild_ID {string}
+ * @param modAttributes {{default_config: {}, modulename: string}}
+ * @param guildID {string}
  *
  * @returns {{}}
  */
-function config_load(mod_attributes, guild_ID) {
-	const dbs = mod_attributes.modulename + "_config";
-	let config = mod_attributes.default_config;
+function config_load(modAttributes, guildID) {
+	const dbs = modAttributes.modulename + "_config";
+	let config = modAttributes.default_config;
 	bot.api.databases.functions.database_create_if_not_exists(dbs, ["guild", "key_value"]);
 	try {
-		let i = bot.api.databases.functions.lookup_key_value(dbs, "guild", guild_ID);
-		if (i.length > 1) throw new err.BotError("Zu viele Einträge.");
+		let i = bot.api.databases.functions.lookup_key_value(dbs, "guild", guildID);
+		if (i.length > 1) {
+			LOGGER.error(`Zu viele Einträge in Konfigurationsdatenbank ${dbs} für guild ${guildID}. Standarddatenbank wird zurückgegeben.`);
+			return config;
+		}
 		config = bot.api.databases.functions.lookup_index(dbs, i[0], "key_value");
-		//TODO solve this line
-		// eslint-disable-next-line no-empty
 	} catch (e) {
-		// if it crashes, there is a database with this key.
-
+		/* if it crashes, there is a database with this key. */
+		LOGGER.info(`Standardinitialisierung der Config-Datei: ${dbs} für guild ${guildID}`);
 	}
 	return config;
 }
