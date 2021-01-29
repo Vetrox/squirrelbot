@@ -28,9 +28,9 @@ async function delete_unused_categories_interval() {
 				guild.channels.cache.each(async (channel, channel_ID) => {
 					if (
 						channel.deleted ||
-                        channel.type != "text" ||
+                        channel.type !== "text" ||
                         !channel.viewable ||
-                        channel.parentID == undefined ||
+                        channel.parentID === undefined ||
                         !channel.deletable
 					)
 						return;
@@ -121,8 +121,8 @@ async function check_role(user, guild, cmd) {
 	for (const role_name of required_roles) {
 		const required_role = guild.roles.cache.find(
 			(role) =>
-				role.name.toLowerCase() == role_name.toLowerCase() ||
-            role.name.toLowerCase() == "@" + role_name.toLowerCase()
+				role.name.toLowerCase() === role_name.toLowerCase() ||
+            role.name.toLowerCase() === "@" + role_name.toLowerCase()
 		);
 		if (guildMember.roles.highest.comparePositionTo(required_role) >= 0) {
 			return true;
@@ -171,11 +171,11 @@ async function handleCreateArea(message, res) {
 					index,
 					"guildID"
 				);
-				if(guild_ID == message.guild.id) amount++;
+				if(guild_ID === message.guild.id) amount++;
 			}
 
 			if(amount >= 1) {
-				await bot.api.emb(
+				await bot.api.utility.embeds.functions.emb(
 					"Fehler: Konnte keine Kategorie erstellen",
 					"Du hast bereits eine Kategorie für dich. :P",
 					message.channel
@@ -184,7 +184,7 @@ async function handleCreateArea(message, res) {
 			}
 		} catch (error) {
 			// add error logging
-			bot.api.hErr(error, message.channel);
+			bot.api.functions.hErr(error, message.channel);
 			return;
 		}
 		//TODO solve this line
@@ -221,7 +221,7 @@ async function handleCreateArea(message, res) {
 	});
 	const access_type = res.params["-access_type"][0];
 
-	if (access_type == "role") {
+	if (access_type === "role") {
 		message.guild.roles
 			.create({
 				data: {
@@ -241,7 +241,7 @@ async function handleCreateArea(message, res) {
 					.then((guildMember) => guildMember.roles.add(own_role));
 				category.createOverwrite(own_role, permissions);
 			});
-	} else if (access_type == "userID") {
+	} else if (access_type === "userID") {
 		category.createOverwrite(message.author, permissions);
 	} else {
 		await bot.api.utility.embeds.functions.emb(
@@ -285,7 +285,7 @@ async function handleCreateArea(message, res) {
 async function handleDeleteArea(message, res) {
 	await check_role(message.author, message.guild, "delete_area");
 	let owner_id = message.author.id;
-	if (res.params["-here"] == "true") {
+	if (res.params["-here"][0] === "true") { // res.params["-here"] = ["true"] or ["false"]
 		await bot.api.utility.users.functions.is_admin(message.author.id, message.guild); // throws
 		try {
 			owner_id = bot.api.databases.functions.lookup_index(
@@ -314,7 +314,6 @@ async function handleDeleteArea(message, res) {
 			"Konnte keine Category-Channel in der Datenbank finden, die dir gehören.",
 			message.channel
 		);
-		return;
 	}
 }
 
@@ -334,17 +333,25 @@ async function handleInvite(message, res) {
 			index,
 			"ownerID"
 		);
-		if (owner != message.author.id) throw new Error();
-		if (thischannel.type != "category") {
-			//could be replaced by channel.type == 'category' because there are only top level categories.
+		if (owner !== message.author.id) {
+			await bot.api.utility.embeds.functions.emb(
+				"Berechtigungsfehler",
+				"Sie sind nicht berechtigt Personen in diesen Kanal einzuladen, da Sie nicht der Besitzer dieses Kanals sind",
+				message.channel
+			);
+			return;
+		}
+
+		if (thischannel.type !== "category") {
 			category = thischannel.parent;
 		} else {
 			category = thischannel;
 		}
 	} catch (error) {
 		await bot.api.utility.embeds.functions.emb(
-			"Berechtigungsfehler",
-			"Du bist nicht der Owner des Channels."
+			"Fehler",
+			"Dieser Kanal befindet sich nicht in der Datenbank.",
+			message.channel
 		);
 		return;
 	}
@@ -357,30 +364,30 @@ async function handleInvite(message, res) {
 		guildMember = await message.guild.members.fetch(user_str);
 	} catch (error) {
 		// add error logging
-		await bot.api.utility.embeds.functions.emb("Falscher User", "Der User ist mir nicht bekannt.");
+		await bot.api.utility.embeds.functions.emb("Falscher User", "Der User ist mir nicht bekannt.", message.channel);
 		return;
 	}
 
 	if (
-		bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type") ==
+		bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type") ===
         "role"
 	) {
 		category.permissionOverwrites.each(async (r) => {
-			if (r.type == "role" && r.id != message.guild.roles.everyone.id) {
+			if (r.type === "role" && r.id !== message.guild.roles.everyone.id) {
 				if (
-					remove == "false" &&
-                    guildMember.roles.cache.has(r.id) == false
+					remove === "false" &&
+                    guildMember.roles.cache.has(r.id) === false
 				) {
 					guildMember.roles.add(r.id);
-					await bot.api.emb(
+					await bot.api.utility.embeds.functions.emb(
 						"Erfolgreich",
 						`${guildMember.toString()} ist jetzt per Rolle eingeladen.`,
 						message.channel
 					);
-					return;
+
 				} else if (
-					remove == "true" &&
-                    guildMember.roles.cache.has(r.id) == true
+					remove === "true" &&
+                    guildMember.roles.cache.has(r.id) === true
 				) {
 					guildMember.roles.remove(r.id);
 					await bot.api.utility.embeds.functions.emb(
@@ -388,9 +395,9 @@ async function handleInvite(message, res) {
 						`${guildMember.toString()} ist jetzt per Rolle ausgeladen.`,
 						message.channel
 					);
-					return;
+
 				} else {
-					await bot.api.emb(
+					await bot.api.utility.embeds.functions.emb(
 						"Fehler",
 						`${guildMember.toString()} wurde entweder schon entfernt oder hinzugefügt.`,
 						message.channel
@@ -399,7 +406,7 @@ async function handleInvite(message, res) {
 			}
 		});
 	} else {
-		if (remove == "false") {
+		if (remove === "false") {
 			const permissions = bot.api.configs.functions.config_get(
 				attributes,
 				message.guild.id,
@@ -411,8 +418,8 @@ async function handleInvite(message, res) {
 				`${guildMember.toString()} ist jetzt per userID eingeladen.`,
 				message.channel
 			);
-			return;
-		} else if (remove == "true") {
+
+		} else if (remove === "true") {
 			/* theoretically we could re-set all permissions to hide blacklisted users*/
 			category.updateOverwrite(guildMember, { VIEW_CHANNEL: false });
 			await bot.api.utility.embeds.functions.emb(
@@ -420,7 +427,7 @@ async function handleInvite(message, res) {
 				`${guildMember.toString()} ist jetzt per userID ausgeladen.`,
 				message.channel
 			);
-			return;
+
 		}
 	}
 }
@@ -441,7 +448,7 @@ async function handleDelete(message, res) {
 				databases[0].name,
 				i[0],
 				"is_part_of_category"
-			) == true
+			) === true
 		) {
 			await bot.api.utility.embeds.functions.emb(
 				"Kann nicht gelöscht werden",
@@ -470,12 +477,12 @@ async function handleConfig(message, res) {
 	if ("-key" in res.params) {
 		const key = res.params["-key"][0];
 		const values = res.params["-value"];
-		if (key == "area_role_attributes") {
+		if (key === "area_role_attributes") {
 			const role_name = values[0];
 			const role = message.guild.roles.cache.find(
 				(r) =>
-					r.name.toLowerCase() == role_name.toLowerCase() ||
-                r.name.toLowerCase() == "@" + role_name.toLowerCase()
+					r.name.toLowerCase() === role_name.toLowerCase() ||
+                r.name.toLowerCase() === "@" + role_name.toLowerCase()
 			);
 			const permissions = { VIEW_CHANNEL: true };
 			for (const perm of role.permissions.toArray()) {
@@ -491,7 +498,7 @@ async function handleConfig(message, res) {
 			bot.api.configs.functions.config_update(attributes, message.guild.id, key, values);
 		}
 	}
-	await bot.api.emb(
+	await bot.api.utility.embeds.functions.emb(
 		"Konfiguration",
 		bot.api.configs.functions.config_toStr(attributes, message.guild.id),
 		message.channel
@@ -548,23 +555,23 @@ async function deleteArea_1(guild, ownerID) {
 		for(const index of indices) {
 			try{
 				const is_part_of_category = bot.api.databases.functions.lookup_index(databases[0].name, index, "is_part_of_category");
-				if(is_part_of_category == false) continue;
+				if(is_part_of_category === false) continue;
 				const guild_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "guildID");
-				if(guild_ID != guild.id) continue;
+				if(guild_ID !== guild.id) continue;
 				const owner_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "ownerID");
-				if(owner_ID != ownerID) continue;
+				if(owner_ID !== ownerID) continue;
 				const channel_ID = bot.api.databases.functions.lookup_index(databases[0].name, index, "channelID");
 				const channel = await guild.channels.cache.get(channel_ID);
-				if(!channel || channel.deleted == true) continue;
-				if(channel.deletable == false) {
+				if(!channel || channel.deleted === true) continue;
+				if(channel.deletable === false) {
 					LOGGER.warn(`Darf channel ${channel.id}:${channel.name} auf Guild ${guild.id}:${guild.name} nicht löschen.`);
 				}
 				const manage_type = bot.api.databases.functions.lookup_index(databases[0].name, index, "manage_type");
 
-				if(manage_type == "role") {
+				if(manage_type === "role") {
 					try {
 						await channel.permissionOverwrites.find(
-							(role, role_ID) => role.type == "role" && role_ID != guild.roles.everyone.id
+							(role, ) => role.type === "role" && role.id !== guild.roles.everyone.id
 						).delete();
 					} catch(error) {
 						LOGGER.error(`Konnte die Rolle vom channel ${channel_ID}:${channel.name} nicht löschen.`);
@@ -626,7 +633,7 @@ async function log_message_in_user_channels(message) {
 				"channelID",
 				message.channel.id
 			);
-			if (indices.length != 1) return; // intuition, maybe redundant
+			if (indices.length !== 1) return; // intuition, maybe redundant
 			const is_part_of_category = bot.api.databases.functions.lookup_index(
 				databases[0].name,
 				indices[0],
@@ -640,7 +647,7 @@ async function log_message_in_user_channels(message) {
 			const message_channel = await message.channel.fetch(true);
 			const category = message_channel.parent;
 
-			if (is_part_of_category && is_part_of_category == true) {
+			if (is_part_of_category && is_part_of_category === true) {
 				await bot.api.utility.embeds.functions.emb(
 					`Channel: ${message_channel.name}, Kategorie: ${
 						category.name
