@@ -1,37 +1,39 @@
 {
-  "name": "squirrelbot",
-  "version": "1.0.0",
-  "description": "Ein discord Bot für den FB 12",
-  "main": "index.js",
-  "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
-    "lint": "eslint . --ext .js,.jsx"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Vetrox/squirrelbot.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Vetrox/squirrelbot/issues"
-  },
-  "homepage": "https://github.com/Vetrox/squirrelbot#readme",
-  "dependencies": {
-    "@discordjs/opus": "^0.3.3",
-    "discord-tts": "^1.0.3",
-    "discord.js": "^12.5.1",
-    "dotenv": "^8.2.0",
-    "nodemon": "^2.0.7",
-    "util": "^0.12.3"
-  },
-  "devDependencies": {
-    "app-root-path": "^3.0.0",
-    "eslint": "^7.17.0",
-    "prettier": "2.1.2",
-    "winston": "^3.3.3",
-    "winston-daily-rotate-file": "^4.5.0"
-  }
+    "name": "squirrelbot",
+    "version": "1.0.0",
+    "description": "Ein discord Bot für den FB 12",
+    "main": "bot.js",
+    "scripts": {
+        "dev": "nodemon bot.js",
+        "start": "node bot.js",
+        "lint": "eslint . --ext .js,.jsx"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Vetrox/squirrelbot.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Vetrox/squirrelbot/issues"
+    },
+    "homepage": "https://github.com/Vetrox/squirrelbot#readme",
+    "dependencies": {
+        "@discordjs/opus": "^0.3.3",
+        "discord-akairo": "^8.1.0",
+        "discord-tts": "^1.0.3",
+        "discord.js": "^12.5.1",
+        "dotenv": "^8.2.0",
+        "mongodb": "^3.6.5",
+        "util": "^0.12.3"
+    },
+    "devDependencies": {
+        "app-root-path": "^3.0.0",
+        "eslint": "^7.17.0",
+        "nodemon": "^2.0.7",
+        "prettier": "2.1.2",
+        "winston": "^3.3.3",
+        "winston-daily-rotate-file": "^4.5.0"
+    }
 }
