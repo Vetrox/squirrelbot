@@ -49,11 +49,10 @@ class ChmgrCommand extends Command {
 
     async exec(message, args) {
         if (!args.sub) {
-            await message.channel.send('What is my purpose');
+            await message.channel.send('You need to give me a subcommand.');
             return;
         }
 
-        // let all errors propagate to the module
         try {
             switch (args.sub) {
                 case 'create':
