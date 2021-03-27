@@ -34,9 +34,7 @@ handleCreateArea = async (message, args) => {
     try {
         category = await message.guild.channels.create(args.name, options);
     } catch (err) {
-        // TODO add proper log
-        console.log(err);
-        await message.channel.send('Something went wrong.');
+        await message.channel.send('Could not create category. Please check your arguments.');
         return;
     }
 

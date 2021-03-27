@@ -1,12 +1,6 @@
 const { MongoConnection } = require ('../../mongo_client');
 
-handleDeleteArea = async (message, client) => {
-    // check permissions (user has to be owner)
-    if (!message.member.permissions.has('ADMINISTRATOR')) {
-        await message.channel.send('You do not have permission to execute this command.');
-        return;
-    }
-
+handleDeleteArea = async (message, args) => {
     // delete all user categories
     const db = await MongoConnection.open();
     const categoryCollection = db.collection('private_categories');

@@ -16,13 +16,10 @@ handleCreate = async (message, args) => {
         options.parent = args.parent;
     }
 
-    let channel;
     try {
-        channel = await message.guild.channels.create(args.name, options);
+        let channel = await message.guild.channels.create(args.name, options);
     } catch (err) {
-        // TODO add proper log
-        console.error(err);
-        await message.channel.send('Something went wrong.');
+        await message.channel.send('Could not create channel. Please check your arguments.');
         return;
     }
 

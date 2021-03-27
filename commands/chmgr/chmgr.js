@@ -5,6 +5,7 @@ const { handleCreate } = require('./create');
 const { handleDelete } = require('./delete');
 const { handleCreateArea } = require('./create_area');
 const { handleDeleteArea } = require('./delete_area');
+const { handleInvite } = require('./invite');
 
 class ChmgrCommand extends Command {
     constructor() {
@@ -32,8 +33,14 @@ class ChmgrCommand extends Command {
             }
 
             case 'create_area': {
-                const name          = yield { id: 'name' };
+                const name      = yield { id: 'name' };
                 return { sub, name }
+            }
+
+            case 'invite': {
+                const user      = yield { id: 'user', type: 'user' };
+                const remove    = yield { id: 'remove', type: ['remove', 'add'], default: 'add' };
+                return { sub, user, remove };
             }
         }
 
@@ -46,6 +53,7 @@ class ChmgrCommand extends Command {
             return;
         }
 
+        // let all errors propagate to the module
         try {
             switch (args.sub) {
                 case 'create':
@@ -58,13 +66,16 @@ class ChmgrCommand extends Command {
                     await handleCreateArea(message, args);
                     break;
                 case 'delete_area':
-                    await handleDeleteArea(message, this.client);
+                    await handleDeleteArea(message, args);
+                    break;
+                case 'invite':
+                    await handleInvite(message, args);
                     break;
             }
         } catch (err) {
-            await message.channel.send('Something went wrong. Did you forget some arguments?');
+            await message.channel.send('Something went wrong. Please check your arguments.');
             // TODO add proper log
-            console.error(err);
+            console.error(`ERROR in chmgr.js: ${err}`);
         }
     }
 }
