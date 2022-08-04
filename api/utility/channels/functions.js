@@ -39,10 +39,6 @@ function channel_check(channel, req_list) {
                 id = 5;
                 break;
         }
-        console.log(req);
-        console.log(channel.type);
-        console.log(id);
-        console.log("--");
 		if (channel.type === id) return true;
 	}
 	return false;
