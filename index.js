@@ -43,7 +43,7 @@ function readModulesFromSource() {
  * Hooks up all discord events with the handleEvent function.
  */
 function initializeDiscordEventCaptures() {
-	const events = Discord.Constants.Events;
+	const events = Discord.Events;
 	for(const event in events) {
 		const eventname = events[event];
 		bot.client.on(eventname, (...args) => handleEvent(eventname, ...args));
