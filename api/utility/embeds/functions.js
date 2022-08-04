@@ -8,15 +8,15 @@ const LOGGER = require.main.require("./log.js")("embeds");
  * @returns {module:"discord.js".MessageEmbed} the embed.
  */
 function create_embed(title, description) {
-	return new Discord.MessageEmbed()
+	return new Discord.EmbedBuilder()
 		.setColor("#ff9900")
 		.setTitle(title)
 		.setDescription(description)
 		.setTimestamp()
-		.setFooter(
+		/*.setFooter(
 			bot.client.user.username,
 			bot.client.user.displayAvatarURL({ size: 32 })
-		);
+		);*/
 }
 
 /**
@@ -32,7 +32,7 @@ function create_embed(title, description) {
 async function emb(title, description, channel) {
 	if (!channel || channel.deleted === true) return; //maybe log to server log channel
 	try {
-		await channel.send(create_embed(title, description));
+		await channel.send({embeds: [create_embed(title, description)]});
 	} catch (error) {
 		LOGGER.error(error.stack);
 	}
@@ -51,9 +51,9 @@ function embl(title, description, channel, logging_channel = undefined) {
 	// TODO: make async
 	if (!channel || channel.deleted === true) return; //maybe log to server log channel
 	let embed = create_embed(title, description);
-	channel.send(embed);
+	channel.send({embeds: [embed]});
 	if (!logging_channel || logging_channel.deleted === true) return;
-	logging_channel.send(embed);
+	logging_channel.send({embeds: [embed]});
 }
 
 /**
@@ -66,16 +66,16 @@ function embl(title, description, channel, logging_channel = undefined) {
  * @throws may throw an error, depending on discord permissions
  */
 async function help_module(mod_attributes, channel) {
-	const embed = new Discord.MessageEmbed()
+	let embed = new Discord.EmbedBuilder()
 		.setColor("#ffaaff")
-		.setAuthor("Hilfeseite")
+        // .setAuthor("Hilfeseite")
 		.setTitle(`Modul: ${mod_attributes.modulename}`)
 		.setDescription(mod_attributes.description)
 		.setTimestamp()
-		.setFooter(
+		/*.setFooter(
 			bot.client.user.username,
 			bot.client.user.displayAvatarURL({ size: 32 })
-		);
+		);*/
 
 	for (let cmd of mod_attributes.commands) {
 		let desc = `${cmd.description}\n`;
@@ -98,9 +98,9 @@ async function help_module(mod_attributes, channel) {
 					: "") +
 				"```";
 		}
-		embed.addField(`cmd: ${cmd.name}`, desc, false);
+	    embed = embed.addFields({ name: `cmd: ${cmd.name}`, value: desc, inline: false});
 	}
-	await channel.send(embed);
+	await channel.send({ embeds: [embed] });
 }
 
 module.exports =  {

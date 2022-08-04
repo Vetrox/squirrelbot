@@ -237,20 +237,20 @@ async function handleAdd(message, res) {
 			emoji_map[emoji]
 		)}\n`;
 	}
-	let embed = new Discord.MessageEmbed()
+	let embed = new Discord.EmbedBuilder()
 		.setColor("#99ff00")
 		.setTitle("Rollenvergabe")
-		.setAuthor(
+		/*.setAuthor(
 			msg.author.username,
 			msg.author.displayAvatarURL({ size: 256 })
-		)
+		)*/
 		.setDescription(msg.content)
-		.addField("Emoji 🡒 Rolle", e_r_t.trim())
+		.addFields({name: "Emoji 🡒 Rolle", value: e_r_t.trim()})
 		.setTimestamp()
-		.setFooter(
+		/*.setFooter(
 			`Originale MessageID: ${messageID}`,
 			bot["client"].user.displayAvatarURL({ size: 32 })
-		);
+		)*/;
 	if (required_roles.length > 0) {
 		let req_roles_text_head = "";
 		let req_roles_text = "";
@@ -279,10 +279,10 @@ async function handleAdd(message, res) {
 		for (let role of required_roles) {
 			req_roles_text += `• ${message.guild.roles.cache.get(role)}\n`;
 		}
-		embed.addField(req_roles_text_head.trim(), req_roles_text.trim());
+		embed.addFields({name: req_roles_text_head.trim(), value: req_roles_text.trim()});
 	}
 
-	let ret_msg = await message.channel.send(embed);
+	let ret_msg = await message.channel.send({embeds: [embed]});
 
 	/*react to the message with the emoji*/
 	for (let emoji in emoji_map) {
@@ -401,7 +401,7 @@ async function onMessage(message) {
 
 module.exports = {
 	hooks: {
-		message: onMessage,
+		messageCreate: onMessage,
 		raw: onRaw,
 	},
 	initialize,

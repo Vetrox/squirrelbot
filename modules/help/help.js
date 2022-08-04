@@ -56,7 +56,7 @@ async function onMessage(message) {
 
 module.exports = {
 	hooks: {
-		message: onMessage,
+		messageCreate: onMessage,
 	},
 	initialize,
 	attributes,
