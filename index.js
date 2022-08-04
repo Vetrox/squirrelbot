@@ -9,7 +9,7 @@ require("dotenv").config();
 /**
  * Can be accessed by any module to share information
  * */
-global.bot = { client: new Discord.Client(), running: true};
+global.bot = { client: new Discord.Client({intents: 65535}), running: true};
 
 /**
  * Maps a discord event to a map containing the modulename and the assigned event function of that module.
