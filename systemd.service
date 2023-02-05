@@ -1,0 +1,17 @@
+[Unit]
+Description=Squirrelbot Executor
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+ProtectHome=false
+RestartSec=10
+User=squirrelbot
+WorkingDirectory=/dir/to/repository
+ExecStart=/usr/bin/npm start
+Environment="BOT_TOKEN=PASTE_BOT_TOKEN_HERE"
+
+[Install]
+WantedBy=multi-user.target
+
